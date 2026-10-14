@@ -27,8 +27,8 @@
 {{ m.faq_schema(FAQS) }}
 {% set offers = [] %}
 {% for p in D.plans %}
-{% set _ = offers.append({"@type": "Offer", "name": p.label, "description": p.short, "price": p.price_num, "priceCurrency": "ARS",
-  "priceSpecification": {"@type": "UnitPriceSpecification", "price": p.price_num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false},
+{% set _ = offers.append({"@type": "Offer", "name": p.label, "description": p.short, "price": p.price_num, "priceCurrency": currency_code(p),
+  "priceSpecification": {"@type": "UnitPriceSpecification", "price": p.price_num, "priceCurrency": currency_code(p), "unitText": "mes", "valueAddedTaxIncluded": not iva(p)},
   "url": abs_url(p.slug)}) %}
 {% endfor %}
 {{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "GERP", "alternateName": "GERP Software de Gestión Empresarial",

@@ -41,3 +41,7 @@ body { font-family: var(--w-font-sans); }
 .gwa-paso { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; counter-reset: p; }
 .gwa-paso li { counter-increment: p; border: 1px solid var(--w-color-border-furniture, #e0e0e0); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
 .gwa-paso li::before { content: counter(p) ". "; font-weight: 700; color: var(--w-color-secondary); }
+.gwa-scroll { overflow-x: auto; }
+.gwa-precios input[type="text"] { min-width: 110px; }
+.gwa-precios input.gwa-leyenda { min-width: 280px; max-width: none; }
+.gwa-precios select { min-width: 80px; }

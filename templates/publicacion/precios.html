@@ -3,24 +3,33 @@
 {% block content %}
 {% include "wagtailadmin/shared/header.html" with title="Actualizar precios" icon="tag" %}
 <div class="nice-padding">
-  <p>Todos los planes en una pantalla. Cada precio se carga una sola vez y se actualiza en la home, la landing del plan, el comparador y los datos estructurados.
+  <p>Cada importe se carga una sola vez, acá o en el plan. La web lo toma para las tarjetas de planes, las landings, el comparador,
+     los datos para buscadores y las preguntas frecuentes que lo mencionan con <code>[precio:clave]</code>.
      «Guardar borradores» no cambia nada aprobado; «Guardar y aprobar» deja los precios listos para publicar desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
+  <p class="help">Leyenda de vigencia vacía: no se muestra ninguna leyenda ni el (*). El aviso de vencimiento no se publica: solo te avisa en el inicio.</p>
   <form method="post">{% csrf_token %}
-    <table class="gwa-tabla">
-      <thead><tr><th>Sitio</th><th>Plan</th><th class="gwa-num">Abono mensual ($)</th><th class="gwa-num">Implementación ($)</th><th>Vigente hasta</th><th>Estado</th></tr></thead>
+    <div class="gwa-scroll">
+    <table class="gwa-tabla gwa-precios">
+      <thead><tr><th>Plan</th><th class="gwa-num">Abono mensual</th><th class="gwa-num">Implementación</th><th>Moneda</th><th>+ IVA</th>
+        <th>Leyenda de vigencia</th><th>Aviso de vencimiento</th><th>Estado</th></tr></thead>
       <tbody>
       {% for f in filas %}
         <tr>
-          <td><span class="gwa-dot" style="background: {{ f.p.sitio.color }}"></span> {{ f.p.sitio.nombre }}</td>
-          <td><a href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">{{ f.p }}</a>{% if not f.p.visible %} <span class="gwa-badge gwa-sin_publicar">oculto</span>{% endif %}</td>
+          <td><span class="gwa-dot" style="background: {{ f.p.sitio.color }}"></span>
+            <a href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">{{ f.p }}</a>
+            <br><small class="help">clave: {{ f.p.clave }}</small>{% if not f.p.visible %} <span class="gwa-badge gwa-sin_publicar">oculto</span>{% endif %}</td>
           <td class="gwa-num"><input type="text" name="precio_{{ f.p.pk }}" value="{{ f.v.precio }}" inputmode="numeric" aria-label="Abono de {{ f.p }}"></td>
-          <td class="gwa-num"><input type="text" name="impl_{{ f.p.pk }}" value="{{ f.v.implementacion }}" inputmode="numeric" aria-label="Implementación de {{ f.p }}"></td>
-          <td><input type="date" name="hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" aria-label="Vigencia de {{ f.p }}"></td>
-          <td>{% if f.b %}<span class="gwa-badge gwa-pendiente">Borrador (aprobado: ${{ f.p.precio }})</span>{% elif f.p.live %}<span class="gwa-badge gwa-al_dia">Aprobado</span>{% else %}<span class="gwa-badge gwa-sin_publicar">Sin aprobar</span>{% endif %}</td>
+          <td class="gwa-num"><input type="text" name="implementacion_{{ f.p.pk }}" value="{{ f.v.implementacion }}" inputmode="numeric" aria-label="Implementación de {{ f.p }}"></td>
+          <td><select name="moneda_{{ f.p.pk }}" aria-label="Moneda de {{ f.p }}">{% for c, n in monedas %}<option value="{{ c }}"{% if c == f.v.moneda %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></td>
+          <td><input type="checkbox" name="mas_iva_{{ f.p.pk }}"{% if f.v.mas_iva %} checked{% endif %} aria-label="{{ f.p }}: importes más IVA"></td>
+          <td><input type="text" name="leyenda_vigencia_{{ f.p.pk }}" value="{{ f.v.leyenda_vigencia }}" class="gwa-leyenda" placeholder="Sin leyenda" aria-label="Leyenda de vigencia de {{ f.p }}"></td>
+          <td><input type="date" name="vigente_hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" aria-label="Aviso de vencimiento de {{ f.p }}"></td>
+          <td>{% if f.b %}<span class="gwa-badge gwa-pendiente">Borrador (aprobado: {{ f.p.simbolo }}{{ f.p.precio }})</span>{% elif f.p.live %}<span class="gwa-badge gwa-al_dia">Aprobado</span>{% else %}<span class="gwa-badge gwa-sin_publicar">Sin aprobar</span>{% endif %}</td>
         </tr>
-      {% empty %}<tr><td colspan="6">No hay planes en tus sitios.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="8">No hay planes en tus sitios.</td></tr>{% endfor %}
       </tbody>
     </table>
+    </div>
     <div class="gwa-acciones w-mt-6">
       <button class="button button-secondary" name="accion" value="borrador">Guardar borradores</button>
       <button class="button" name="accion" value="aprobar">Guardar y aprobar</button>

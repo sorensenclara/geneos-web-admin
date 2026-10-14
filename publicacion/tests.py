@@ -107,13 +107,13 @@ class Circuito(TestCase):
         lite = Plan.objects.get(sitio=self.geagro, clave="lite")
         self.client.force_login(self.clara)
         # Borrador: no cambia lo aprobado
-        self.client.post("/admin/precios/", {f"precio_{lite.pk}": "99.000", f"impl_{lite.pk}": lite.implementacion, "accion": "borrador"})
+        self.client.post("/admin/precios/", self._form_precios(lite, precio="99.000", accion="borrador"))
         lite.refresh_from_db()
         self.assertEqual(lite.precio, "89.250")
         self.assertTrue(lite.has_unpublished_changes)
         self.assertEqual(estado_sitio(self.geagro)["situacion"], "al_dia")
         # Aprobado: queda pendiente de publicar
-        self.client.post("/admin/precios/", {f"precio_{lite.pk}": "99.000", f"impl_{lite.pk}": lite.implementacion, "accion": "aprobar"})
+        self.client.post("/admin/precios/", self._form_precios(lite, precio="99.000", accion="aprobar"))
         lite.refresh_from_db()
         self.assertEqual(lite.precio, "99.000")
         self.assertEqual(estado_sitio(self.geagro)["situacion"], "pendiente")
@@ -125,6 +125,85 @@ class Circuito(TestCase):
         self.assertIn("$99.000", web)
         self.assertIn("abono de $99.000 + IVA", web)  # la pregunta frecuente con el precio también se actualiza
         self.assertEqual(estado_sitio(self.geagro)["situacion"], "al_dia")
+
+    def _form_precios(self, plan, accion, **cambios):
+        d = {f"precio_{plan.pk}": plan.precio, f"implementacion_{plan.pk}": plan.implementacion, f"moneda_{plan.pk}": plan.moneda,
+             f"leyenda_vigencia_{plan.pk}": plan.leyenda_vigencia, "accion": accion}
+        if plan.mas_iva:
+            d[f"mas_iva_{plan.pk}"] = "on"
+        for k, v in cambios.items():
+            d[f"{k}_{plan.pk}"] = v
+        if cambios.get("mas_iva") is False:
+            d.pop(f"mas_iva_{plan.pk}", None)
+        return d
+
+    def _web(self, sitio, ruta=""):
+        d = publicar_sitio(sitio, self.clara)
+        self.assertEqual(d.estado, "ok", d.registro)
+        return (despliegue.raiz(sitio) / "actual" / ruta / "index.html").read_text()
+
+    # ---------------------------------------------------------------------------------------------- Precios: fuente única
+    def test_precio_unico_en_tarjetas_landing_faq_y_datos(self):
+        core = Plan.objects.get(sitio=self.gerp, clave="core")
+        self.client.force_login(self.clara)
+        self.client.post("/admin/precios/", self._form_precios(core, precio="199.000", implementacion="999.000", accion="aprobar"))
+        home, landing, lite = self._web(self.gerp), self._web(self.gerp, "core/"), self._web(self.gerp, "lite/")
+        self.assertIn("$199.000", home)                       # tarjeta
+        self.assertIn('"price": 199000', home)               # datos estructurados
+        self.assertIn("costo único de $999.000 + IVA", landing)  # pregunta frecuente de la implementación
+        self.assertIn("$199.000 + IVA / mes", lite)           # «otros planes» en otra landing
+        self.assertNotIn("178.500", home + landing + lite)
+
+    def test_moneda_iva_y_vigencia_editables(self):
+        plan = Plan.objects.get(sitio=self.gema)
+        faq = PreguntaFrecuente.objects.get(sitio=self.gema, pregunta__startswith="¿El pago es mensual")
+        self.assertNotIn("89.250", faq.respuesta)            # la respuesta referencia al plan, no repite el importe
+        self.assertIn("[precio:mensual]", faq.respuesta)
+        html = self._web(self.gema)
+        self.assertIn("el abono es de $89.250 + IVA por mes", html)
+        self.assertNotIn("dólares", html)
+        self.assertIn("(*) Precios válidos para Octubre", html)
+        self.client.force_login(self.clara)
+        self.client.post("/admin/precios/", self._form_precios(plan, precio="95", moneda="USD", mas_iva=False, leyenda_vigencia="", accion="aprobar"))
+        html = self._web(self.gema)
+        self.assertIn("el abono es de US$95 por mes", html)
+        self.assertIn('"priceCurrency": "USD"', html)
+        self.assertNotIn("(*)", html)                         # sin leyenda no hay asterisco ni nota
+        self.assertNotIn("+ IVA", html.split('id="planes"')[1].split("</section>")[0])
+
+    def test_geagro_sin_leyenda_de_vigencia(self):
+        self.assertFalse(Plan.objects.filter(sitio=self.geagro).exclude(leyenda_vigencia="").exists())
+        self.assertFalse(Plan.objects.filter(sitio__in=[self.geagro, self.gema], vigente_hasta__isnull=False).exists())
+        self.assertNotIn("(*)", self._web(self.geagro))
+
+    def test_faq_no_acepta_importes_escritos(self):
+        from django.core.exceptions import ValidationError
+        f = PreguntaFrecuente(sitio=self.gema, pregunta="¿Cuánto sale?", respuesta="<p>Sale $89.250 + IVA.</p>")
+        with self.assertRaises(ValidationError):
+            f.full_clean()
+        f.respuesta = "<p>Sale [precio:inexistente].</p>"
+        with self.assertRaises(ValidationError):
+            f.full_clean()
+        f.respuesta = "<p>Sale [precio:mensual].</p>"
+        f.full_clean()
+
+    def test_comparador_sin_a_confirmar(self):
+        home = self._web(self.gerp)
+        self.assertNotIn("A confirmar", home)
+        self.assertNotIn("Consultar", home)
+        self.assertNotIn("Facturación electrónica ARCA (ex AFIP)</th>", home)  # fila sin ningún dato confirmado
+        self.assertIn("Lotes y vencimientos</th>", home)                       # fila con datos: las celdas sin confirmar quedan vacías
+        from contenidos.models import ValorFuncionalidad
+        self.assertTrue(ValorFuncionalidad.objects.filter(estado="a_confirmar").exists())  # siguen pendientes en el administrador
+
+    def test_testimonio_autorizado_exige_datos(self):
+        from django.core.exceptions import ValidationError
+        from contenidos.models import Testimonio
+        t = Testimonio.objects.filter(sitio=self.gerp).first()
+        self.assertEqual(t.estado, "pendiente")
+        t.estado = "autorizado"
+        with self.assertRaises(ValidationError):
+            t.full_clean()
 
     def test_publicacion_fallida_no_toca_la_web(self):
         ok = publicar_sitio(self.gema, self.clara)

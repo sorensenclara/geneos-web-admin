@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% import "partials/macros.html" as m with context %}
 {% import "partials/product.html" as pp with context %}
+{% import "partials/standalone.html" as sx with context %}
 {#
   GEMA · contenido de la página. Mismos componentes que GERP y GEAGRO
   (partials/product.html + assets/css/product.css, tema .pp-theme-gema).
@@ -9,12 +10,13 @@
 {% set O = "#f36b21" %}{% set B = "#1455a0" %}
 {% set DEMO_WA = wa('Hola, quiero solicitar una demo de GEMA') %}
 {% set PLAN = {"name": "Plan mensual", "sub": "Plataforma online personalizada", "price": "89.250", "num": 89250, "impl": "349.750",
-  "feats": ["Plataforma online personalizada", "Carga ILIMITADA de clientes", "Uso de todas las funciones"]} %}
+  "feats": ["Plataforma online personalizada", "Carga ILIMITADA de clientes", "Uso de todas las funciones"],
+  "validity": "Precios válidos para Octubre, Noviembre y Diciembre. Actualización bimestral."} %}
 {% set PLAN = plans_data([PLAN])[0] %}
 {% set FAQS = [
   ("¿Puedo gestionar mi taller de matafuegos desde mi casa?", "<p>Sí, podrás abrir el software desde DÓNDE y CUÁNDO quieras, siempre y cuando tengas conexión a Internet. No es necesario instalar nada en ninguna computadora, smartphone ni dispositivo digital: con sólo tener tu usuario y clave podrás ingresar fácilmente.</p>"),
   ("¿Si se me rompe la computadora donde estaba trabajando pierdo toda la info?", "<p>No, no perderás ni tendrás que pagar nada para volver a tener tus datos, ya que se guardan en el servidor/nube automáticamente y no en tu computadora; podrás acceder a ellos con otro dispositivo que cuente con Internet.</p>"),
-  ("¿El pago es mensual y fijo?", "<p>El pago del uso de la plataforma es mensual de 30 dólares oficiales, incluye actualizaciones y soporte técnico sin costo adicional.</p>"),
+  ("¿El pago es mensual y fijo?", "<p>El pago es mensual: el abono es de " ~ importe(PLAN, "price") ~ " por mes e incluye actualizaciones y soporte técnico sin costo adicional.</p>"),
   ("¿Puedo personalizar la aplicación en función de mi marca?", "<p>Sí, podrás pasarnos tu brandbook o manual de marca, con tu logotipo, colores y tipografías y ajustaremos la plataforma según tu identidad.</p>"),
   ("¿Puedo desuscribirme cuando desee?", "<p>Sí, una vez cumplido el plazo del plan contratado podrás dejar de usar el software si lo deseás, sin compromiso alguno.</p>"),
   ("¿Cuántos clientes y matafuegos puedo cargar?", "<p>La carga de clientes es <strong>ilimitada</strong> y tenés acceso a todas las funciones de la plataforma desde el primer día.</p>"),
@@ -29,8 +31,8 @@
   "applicationSubCategory": "Software para talleres de matafuegos", "operatingSystem": "Web", "description": description, "url": abs_url(page.out),
   "image": abs_url("assets/img/gema/gema-hero-1920.webp"), "publisher": {"@id": abs_url("#organizacion")},
   "featureList": ["Control de vencimientos de matafuegos", "Historial de recargas y servicios", "Notificaciones por mail a clientes", "Órdenes de trabajo para facturación", "Obleas imprimibles", "Presupuestos automáticos", "Personalización con la marca del taller"],
-  "offers": {"@type": "Offer", "name": "Plan mensual GEMA", "price": PLAN.num, "priceCurrency": "ARS", "url": abs_url(page.out) ~ "#planes",
-    "priceSpecification": {"@type": "UnitPriceSpecification", "price": PLAN.num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false}}}) }}
+  "offers": {"@type": "Offer", "name": "Plan mensual GEMA", "price": PLAN.num, "priceCurrency": currency_code(PLAN), "url": abs_url(page.out) ~ "#planes",
+    "priceSpecification": {"@type": "UnitPriceSpecification", "price": PLAN.num, "priceCurrency": currency_code(PLAN), "unitText": "mes", "valueAddedTaxIncluded": not iva(PLAN)}}}) }}
 {% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
 {% block preload %}
@@ -91,10 +93,10 @@
 }) }}
 
 {# 5. Planes #}
-{{ pp.plans({"id": "planes", "eyebrow": "Planes", "title": "Planes de GEMA",
+{{ sx.price_plans({"id": "planes", "eyebrow": "Planes", "title": "Planes de GEMA",
   "lead": "Un abono mensual con todas las funciones de la plataforma, actualizaciones y soporte técnico.",
-  "note": "(*) Precios en pesos argentinos válidos para Octubre, Noviembre y Diciembre. Actualización bimestral.",
-  "items": [{"name": PLAN.name, "sub": PLAN.sub, "price": PLAN.price, "tax": "+ IVA por mes (*)", "feats": PLAN.feats,
+  "note": plans_note([PLAN]),
+  "items": [{"name": PLAN.name, "sub": PLAN.sub, "price": PLAN.price, "per": "por mes", "currency": PLAN.currency, "iva": PLAN.iva, "feats": PLAN.feats,
              "impl": PLAN.impl, "impl_note": "Por única vez", "color": O,
              "button": {"label": "Solicitar demo", "href": "#demo", "style": "accent", "icon": "bi-arrow-right"}}]}) }}
 

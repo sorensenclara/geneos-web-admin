@@ -36,15 +36,14 @@ FUENTE = "gerp.ar, octubre 2026"
 
 SITIOS = [
     dict(clave="geneos", nombre="GENEOS", motor="institucional", dominio="https://geneos.coop.ar", dominio_confirmado=True, color="#178943", orden=0,
-         usa_blog=True, usa_planes=False, usa_comparador=False, usa_testimonios=False, usa_formularios=False, leyenda_precios=""),
+         usa_blog=True, usa_planes=False, usa_comparador=False, usa_testimonios=False, usa_formularios=False),
     dict(clave="gerp", nombre="GERP", dominio="https://gerp.ar", dominio_confirmado=True, color="#254d99", orden=1,
-         usa_blog=False, usa_planes=True, usa_comparador=True, usa_testimonios=True,
-         leyenda_precios="Precios en pesos argentinos, más IVA. Precios vigentes hasta diciembre de 2026."),
+         usa_blog=False, usa_planes=True, usa_comparador=True, usa_testimonios=True),
     dict(clave="geagro", nombre="GEAGRO", dominio="https://geagro.ar", dominio_confirmado=True, color="#22b24c", orden=2,
-         usa_blog=True, usa_planes=True, leyenda_precios=""),
+         usa_blog=True, usa_planes=True),
     # gema.geneos.com.ar hoy sirve la landing comercial vieja. Queda sin confirmar hasta que Infra defina dónde vive la aplicación.
     dict(clave="gema", nombre="GEMA", dominio="https://gema.geneos.com.ar", dominio_confirmado=False, color="#e2231a", orden=3,
-         usa_blog=False, usa_planes=True, leyenda_precios=""),
+         usa_blog=False, usa_planes=True),
 ]
 LINEAS = {"geagro": [dict(clave="cereales", nombre="Cereales", ruta="cereales/", color="#22b24c", orden=1),
                      dict(clave="vid", nombre="Vid", ruta="vid/", color="#7b2346", orden=2)]}
@@ -54,10 +53,16 @@ PAGINAS = {  # páginas comerciales editables (las landings de GERP Lite/Core/Pl
     "geagro": [("", "GEAGRO · Inicio", None), ("cereales/", "GEAGRO CEREALES", "cereales"), ("vid/", "GEAGRO VID", "vid")],
     "gema": [("", "GEMA · Inicio", None)],
 }
-PLANES_SIMPLES = {  # tal como figuran hoy en las plantillas de GEAGRO y GEMA
+# Importes tal como están publicados hoy (octubre 2026):
+#   GEAGRO: https://geagro.ar/ (sin leyenda de vigencia)
+#   GEMA:   https://geneos.coop.ar/index.php/software-gestion-matafuegos-extintores/
+#   GERP:   https://gerp.ar/index.php/planes-precios-erp-gerp/ (renderer/data/gerp.json)
+VIGENCIA_GERP = "Los valores informados son precios vigentes hasta diciembre 2026"
+PLANES_SIMPLES = {
     "geagro": [dict(clave="lite", nombre="Lite", precio="89.250", implementacion="624.750", color="#22b24c", orden=1),
                dict(clave="plus", nombre="Plus", precio="178.500", implementacion="1.071.000", color="#0b3422", orden=2, destacado=True)],
     "gema": [dict(clave="mensual", nombre="Plan mensual", precio="89.250", implementacion="349.750", orden=1,
+                  leyenda_vigencia="Precios válidos para Octubre, Noviembre y Diciembre. Actualización bimestral.",
                   publico_corto="Plataforma online personalizada",
                   caracteristicas="Plataforma online personalizada\nCarga ILIMITADA de clientes\nUso de todas las funciones")],
 }
@@ -150,11 +155,11 @@ class Command(BaseCommand):
         self.generar_base(base)
         with transaction.atomic():
             sitios = self.sitios()
+            self.gerp(sitios["gerp"])  # primero los planes: las preguntas frecuentes los referencian
+            self.planes_simples(sitios)
             self.paginas(sitios, base)
             self.colecciones_y_grupos(sitios)
             self.flujo()
-            self.gerp(sitios["gerp"])
-            self.planes_simples(sitios)
         shutil.rmtree(base, ignore_errors=True)
         if not opts["sin_publicar"]:
             from publicacion.servicio import publicar_sitio
@@ -207,8 +212,8 @@ class Command(BaseCommand):
         if PreguntaFrecuente.objects.filter(sitio=sitio, ubicacion=ruta).exists():
             return
         for i, (q, a) in enumerate(items, 1):
-            for valor, token in (precios or {}).items():
-                a = a.replace(f"${valor}", f"${token}")
+            for valor, token in (precios or {}).items():  # el importe escrito pasa a ser una referencia al plan
+                a = a.replace(f"${valor} + IVA", token).replace(f"${valor}", token)
             f = PreguntaFrecuente(sitio=sitio, linea=linea, ubicacion=ruta, pregunta=q, respuesta=a, orden=i, live=False)
             f.save()
             self.publicar(f)
@@ -221,6 +226,11 @@ class Command(BaseCommand):
             for p in PLANES_SIMPLES.get(clave, []):
                 precios[p["precio"]] = f"[precio:{p['clave']}]"
                 precios[p["implementacion"]] = f"[implementacion:{p['clave']}]"
+            if clave == "gerp":
+                import json as _json
+                for it in _json.loads((Path(settings.GWA_RENDERER_DIR) / "data" / "gerp.json").read_text())["plans"]:
+                    precios[it["price"]] = f"[precio:{it['key']}]"
+                    precios[it["impl"]] = f"[implementacion:{it['key']}]"
             for ruta, titulo, linea_clave in lista:
                 linea = LineaProducto.objects.get(sitio=s, clave=linea_clave) if linea_clave else None
                 if ruta == "":
@@ -332,7 +342,7 @@ class Command(BaseCommand):
         planes = {}
         for i, it in enumerate(d["plans"], 1):
             p = Plan(sitio=s, clave=it["key"], nombre=it["name"], etiqueta=it.get("label", ""), precio=it["price"], implementacion=it.get("impl", ""),
-                     vigente_hasta=date(2026, 12, 31), destacado=bool(it.get("featured")), orden=i, publico_corto=it.get("short", ""),
+                     leyenda_vigencia=VIGENCIA_GERP, vigente_hasta=date(2026, 12, 31), destacado=bool(it.get("featured")), orden=i, publico_corto=it.get("short", ""),
                      publico=it.get("audience", ""), caracteristicas="\n".join(it.get("card_feats", [])), ruta=it.get("slug", ""),
                      titulo_landing="\n".join(it.get("h1", [])), titulo_seo=it.get("title", ""), descripcion_seo=it.get("description", ""),
                      color=it.get("color", ""), color_acento=it.get("accent", ""), color_hover=it.get("hover", ""), color_suave=it.get("soft", ""),
@@ -344,7 +354,7 @@ class Command(BaseCommand):
             self.publicar(p)
             planes[p.clave] = p
             self.faqs(s, p.ruta, [(q, a if a.startswith("<") else f"<p>{a}</p>") for q, a in it.get("faqs", [])],
-                      precios={it["price"]: f"[precio:{p.clave}]", it.get("impl", "-"): f"[implementacion:{p.clave}]"})
+                      precios={x["price"]: f"[precio:{x['key']}]" for x in d["plans"]} | {x["impl"]: f"[implementacion:{x['key']}]" for x in d["plans"]})
         for i, f in enumerate(d["features"], 1):
             func = Funcionalidad(sitio=s, etiqueta=f["label"], grupo=f["group"], resumen=f.get("summary", f["group"] == "basic") is not False, orden=i)
             valores = []

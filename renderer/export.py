@@ -257,11 +257,29 @@ def export(key, P):
                 res.append(dict(p, **{k: v for k, v in (q or {}).items() if k not in ("name", "hidden")}) if q else p)
             return res
 
+        # Precios: moneda, IVA y leyenda de vigencia salen de cada plan (administrador). Sin datos: $, + IVA, ARS.
+        def cur(p):
+            return p.get("currency") or "$"
+
+        def iva(p):
+            return p.get("iva", True) is not False
+
+        def currency_code(p):
+            return p.get("currency_code") or "ARS"
+
+        def importe(p, campo="price"):
+            v = p.get(campo)
+            return f"{cur(p)}{v}{' + IVA' if iva(p) else ''}" if v else ""
+
+        def plans_note(plans):
+            return " ".join(dict.fromkeys(p.get("validity") for p in plans if p.get("validity")))
+
         def show(section):
             return section not in (page_over.get("hidden") or [])
 
         env.globals.update(site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
                            DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, show=show,
+                           cur=cur, iva=iva, currency_code=currency_code, importe=importe, plans_note=plans_note,
                            FORM=PD.get("form"),
                            abs_url=abs_url, page_url=page_url, prefix=prefix, year=date.today().year, site_url="",
                            org_schema=B.org_schema, crumbs_schema=B.crumbs_schema, faq_entities=B.faq_entities,

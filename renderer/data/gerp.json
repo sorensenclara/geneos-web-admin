@@ -2,10 +2,10 @@
   "_comentario": [
     "Configuración única de GERP: precios, módulos, funcionalidades, comparador, sectores y testimonios.",
     "La usan la home (tarjetas, comparador, FAQ, datos estructurados) y las landings /lite/, /core/ y /plus/.",
-    "Comparador: true = incluido · false = no incluido · null = sin confirmar (se muestra 'A confirmar') · texto = valor descriptivo.",
+    "Comparador: true = incluido · false = no incluido · null = sin confirmar (en la web no se muestra nada; una fila sin ningún dato confirmado no se muestra) · texto = valor descriptivo.",
     "Fuente de cada dato: web anterior gerp.ar (tabla de precios y páginas de cada plan, octubre 2026). No agregar prestaciones sin confirmación."
   ],
-  "price_note": "Precios en pesos argentinos, más IVA. Precios vigentes hasta diciembre de 2026.",
+  "price_note": "Los valores informados son precios vigentes hasta diciembre 2026",
   "show_pending": true,
   "pending_label": "A confirmar",
   "pending_label_public": "Consultar",
@@ -124,7 +124,7 @@
     }
   ],
 
-  "implementation_faq": "Configuramos el sistema, cargamos tus datos iniciales, capacitamos a las personas que lo van a usar y te acompañamos con soporte. La implementación de {plan} tiene un costo único de ${impl} + IVA.",
+  "implementation_faq": "Configuramos el sistema, cargamos tus datos iniciales, capacitamos a las personas que lo van a usar y te acompañamos con soporte. La implementación de {plan} tiene un costo único de {impl}.",
 
   "features": [
     {"group": "basic", "label": "Usuarios", "values": {"lite": "Hasta 3", "core": "Múltiples, con permisos", "plus": "Múltiples, con permisos"}},

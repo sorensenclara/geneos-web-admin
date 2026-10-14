@@ -38,8 +38,6 @@ class SitioWeb(models.Model):
     linkedin = models.URLField(blank=True)
     texto_consentimiento = models.CharField("Consentimiento del formulario", max_length=300,
         default="Acepto que GENEOS use estos datos solo para responder esta consulta. Puedo pedir su baja escribiendo a info@geneos.com.ar.")
-    leyenda_precios = models.CharField("Leyenda de precios", max_length=200, blank=True,
-                                       default="Precios en pesos argentinos, más IVA. Precios vigentes hasta diciembre de 2026.")
 
     destino = models.CharField("Destino de publicación", max_length=20, choices=DESTINOS, default="carpeta")
     comando_despliegue = models.CharField("Comando de despliegue", max_length=500, blank=True,
@@ -53,7 +51,7 @@ class SitioWeb(models.Model):
         MultiFieldPanel([FieldPanel("nombre"), FieldPanel("clave", read_only=True), FieldRowPanel([FieldPanel("dominio"), FieldPanel("dominio_confirmado")]), FieldPanel("color")], "Sitio"),
         MultiFieldPanel([FieldRowPanel([FieldPanel("usa_blog"), FieldPanel("usa_planes"), FieldPanel("usa_comparador")]),
                          FieldRowPanel([FieldPanel("usa_testimonios"), FieldPanel("usa_formularios")])], "Módulos del sitio"),
-        FieldPanel("leyenda_precios"),
+        HelpPanel("<p>Los precios, la moneda, el IVA y la leyenda de vigencia se cargan en cada plan (Oferta comercial → Planes y precios).</p>"),
     ]
     panels_contacto = [
         HelpPanel("<p>Estos datos se usan en todos los botones de WhatsApp, el footer, los formularios y los datos estructurados del sitio.</p>"),

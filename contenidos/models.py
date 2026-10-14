@@ -265,13 +265,30 @@ class ContenidoSitio(models.Model):
         abstract = True
 
 
+MONEDAS = [("ARS", "Pesos argentinos ($)"), ("USD", "Dólares estadounidenses (US$)")]
+SIMBOLO = {"ARS": "$", "USD": "US$"}
+IMPORTE = r"^\d{1,3}(\.\d{3})*(,\d{1,2})?$"
+
+
+def validar_importe(valor):
+    import re
+    if valor and not re.match(IMPORTE, valor.strip()):
+        raise forms.ValidationError("Escribí el importe con punto de miles y sin símbolo, por ejemplo 178.500")
+
+
 class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, PreviewableMixin, ContenidoSitio):
     clave = models.SlugField("Clave", help_text="lite, core, plus… No se cambia: identifica el plan en las plantillas.")
     nombre = models.CharField("Nombre", max_length=60)
     etiqueta = models.CharField("Nombre completo", max_length=80, blank=True, help_text="Ej.: GERP Lite")
-    precio = models.CharField("Abono mensual", max_length=20, help_text="Como se muestra en la web, con punto de miles: 178.500")
-    implementacion = models.CharField("Implementación (pago único)", max_length=20, blank=True)
-    vigente_hasta = models.DateField("Precio vigente hasta", null=True, blank=True, help_text="Te avisamos en el resumen cuando se acerque la fecha.")
+    moneda = models.CharField("Moneda", max_length=3, choices=MONEDAS, default="ARS")
+    mas_iva = models.BooleanField("Los importes son más IVA", default=True, help_text="Muestra «+ IVA» junto a cada importe.")
+    precio = models.CharField("Abono mensual", max_length=20, validators=[validar_importe],
+                              help_text="Sin símbolo, con punto de miles: 178.500")
+    implementacion = models.CharField("Implementación (pago único)", max_length=20, blank=True, validators=[validar_importe])
+    leyenda_vigencia = models.CharField("Leyenda de vigencia", max_length=200, blank=True,
+        help_text="Texto que se muestra debajo de los planes, con (*). Vacío: no se muestra ninguna leyenda.")
+    vigente_hasta = models.DateField("Aviso de vencimiento", null=True, blank=True,
+                                     help_text="Opcional. No se publica: te avisamos en el inicio del administrador cuando se acerque la fecha.")
     visible = models.BooleanField("Visible en la web", default=True)
     destacado = models.BooleanField("Destacado", default=False)
     orden = models.PositiveSmallIntegerField("Orden", default=0)
@@ -305,7 +322,9 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
                   "Para actualizar todos los planes juntos usá <b>Actualizar precios</b> en el menú.</p>"),
         FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]),
         FieldRowPanel([FieldPanel("nombre"), FieldPanel("etiqueta"), FieldPanel("clave")]),
-        FieldRowPanel([FieldPanel("precio"), FieldPanel("implementacion"), FieldPanel("vigente_hasta")]),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("precio"), FieldPanel("implementacion")]),
+                         FieldRowPanel([FieldPanel("moneda"), FieldPanel("mas_iva")]),
+                         FieldRowPanel([FieldPanel("leyenda_vigencia"), FieldPanel("vigente_hasta")])], "Precio (fuente única)"),
         FieldRowPanel([FieldPanel("visible"), FieldPanel("destacado"), FieldPanel("orden")]),
         FieldPanel("publico_corto"), FieldPanel("publico"), FieldPanel("caracteristicas"),
         FieldRowPanel([FieldPanel("cta_texto"), FieldPanel("cta_enlace")]),
@@ -335,6 +354,14 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
             return int(self.precio.replace(".", "").replace(",", "").strip() or 0)
         except ValueError:
             return 0
+
+    @property
+    def simbolo(self):
+        return SIMBOLO.get(self.moneda, "$")
+
+    def importe(self, valor):
+        """Importe completo como se lee en la web: $89.250 + IVA"""
+        return f"{self.simbolo}{valor}{' + IVA' if self.mas_iva else ''}" if valor else ""
 
     def serve_preview(self, request, mode_name):
         from publicacion.servicio import vista_previa_objeto
@@ -384,7 +411,9 @@ class ValorFuncionalidad(Orderable):
 
 class PreguntaFrecuente(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, PreviewableMixin, ContenidoSitio):
     pregunta = models.CharField("Pregunta", max_length=200)
-    respuesta = RichTextField("Respuesta", features=RICH_BASICO)
+    respuesta = RichTextField("Respuesta", features=RICH_BASICO, help_text=(
+        "Para mencionar un precio no escribas el importe: usá [precio:clave] o [implementacion:clave] "
+        "(por ejemplo [precio:lite]). Se reemplaza por el precio vigente del plan, con moneda e IVA."))
     ubicacion = models.CharField("Página", max_length=60, blank=True, help_text="Ruta de la página donde aparece. Vacío = inicio. Ej.: lite/ o cereales/")
     categoria = models.CharField("Categoría", max_length=60, blank=True)
     orden = models.PositiveSmallIntegerField("Orden", default=0)
@@ -402,6 +431,21 @@ class PreguntaFrecuente(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionM
     def __str__(self):
         return self.pregunta
 
+    def clean(self):
+        super().clean()
+        import re
+        from django.core.exceptions import ValidationError
+        texto = texto_plano(self.respuesta) + " " + (self.pregunta or "")
+        if re.search(r"(US)?\$\s?\d{1,3}(\.\d{3})+|\d+\s*d[oó]lares", texto):
+            raise ValidationError({"respuesta": "No escribas importes en la pregunta: usá [precio:clave] o [implementacion:clave] "
+                                                "para que el precio salga del plan y se actualice solo."})
+        if self.sitio_id:
+            claves = set(Plan.objects.filter(sitio_id=self.sitio_id).values_list("clave", flat=True))
+            malas = [c for c in re.findall(r"\[(?:precio|implementacion|vigencia):([^\]]+)\]", texto) if c.strip().lower() not in claves]
+            if malas:
+                raise ValidationError({"respuesta": f"No hay un plan con la clave {', '.join(sorted(set(malas)))} en este sitio. "
+                                                    f"Claves disponibles: {', '.join(sorted(claves)) or '(ninguna)'}."})
+
     def serve_preview(self, request, mode_name):
         from publicacion.servicio import vista_previa_objeto
         return vista_previa_objeto(request, self, mode_name)
@@ -409,7 +453,7 @@ class PreguntaFrecuente(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionM
 
 class Testimonio(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, ContenidoSitio):
     ESTADOS = [("pendiente", "Pendiente de autorización"), ("autorizado", "Autorizado"), ("rechazado", "No autorizado")]
-    cliente = models.CharField("Persona", max_length=80, blank=True)
+    cliente = models.CharField("Autor", max_length=120, blank=True, help_text="Nombre y cargo de quien da el testimonio.")
     empresa = models.CharField("Empresa", max_length=80)
     logo = models.ForeignKey("wagtailimages.Image", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     texto = models.TextField("Testimonio", blank=True, help_text="Texto exacto, tal como lo autorizó el cliente.")
@@ -419,7 +463,8 @@ class Testimonio(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, C
     visible = models.BooleanField("Visible", default=True)
     nota = models.CharField("Nota interna", max_length=200, blank=True)
 
-    panels = [HelpPanel("<p>Solo se publican los testimonios <b>autorizados</b> y con texto.</p>"),
+    panels = [HelpPanel("<p>Solo se publican los testimonios <b>autorizados</b>, con texto, autor, quién autorizó y fecha. "
+                        "Mientras estén pendientes no aparecen en la web.</p>"),
               FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldRowPanel([FieldPanel("empresa"), FieldPanel("cliente")]),
               FieldPanel("texto"), FieldPanel("logo"), FieldRowPanel([FieldPanel("estado"), FieldPanel("autorizado_por"), FieldPanel("autorizado_el")]),
               FieldPanel("visible"), FieldPanel("nota")]
@@ -431,9 +476,19 @@ class Testimonio(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, C
     def __str__(self):
         return self.empresa
 
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        if self.estado == "autorizado":
+            faltan = [n for n, v in (("texto", self.texto.strip()), ("cliente", self.cliente.strip()), ("autorizado_por", self.autorizado_por.strip()),
+                                     ("autorizado_el", self.autorizado_el)) if not v]
+            if faltan:
+                raise ValidationError({f: "Obligatorio para marcarlo como autorizado." for f in faltan})
+
     @property
     def publicable(self):
-        return self.estado == "autorizado" and bool(self.texto.strip()) and self.visible
+        return (self.estado == "autorizado" and bool(self.texto.strip()) and bool(self.cliente.strip())
+                and bool(self.autorizado_por.strip()) and self.autorizado_el is not None and self.visible)
 
 
 class Sector(ContenidoSitio):

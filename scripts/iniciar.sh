@@ -26,6 +26,8 @@ if [ ! -f var/db.sqlite3 ]; then
   .venv/bin/python manage.py inicializar
   echo "→ Creá tu usuario de administradora (acceso total a todos los sitios):"
   .venv/bin/python manage.py createsuperuser
+else
+  .venv/bin/python manage.py migrate -v0   # aplica los cambios nuevos sin perder lo cargado
 fi
 
 echo "→ Abrí http://localhost:8000/admin/  (Ctrl+C para cerrar)"

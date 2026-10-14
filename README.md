@@ -88,13 +88,43 @@ Propuesta para validar con Infra: la web comercial en `gema.geneos.com.ar` y la 
 - Íconos y logos de los planes se indican con la ruta del archivo; la carga como imagen queda para una etapa siguiente.
 - Sin segundo factor de autenticación todavía (previsto para el servidor).
 
+## Precios: una sola fuente
+
+Cada plan (*Oferta comercial → Planes y precios*, o todos juntos en *Actualizar precios*) tiene como campos independientes:
+abono mensual, implementación, moneda, «más IVA», leyenda de vigencia y un aviso de vencimiento que no se publica.
+Una leyenda vacía no muestra ni la nota ni el (*).
+
+Importes de origen (octubre 2026), copiados de las páginas publicadas:
+
+| Plan | Abono | Implementación | Vigencia publicada |
+|---|---|---|---|
+| GERP Lite | $89.250 + IVA | $446.250 + IVA | «Los valores informados son precios vigentes hasta diciembre 2026» |
+| GERP Core | $178.500 + IVA | $892.500 + IVA | ídem |
+| GERP Plus | $446.250 + IVA | $1.785.000 + IVA | ídem |
+| GEAGRO Lite | $89.250 + IVA | $624.750 + IVA | sin leyenda |
+| GEAGRO Plus | $178.500 + IVA | $1.071.000 + IVA | sin leyenda |
+| GEMA Plan mensual | $89.250 + IVA | $349.750 + IVA | «Precios válidos para Octubre, Noviembre y Diciembre. Actualización bimestral.» |
+
+Dónde se muestra cada precio (todo sale del plan):
+
+- GERP: tarjetas de la home; tarjeta de cada landing (/lite/, /core/, /plus/); «otros planes» en cada landing;
+  pregunta «¿Cómo es la implementación?» de cada landing; datos estructurados (Offer) de la home y las landings; nota (*).
+- GEAGRO: tarjetas de la home; pregunta «¿Cuánto cuesta GEAGRO?»; datos estructurados de la home.
+- GEMA: tarjeta de planes; pregunta «¿El pago es mensual y fijo?»; datos estructurados; nota (*).
+
+En las preguntas frecuentes los importes no se escriben: se usa `[precio:clave]`, `[implementacion:clave]` o `[vigencia:clave]`
+(por ejemplo `[precio:lite]`), que se reemplaza por el importe vigente con su moneda e IVA. El administrador no deja guardar
+una respuesta con un importe escrito a mano ni con una clave de plan que no existe.
+
+Comparador de GERP: los valores «A confirmar» quedan en el administrador, pero en la web la celda queda vacía,
+y una fila sin ningún dato confirmado no se muestra (hoy: «Facturación electrónica ARCA (ex AFIP)»).
+
 ## Validaciones comerciales pendientes
 
-- Importes de GERP Lite, Core y Plus y la leyenda «vigentes hasta diciembre de 2026».
 - Valores «A confirmar» del comparador de GERP (cada valor tiene su fuente y un campo «Validado por»).
-- Testimonios de INBIO HIGHWAY, KORRONTE y CELIMUNDO: texto exacto y autorización (no se publican hasta marcarlos como autorizados).
-- GEMA: una pregunta frecuente dice «30 dólares oficiales» mientras el plan muestra $89.250 + IVA.
-- Vigencia de los precios de GEAGRO y GEMA (no tienen fecha cargada).
+- Testimonios de INBIO HIGHWAY, KORRONTE y CELIMUNDO: siguen pendientes. Para publicar uno hay que cargar texto,
+  autor, quién lo autorizó y la fecha, y marcarlo como autorizado.
+- GEMA: la leyenda publicada menciona octubre a diciembre sin año; revisarla cuando cambie el bimestre.
 
 ## Pruebas automáticas
 
@@ -102,7 +132,7 @@ Propuesta para validar con Infra: la web comercial en `gema.geneos.com.ar` y la 
 .venv/bin/python manage.py test
 ```
 
-Permisos por sitio y línea, borrador/aprobado/publicado de un precio, publicación fallida que no toca la web, vuelta atrás,
+Permisos por sitio y línea, borrador/aprobado/publicado de un precio, precio único en todos los lugares, moneda/IVA/vigencia, preguntas sin importes escritos, comparador sin «A confirmar», publicación fallida que no toca la web, vuelta atrás,
 testimonios no autorizados y antispam del formulario.
 
 ## Documentación previa

@@ -109,8 +109,23 @@ def despliegue_detalle(request, pk):
     return render(request, "publicacion/despliegue.html", {"d": d, "page_title": "Detalle de la publicación"})
 
 
+CAMPOS_PRECIO = ("precio", "implementacion", "moneda", "mas_iva", "leyenda_vigencia", "vigente_hasta")
+
+
+def _valores_form(post, p):
+    hasta = post.get(f"vigente_hasta_{p.pk}", "").strip()
+    return {"precio": post.get(f"precio_{p.pk}", p.precio).strip(),
+            "implementacion": post.get(f"implementacion_{p.pk}", p.implementacion).strip(),
+            "moneda": post.get(f"moneda_{p.pk}", p.moneda),
+            "mas_iva": post.get(f"mas_iva_{p.pk}") == "on",
+            "leyenda_vigencia": post.get(f"leyenda_vigencia_{p.pk}", p.leyenda_vigencia).strip(),
+            "vigente_hasta": parse_date(hasta) if hasta else None}
+
+
 def precios(request):
-    """Actualización trimestral: todos los precios en una sola pantalla."""
+    """Actualización trimestral: todos los precios en una sola pantalla (fuente única de cada importe)."""
+    from django.core.exceptions import ValidationError
+    from contenidos.models import MONEDAS
     ids = sitios_permitidos(request.user, 1)
     planes = Plan.objects.select_related("sitio").order_by("sitio__orden", "orden")
     if ids is not None:
@@ -119,21 +134,25 @@ def precios(request):
         accion = request.POST.get("accion")
         cambiados, sin_permiso = [], []
         for p in planes:
-            campos = {"precio": request.POST.get(f"precio_{p.pk}", p.precio).strip(), "implementacion": request.POST.get(f"impl_{p.pk}", p.implementacion).strip()}
-            hasta = request.POST.get(f"hasta_{p.pk}", "").strip()
-            campos["vigente_hasta"] = parse_date(hasta) if hasta else None
+            if not puede(request.user, p.sitio_id, p.linea_id):
+                continue
+            campos = _valores_form(request.POST, p)
             actual = p.get_latest_revision_as_object() if p.has_unpublished_changes else p
-            antes = (actual.precio, actual.implementacion, str(actual.vigente_hasta or ""))
-            if antes == (campos["precio"], campos["implementacion"], hasta):
+            if all(getattr(actual, k) == v for k, v in campos.items()):
                 if not (accion == "aprobar" and p.has_unpublished_changes):
                     continue
                 rev = p.latest_revision  # aprobar un borrador guardado antes, sin cambios nuevos
             else:
                 for k, v in campos.items():
                     setattr(actual, k, v)
-                rev = actual.save_revision(user=request.user, log_action=True)
+                try:
+                    rev = actual.save_revision(user=request.user, log_action=True)
+                except ValidationError as e:
+                    errores = "; ".join(f"{m}" for msgs in e.message_dict.values() for m in msgs) if hasattr(e, "message_dict") else " ".join(e.messages)
+                    messages.error(request, f"{p}: no se guardó. {errores}")
+                    continue
             if accion == "aprobar":
-                if puede(request.user, p.sitio_id, nivel=2):
+                if puede(request.user, p.sitio_id, p.linea_id, nivel=2):
                     rev.publish(user=request.user)
                 else:
                     sin_permiso.append(str(p))
@@ -150,7 +169,7 @@ def precios(request):
     for p in planes:
         borrador = p.get_latest_revision_as_object() if p.has_unpublished_changes else None
         filas.append({"p": p, "b": borrador, "v": borrador or p})
-    return render(request, "publicacion/precios.html", {"filas": filas, "page_title": "Actualizar precios"})
+    return render(request, "publicacion/precios.html", {"filas": filas, "monedas": MONEDAS, "page_title": "Actualizar precios"})
 
 
 @require_POST

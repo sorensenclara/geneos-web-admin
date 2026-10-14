@@ -18,7 +18,7 @@
   ("¿GEAGRO sirve para la gestión de cereales y de viñedos?", "<p>Sí, con dos versiones. <a href=\"" ~ page_url('/cereales/') ~ "\">GEAGRO CEREALES</a> es un software de gestión agrícola para campañas de cereales: lotes, insumos, labores, costos, transporte y acopio de granos. <a href=\"" ~ page_url('/vid/') ~ "\">GEAGRO VID</a> es un software de gestión de viñedos: integra datos climáticos, estado fenológico y riesgos sanitarios para anticipar problemas y priorizar acciones.</p>"),
   ("¿Para quién está pensado?", "<p>Para pequeños y medianos productores y para los equipos técnicos que los acompañan. GEAGRO se adapta a la forma en que cada productor gestiona hoy su información.</p>"),
   ("¿Cómo ayuda con el clima y las alertas?", "<p>Registra variables como lluvias, temperatura, humedad y vientos. Con esos datos detecta condiciones críticas y riesgos sanitarios, genera alertas y te sugiere la próxima acción según cada situación.</p>"),
-  ("¿Cuánto cuesta GEAGRO?", "<p>Hay dos planes: <strong>Lite</strong>, con un abono de $89.250 + IVA por mes, y <strong>Plus</strong>, con un abono de $178.500 + IVA por mes. Cada plan tiene una implementación de pago único ($624.750 + IVA en Lite y $1.071.000 + IVA en Plus). En la demo te ayudamos a elegir el que mejor se ajusta a tu establecimiento.</p>"),
+  ("¿Cuánto cuesta GEAGRO?", "<p>Hay dos planes: <strong>Lite</strong>, con un abono de " ~ importe(PLANS[0]) ~ " por mes, y <strong>Plus</strong>, con un abono de " ~ importe(PLANS[1]) ~ " por mes. Cada plan tiene una implementación de pago único (" ~ importe(PLANS[0], "impl") ~ " en Lite y " ~ importe(PLANS[1], "impl") ~ " en Plus). En la demo te ayudamos a elegir el que mejor se ajusta a tu establecimiento.</p>"),
   ("¿Puedo comparar costos estimados y reales?", "<p>Sí. GEAGRO compara la inversión estimada con la real y los insumos necesarios con los comprados, y muestra rendimientos y costos de cada campaña para mejorar la siguiente.</p>"),
   ("¿Cómo empiezo?", "<p>Solicitá una demo con el formulario de esta página o por WhatsApp. Te contactamos para conocer tu producción y mostrarte la versión que mejor se ajusta.</p>"),
 ] %}
@@ -28,8 +28,8 @@
 {{ m.faq_schema(FAQS) }}
 {% set offers = [] %}
 {% for p in PLANS %}
-{% set _ = offers.append({"@type": "Offer", "name": "GEAGRO " ~ p.name, "price": p.num, "priceCurrency": "ARS",
-  "priceSpecification": {"@type": "UnitPriceSpecification", "price": p.num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false},
+{% set _ = offers.append({"@type": "Offer", "name": "GEAGRO " ~ p.name, "price": p.num, "priceCurrency": currency_code(p),
+  "priceSpecification": {"@type": "UnitPriceSpecification", "price": p.num, "priceCurrency": currency_code(p), "unitText": "mes", "valueAddedTaxIncluded": not iva(p)},
   "url": abs_url(page.out) ~ "#planes"}) %}
 {% endfor %}
 {{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "GEAGRO",
@@ -107,10 +107,10 @@
 
 {% set plan_items = [] %}
 {% for p in PLANS %}
-{% set _ = plan_items.append({"name": p.name, "price": p.price, "impl": p.impl, "color": p.color,
+{% set _ = plan_items.append({"name": p.name, "price": p.price, "impl": p.impl, "color": p.color, "currency": p.currency, "iva": p.iva,
   "button": {"label": "Solicitar demo", "href": "#demo", "style": "accent", "arrow": "→"}}) %}
 {% endfor %}
-{{ pp.plans({"id": "planes", "brand": "GEAGRO", "items": plan_items,
+{{ sx.price_plans({"id": "planes", "brand": "GEAGRO", "items": plan_items, "note": plans_note(PLANS),
   "title": "Elegí la versión de GEAGRO que mejor se adapte a tu gestión",
   "lead": "Conocé nuestros planes y coordiná una demo para encontrar la opción adecuada para tu establecimiento."}) }}
 

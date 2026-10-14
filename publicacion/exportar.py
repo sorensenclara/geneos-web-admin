@@ -169,7 +169,8 @@ def datos_paginas(fuente, faqs_por_ruta, excluir_faqs=()):
 
 
 def con_precios(texto, planes):
-    """[precio:lite] e [implementacion:lite] en un texto se reemplazan por el precio vigente del plan.
+    """[precio:lite], [implementacion:lite] y [vigencia:lite] se reemplazan por los datos vigentes del plan
+    (importe con moneda e IVA: «$89.250 + IVA»).
     Así una respuesta que menciona precios se actualiza sola cuando cambian."""
     idx = {}
     for p in planes:
@@ -180,8 +181,10 @@ def con_precios(texto, planes):
         p = idx.get(m.group(2).strip().lower())
         if p is None:
             return m.group(0)
-        return p.precio if m.group(1) == "precio" else p.implementacion
-    return re.sub(r"\[(precio|implementacion):([^\]]+)\]", rep, texto)
+        if m.group(1) == "vigencia":
+            return p.leyenda_vigencia
+        return p.importe(p.precio if m.group(1) == "precio" else p.implementacion)
+    return re.sub(r"\[(precio|implementacion|vigencia):([^\]]+)\]", rep, texto)
 
 
 def html_semantico(html):
@@ -287,6 +290,7 @@ def datos_gerp(fuente, faqs_por_ruta):
             continue
         item = dict(item)
         item.update({"name": p.nombre, "label": p.etiqueta or item.get("label"), "price": p.precio, "price_num": p.precio_num, "impl": p.implementacion,
+                     "currency": p.simbolo, "currency_code": p.moneda, "iva": p.mas_iva, "validity": p.leyenda_vigencia,
                      "featured": p.destacado, "short": p.publico_corto or item.get("short"), "audience": p.publico or item.get("audience")})
         if p.caracteristicas.strip():
             item["card_feats"] = [x.strip() for x in p.caracteristicas.splitlines() if x.strip()]
@@ -324,8 +328,8 @@ def datos_gerp(fuente, faqs_por_ruta):
     reds = fuente.snippets(Redireccion)
     if reds:
         base["redirects"] = [[r.origen, r.destino] for r in reds]
-    if sitio.leyenda_precios:
-        base["price_note"] = sitio.leyenda_precios
+    # Leyenda de vigencia: la de los planes visibles (vacía = no se muestra)
+    base["price_note"] = " ".join(dict.fromkeys(p.leyenda_vigencia for p in planes.values() if p.visible and p.leyenda_vigencia))
     return base
 
 
@@ -337,7 +341,8 @@ def datos_sitio(sitio, overrides=None):
     rutas_planes = {p.ruta for p in fuente.snippets(Plan) if p.ruta} if sitio.clave == "gerp" else set()
     pd = {"domain": sitio.dominio_publico, "pages": datos_paginas(fuente, fq, excluir_faqs=rutas_planes), "files": files}
     if sitio.clave in ("geagro", "gema"):
-        pd["plans"] = [{"name": p.nombre, "price": p.precio, "num": p.precio_num, "impl": p.implementacion, "hidden": not p.visible}
+        pd["plans"] = [{"name": p.nombre, "price": p.precio, "num": p.precio_num, "impl": p.implementacion, "hidden": not p.visible,
+                        "currency": p.simbolo, "currency_code": p.moneda, "iva": p.mas_iva, "validity": p.leyenda_vigencia}
                        for p in fuente.snippets(Plan)]
     pd["blog"] = datos_blog(fuente, files)
     if sitio.usa_formularios:

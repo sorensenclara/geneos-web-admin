@@ -12,7 +12,7 @@
 {% set BROCHURE = "descargas/brochure-gerp-software-de-gestion-empresarial.pdf" %}
 {% set FAQS = [] %}
 {% for q, a in PLAN.faqs %}{% set _ = FAQS.append((q, a if a.startswith("<") else "<p>" ~ a ~ "</p>")) %}{% endfor %}
-{% set _ = FAQS.append(("¿Cómo es la implementación?", "<p>" ~ D.implementation_faq|replace("{plan}", PLAN.label)|replace("{impl}", PLAN.impl) ~ "</p>")) %}
+{% set _ = FAQS.append(("¿Cómo es la implementación?", "<p>" ~ D.implementation_faq|replace("{plan}", PLAN.label)|replace("{impl}", importe(PLAN, "impl")) ~ "</p>")) %}
 {% set _ = FAQS.append(("¿Cómo pido una demo?", "<p>Completá el formulario de esta página o escribinos por WhatsApp. Te contactamos para conocer tu empresa y mostrarte " ~ PLAN.label ~ ".</p>")) %}
 {% set FAQS = faq_items(FAQS) %}
 {% set plan_radios = [[PLAN.key, PLAN.name, PLAN.label]] %}
@@ -26,8 +26,8 @@
   "description": description, "url": canonical, "image": abs_url("assets/" ~ PLAN.icon), "inLanguage": "es-AR",
   "publisher": {"@id": abs_url("#organizacion")},
   "featureList": PLAN.modules|map(attribute="title")|list,
-  "offers": {"@type": "Offer", "name": PLAN.label, "price": PLAN.price_num, "priceCurrency": "ARS", "url": canonical,
-             "priceSpecification": {"@type": "UnitPriceSpecification", "price": PLAN.price_num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false}}}) }}
+  "offers": {"@type": "Offer", "name": PLAN.label, "price": PLAN.price_num, "priceCurrency": currency_code(PLAN), "url": canonical,
+             "priceSpecification": {"@type": "UnitPriceSpecification", "price": PLAN.price_num, "priceCurrency": currency_code(PLAN), "unitText": "mes", "valueAddedTaxIncluded": not iva(PLAN)}}}) }}
 {{ jsonld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
   {"@type": "ListItem", "position": 1, "name": "GERP", "item": abs_url()},
   {"@type": "ListItem", "position": 2, "name": PLAN.label, "item": canonical}]}) }}
@@ -61,7 +61,7 @@
       <h2 id="precio-title">¿Para quién es {{ PLAN.label }}?</h2>
       <p>{{ PLAN.audience }}</p>
       <p class="pp-fit-links"><a class="pp-more" href="#incluye">Módulos incluidos {{ icon('bi-arrow-right', 'icon bi') }}</a> <a class="pp-more" href="#comparar">Comparar con otros planes {{ icon('bi-arrow-right', 'icon bi') }}</a></p>
-      <p class="pp-note" style="text-align:left">(*) {{ D.price_note }}</p>
+      {% if D.price_note %}<p class="pp-note" style="text-align:left">(*) {{ D.price_note }}</p>{% endif %}
     </div>
     {{ sx.plan_card(D, PLAN, link=False) }}
   </div>
@@ -86,7 +86,7 @@
         <img src="{{ asset(p.icon) }}" alt="" width="60" height="57" loading="lazy">
         <b>{{ p.name }}</b>
         <span>{{ p.short }}</span>
-        <em>${{ p.price }} + IVA / mes · Conocer el plan →</em>
+        <em>{{ cur(p) }}{{ p.price }}{% if iva(p) %} + IVA{% endif %} / mes · Conocer el plan →</em>
       </a>
       {% endfor %}
     </div>
