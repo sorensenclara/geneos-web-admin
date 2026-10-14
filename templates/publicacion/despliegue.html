@@ -1,0 +1,14 @@
+{% extends "wagtailadmin/base.html" %}
+{% block titletag %}Publicación {{ d.pk }}{% endblock %}
+{% block content %}
+{% include "wagtailadmin/shared/header.html" with title=d.sitio.nombre subtitle="Detalle de la publicación" icon="upload" %}
+<div class="nice-padding">
+  <p><span class="gwa-badge {% if d.estado == 'ok' %}gwa-al_dia{% elif d.estado == 'fallo' %}gwa-error{% else %}gwa-pendiente{% endif %}">{{ d.get_estado_display }}</span>
+     · {{ d.get_tipo_display }} · {{ d.iniciado|date:"d/m/Y H:i" }} · {{ d.usuario|default:"sistema" }}{% if d.version %} · versión {{ d.version }}{% endif %}</p>
+  <p>{{ d.motivo }}</p>
+  {% if d.estado == "fallo" %}<div class="gwa-aviso err">La web pública no cambió: sigue con la versión anterior.</div>{% endif %}
+  <h2 class="w-h3">Registro</h2>
+  <div class="gwa-pre">{{ d.registro|default:"(sin registro)" }}</div>
+  <p class="w-mt-6"><a class="button button-secondary" href="{% url 'gwa_sitio' d.sitio.clave %}">Volver al estado de {{ d.sitio.nombre }}</a></p>
+</div>
+{% endblock %}

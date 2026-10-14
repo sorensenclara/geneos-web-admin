@@ -1,0 +1,18 @@
+<section class="w-mb-8">
+  {% if sitios|length > 1 %}
+  <form class="gwa-selector" method="post" action="{% url 'gwa_elegir_sitio' %}">{% csrf_token %}
+    <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+    <strong>Trabajar en:</strong>
+    <button class="button button-small {% if not activo %}button-secondary{% else %}button-secondary bicolor{% endif %}" name="sitio" value="" aria-pressed="{% if not activo %}true{% else %}false{% endif %}">Todos los sitios</button>
+    {% for s in sitios %}<button class="button button-small button-secondary" name="sitio" value="{{ s.clave }}" aria-pressed="{% if activo == s.clave %}true{% else %}false{% endif %}">{{ s.nombre }}</button>{% endfor %}
+  </form>
+  {% endif %}
+  {% if vencen %}
+  <div class="gwa-aviso warn"><strong>Revisión de precios:</strong>
+    {% for p in vencen %}{{ p }} (vigente hasta {{ p.vigente_hasta|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+    <a href="{% url 'gwa_precios' %}">Actualizar precios</a></div>
+  {% endif %}
+  {% if pedidos %}<div class="gwa-aviso ok"><strong>{{ pedidos }} pedido{{ pedidos|pluralize }} de demo nuevo{{ pedidos|pluralize }}.</strong> <a href="{% url 'wagtailsnippets_formularios_solicituddemo:list' %}">Ver pedidos</a></div>{% endif %}
+  <h2 class="w-h3">Estado de las webs</h2>
+  <div class="gwa-grid">{% for e in estados %}{% include "publicacion/_tarjeta.html" %}{% endfor %}</div>
+</section>

@@ -1,0 +1,43 @@
+{% extends "wagtailadmin/base.html" %}
+{% block titletag %}{{ e.sitio.nombre }} · Estado de la web{% endblock %}
+{% block content %}
+{% include "wagtailadmin/shared/header.html" with title=e.sitio.nombre subtitle="Estado de la web" icon="upload" %}
+<div class="nice-padding">
+  {% if e.error %}
+  <div class="gwa-aviso err"><strong>La última publicación falló ({{ e.error.iniciado|date:"d/m/Y H:i" }}).</strong>
+    La web sigue mostrando la versión anterior{% if e.ultimo_ok %} ({{ e.ultimo_ok.finalizado|date:"d/m/Y H:i" }}){% endif %}.
+    <a href="{% url 'gwa_despliegue' e.error.pk %}">Ver el error</a></div>
+  {% endif %}
+  {% if e.situacion == "no_conectado" %}
+  <div class="gwa-aviso warn">La web institucional de GENEOS todavía se genera con su propio <code>build.py</code>. Sus contenidos y su SEO ya se pueden cargar acá; la conexión del generador es parte de la etapa 7.</div>
+  {% endif %}
+
+  <h2 class="w-h3">Aprobado y pendiente de publicar</h2>
+  {% if e.pendientes %}
+  <table class="gwa-tabla"><thead><tr><th>Tipo</th><th>Contenido</th><th>Aprobado</th></tr></thead><tbody>
+    {% for tipo, nombre, fecha, url in e.pendientes %}<tr><td>{{ tipo }}</td><td><a href="{{ url }}">{{ nombre }}</a></td><td>{{ fecha|date:"d/m/Y H:i" }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% elif e.situacion != "no_conectado" %}<p>No hay cambios aprobados sin publicar.{% if e.borradores %} Hay {{ e.borradores }} borrador{{ e.borradores|pluralize:"es" }} sin aprobar.{% endif %}</p>{% endif %}
+
+  {% if e.situacion != "no_conectado" %}
+  <div class="gwa-acciones w-mt-6 w-mb-8">
+    <form method="post" action="{% url 'gwa_previa_sitio' e.sitio.clave %}" target="_blank">{% csrf_token %}<button class="button button-secondary">Vista previa de la web completa</button></form>
+    {% if puede_publicar %}
+    <form method="post" action="{% url 'gwa_publicar' e.sitio.clave %}" onsubmit="return confirm('¿Publicar en la web de {{ e.sitio.nombre }} todo lo aprobado?')">{% csrf_token %}<button class="button">Publicar en la web</button></form>
+    {% if versiones|length > 1 %}<form method="post" action="{% url 'gwa_volver' e.sitio.clave %}" onsubmit="return confirm('¿Volver la web de {{ e.sitio.nombre }} a la versión anterior?')">{% csrf_token %}<button class="button button-secondary no">Volver a la versión anterior</button></form>{% endif %}
+    {% endif %}
+    {% if e.version_local %}<a class="button button-secondary" href="{% url 'gwa_web_local' e.sitio.clave %}" target="_blank">Ver la web publicada (local)</a>{% endif %}
+  </div>
+  <p class="help">Destino: {{ e.sitio.get_destino_display }}. La vista previa muestra todo lo aprobado, todavía sin publicar. Si la publicación falla, la web queda como estaba.</p>
+  {% endif %}
+
+  <h2 class="w-h3 w-mt-8">Historial de publicaciones</h2>
+  {% if despliegues %}
+  <table class="gwa-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Versión</th><th>Usuario</th><th>Motivo</th></tr></thead><tbody>
+    {% for d in despliegues %}<tr><td><a href="{% url 'gwa_despliegue' d.pk %}">{{ d.iniciado|date:"d/m/Y H:i" }}</a></td><td>{{ d.get_tipo_display }}</td>
+      <td><span class="gwa-badge {% if d.estado == 'ok' %}gwa-al_dia{% elif d.estado == 'fallo' %}gwa-error{% else %}gwa-pendiente{% endif %}">{{ d.get_estado_display }}</span></td>
+      <td>{{ d.version }}</td><td>{{ d.usuario|default:"—" }}</td><td>{{ d.motivo }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% else %}<p>Todavía no hay publicaciones.</p>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as m with context %}
+{% import "partials/product.html" as pp with context %}
+{% import "partials/standalone.html" as sx with context %}
+{#
+  GEAGRO · contenido de la página. La presentación está en partials/product.html (componentes)
+  y en assets/css/product.css (estilos compartidos + tema .pp-theme-geagro).
+#}
+{% set L = "geagro-landing/" %}
+{% set BROCHURE = "descargas/brochure-geagro-software-de-gestion-agropecuaria.pdf" %}
+{% set PLANS = [
+  {"name": "Lite", "price": "89.250", "num": 89250, "impl": "624.750", "color": "#22b24c"},
+  {"name": "Plus", "price": "178.500", "num": 178500, "impl": "1.071.000", "color": "#0b3422"},
+] %}
+{% set PLANS = plans_data(PLANS) %}
+{% set FAQS = [
+  ("¿Qué es GEAGRO?", "<p>Es un software de gestión agropecuaria desarrollado por la Cooperativa GENEOS. Centraliza la información productiva, climática y económica de tu establecimiento y la transforma en alertas, órdenes de trabajo e indicadores para decidir a tiempo.</p>"),
+  ("¿GEAGRO sirve para la gestión de cereales y de viñedos?", "<p>Sí, con dos versiones. <a href=\"" ~ page_url('/cereales/') ~ "\">GEAGRO CEREALES</a> es un software de gestión agrícola para campañas de cereales: lotes, insumos, labores, costos, transporte y acopio de granos. <a href=\"" ~ page_url('/vid/') ~ "\">GEAGRO VID</a> es un software de gestión de viñedos: integra datos climáticos, estado fenológico y riesgos sanitarios para anticipar problemas y priorizar acciones.</p>"),
+  ("¿Para quién está pensado?", "<p>Para pequeños y medianos productores y para los equipos técnicos que los acompañan. GEAGRO se adapta a la forma en que cada productor gestiona hoy su información.</p>"),
+  ("¿Cómo ayuda con el clima y las alertas?", "<p>Registra variables como lluvias, temperatura, humedad y vientos. Con esos datos detecta condiciones críticas y riesgos sanitarios, genera alertas y te sugiere la próxima acción según cada situación.</p>"),
+  ("¿Cuánto cuesta GEAGRO?", "<p>Hay dos planes: <strong>Lite</strong>, con un abono de $89.250 + IVA por mes, y <strong>Plus</strong>, con un abono de $178.500 + IVA por mes. Cada plan tiene una implementación de pago único ($624.750 + IVA en Lite y $1.071.000 + IVA en Plus). En la demo te ayudamos a elegir el que mejor se ajusta a tu establecimiento.</p>"),
+  ("¿Puedo comparar costos estimados y reales?", "<p>Sí. GEAGRO compara la inversión estimada con la real y los insumos necesarios con los comprados, y muestra rendimientos y costos de cada campaña para mejorar la siguiente.</p>"),
+  ("¿Cómo empiezo?", "<p>Solicitá una demo con el formulario de esta página o por WhatsApp. Te contactamos para conocer tu producción y mostrarte la versión que mejor se ajusta.</p>"),
+] %}
+{% set FAQS = faq_items(FAQS) %}
+
+{% block schema %}
+{{ m.faq_schema(FAQS) }}
+{% set offers = [] %}
+{% for p in PLANS %}
+{% set _ = offers.append({"@type": "Offer", "name": "GEAGRO " ~ p.name, "price": p.num, "priceCurrency": "ARS",
+  "priceSpecification": {"@type": "UnitPriceSpecification", "price": p.num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false},
+  "url": abs_url(page.out) ~ "#planes"}) %}
+{% endfor %}
+{{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "GEAGRO",
+  "alternateName": ["GEAGRO CEREALES", "GEAGRO VID"], "applicationCategory": "BusinessApplication",
+  "applicationSubCategory": "Software de gestión agropecuaria", "operatingSystem": "Web",
+  "description": description, "url": "https://geagro.ar/", "image": og_image,
+  "hasPart": [{"@type": "SoftwareApplication", "name": "GEAGRO CEREALES", "url": abs_url("cereales/")}, {"@type": "SoftwareApplication", "name": "GEAGRO VID", "url": abs_url("vid/")}],
+  "publisher": {"@id": abs_url("#organizacion")},
+  "featureList": ["Campos, lotes y cuarteles", "Plan técnico", "Variables climáticas", "Alertas agronómicas", "Labores y órdenes de trabajo", "Insumos, compras e inventario", "Acopio propio y en terceros", "Transporte", "Rendimientos y costos"],
+  "offers": offers}) }}
+{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block preload %}
+<link rel="preload" as="image" type="image/avif" href="{{ prefix }}assets/images/shared/hero-1920.avif" media="(min-width: 901px)" fetchpriority="high">
+<link rel="preload" as="image" type="image/avif" href="{{ prefix }}assets/images/shared/hero-900.avif" media="(max-width: 900px)" fetchpriority="high">
+{% endblock %}
+{% block body_class %}page-geagro page-product{% endblock %}
+
+{% block content %}
+<div class="pp pp-theme-geagro">
+
+{{ pp.hero(hero_data({
+  "img": L ~ "images/shared/hero-1920.webp", "img_sm": L ~ "images/shared/hero-900.webp", "wave_next": "#f1f8f1",
+  "logo": "geagro/logo-geagro-white.svg", "logo_alt": "GEAGRO, software de gestión agropecuaria", "logo_w": 300, "logo_h": 64,
+  "title": [["Software de gestión", false], ["agropecuaria para", false], ["cereales y viñedos", true]],
+  "lead": "Tomá mejores decisiones con la información de tu campo y tu viñedo en un solo lugar.",
+  "actions": [{"label": "Solicitar demo", "href": "#demo"}, {"label": "Conocer las versiones", "href": "#versiones", "style": "outline-light"}],
+  "media": {
+    "monitor": {"src": L ~ "images/cereales/panel-campo.jpg", "webp": L ~ "images/cereales/panel-campo.webp", "alt": "Panel de GEAGRO CEREALES, software agrícola para la gestión de campos y campañas", "w": 615, "h": 410},
+    "monitor_sm": {"src": L ~ "images/vid/panel-vid.jpg", "webp": L ~ "images/vid/panel-vid.webp", "alt": "Panel de GEAGRO VID, software de gestión de viñedos con alertas de clima y sanidad", "w": 864, "h": 699}},
+})) }}
+
+{{ sx.steps({
+  "id": "como-funciona", "img": L ~ "images/backgrounds/bg-como-funciona.webp", "wave_next": "#f2faf2", "wave_back": ".35",
+  "eyebrow": "Cómo funciona", "title": "Del dato técnico a la acción", "dot": true,
+  "lead": "Un sistema de gestión agropecuaria simple y conectado, desde la planificación hasta los resultados.",
+  "solves": [
+    ["bi-diagram-3", "Información dispersa", "Lotes, clima, labores, insumos y costos en un solo sistema."],
+    ["bi-calendar-check", "Seguimiento de campañas", "Lo planificado y lo ejecutado, siempre a la vista."],
+    ["bi-coin", "Control de costos", "Costo estimado contra real, por lote y por campaña."],
+    ["bi-clipboard-check", "Trazabilidad", "Historial de labores, aplicaciones y movimientos de grano."],
+    ["bi-bullseye", "Toma de decisiones", "Alertas e indicadores para actuar a tiempo."],
+  ],
+  "more": {"label": "Conocer las versiones", "href": "#versiones"},
+  "items": [
+    {"icon": "bi-clipboard2-plus", "title": "Registrá", "text": "datos productivos y climáticos."},
+    {"icon": "bi-calendar3", "title": "Planificá", "text": "labores y estrategias."},
+    {"icon": "bi-check2-circle", "title": "Ejecutá", "text": "y gestioná las operaciones."},
+    {"icon": "bi-bar-chart-line", "title": "Analizá", "text": "rendimientos, costos y resultados."},
+  ],
+}) }}
+
+{{ pp.versions({
+  "id": "versiones", "eyebrow": "Versiones", "title": "Software agrícola y gestión de viñedos: una plataforma, dos versiones.",
+  "items": [
+    {"id": "campo", "version": "campo", "color": "#f2c300", "btn_color": "#1e7d3b", "link_color": "#1e7d3b",
+     "cover": L ~ "images/cereales/campo-bg-900.webp", "iso": L ~ "icons/brand/isologo-campo.svg",
+     "wordmark": "GE<em>AGRO</em> <b>CEREALES</b>",
+     "text": "Para productores y equipos técnicos que necesitan <strong>planificar, ejecutar y controlar cada campaña agrícola</strong>. Resuelve la <strong>gestión de campos, lotes y campañas</strong>, con insumos y labores en un solo sistema, desde la planificación hasta el análisis final, con trazabilidad del grano en silos propios y en acopiadores.",
+     "feats": [[L ~ "icons/cereales/campo-campo.svg", "Campos y lotes"], [L ~ "icons/shared/plan-tecnico.svg", "Plan técnico"], [L ~ "icons/shared/clima.svg", "Variables climáticas"],
+               [L ~ "icons/cereales/campo-operaciones.svg", "Labores"], [L ~ "icons/cereales/campo-insumos.svg", "Insumos"], [L ~ "icons/cereales/campo-compras.svg", "Compras e inventario"],
+               [L ~ "icons/cereales/campo-acopio.svg", "Acopio"], [L ~ "icons/cereales/campo-transporte.svg", "Transporte"], [L ~ "icons/cereales/campo-graficos.svg", "Indicadores y alertas"],
+               [L ~ "icons/cereales/campo-control.svg", "Rendimientos y costos"]],
+     "button": {"label": "Conocer GEAGRO CEREALES", "href": page_url("/cereales/")}},
+    {"id": "vid", "version": "vid", "color": "#6b3f6e", "btn_color": "#6b3f6e", "link_color": "#6b3f6e", "wm": "#6b3f6e", "wm_b": "#6b3f6e",
+     "cover": L ~ "images/vid/vid-bg-900.webp", "iso": L ~ "icons/brand/isologo-vid.svg",
+     "wordmark": "GE<em>AGRO</em> <b>VID</b>",
+     "text": "<strong>Gestión de viñedos</strong> para productores y equipos técnicos que necesitan interpretar información <strong>climática, fenológica y sanitaria</strong>. Detecta riesgos, genera alertas agronómicas y prioriza acciones para actuar a tiempo en cada etapa del cultivo.",
+     "feats": [[L ~ "icons/vid/vid-campo.svg", "Viñedos y cuarteles"], [L ~ "icons/shared/plan-tecnico.svg", "Plan técnico del viñedo"], [L ~ "icons/shared/clima.svg", "Clima y variables productivas"],
+               [L ~ "icons/vid/vid-operaciones.svg", "Labores"], [L ~ "icons/vid/vid-insumos.svg", "Insumos"], [L ~ "icons/vid/vid-compras.svg", "Compras e inventario"],
+               [L ~ "icons/vid/vid-graficos.svg", "Indicadores y alertas"], [L ~ "icons/vid/vid-control.svg", "Rendimientos y costos"]],
+     "button": {"label": "Conocer GEAGRO VID", "href": page_url("/vid/")}},
+  ],
+}) }}
+
+{% set plan_items = [] %}
+{% for p in PLANS %}
+{% set _ = plan_items.append({"name": p.name, "price": p.price, "impl": p.impl, "color": p.color,
+  "button": {"label": "Solicitar demo", "href": "#demo", "style": "accent", "arrow": "→"}}) %}
+{% endfor %}
+{{ pp.plans({"id": "planes", "brand": "GEAGRO", "items": plan_items,
+  "title": "Elegí la versión de GEAGRO que mejor se adapte a tu gestión",
+  "lead": "Conocé nuestros planes y coordiná una demo para encontrar la opción adecuada para tu establecimiento."}) }}
+
+{{ pp.cta({
+  "img": L ~ "images/shared/cta-productor.webp",
+  "eyebrow": "Más control para tu campaña",
+  "title": ["Ordená tu producción.", "Tomá decisiones", "con información real."],
+  "text": "Integrando lotes, clima, labores, insumos, acopio, costos y rendimientos en un solo lugar.",
+  "actions": [{"label": "Solicitar demo", "href": "#demo", "style": "accent"},
+              {"label": "Descargar brochure", "href": asset(BROCHURE), "style": "ghost-light", "arrow": "↓", "download": "Brochure-GEAGRO.pdf"}],
+}) }}
+
+{{ pp.about({
+  "id": "nosotros", "img": L ~ "images/backgrounds/bg-geneos.webp", "color": "#f3f9f3",
+  "eyebrow": "Nosotros", "title": "GEAGRO es tecnología para el agro, creada por GENEOS.",
+  "paragraphs": ["Somos una cooperativa de software de Tandil formada por <strong>profesionales de Tecnología, Económicas, Comunicación y Diseño.</strong>",
+                 "Hace más de 10 años desarrollamos <strong>soluciones informáticas con software libre</strong>, acompañando cada proyecto desde el análisis hasta su implementación."],
+  "stats": [{"icon": L ~ "icons/nosotros/10-anios.png", "title": "10+ años", "text": "desarrollando software"},
+            {"icon": L ~ "icons/nosotros/equipo.png", "title": "Equipo multidisciplinario", "text": "tecnología + gestión + diseño"},
+            {"icon": L ~ "icons/nosotros/software-libre.png", "title": "Software libre", "text": "soluciones que pueden evolucionar"}],
+  "close": "GEAGRO nace de esa experiencia: <strong>software para el agro</strong>, pensado para la gestión agropecuaria de pequeños y medianos productores.",
+}) }}
+
+{{ pp.faq({"title": "Lo que más nos preguntan", "lead": "¿Tenés otra duda? Escribinos o dejanos tus datos en el formulario de demo.", "items": FAQS}) }}
+
+{{ pp.convert({
+  "product": "GEAGRO",
+  "brochure": {"name": "Brochure GEAGRO", "meta": "PDF · 15 páginas · 1,1 MB", "icon": L ~ "icons/brand/isologo-geagro.svg",
+               "href": BROCHURE, "file": "Brochure-GEAGRO.pdf",
+               "text": "Módulos, funcionalidades y paneles de GEAGRO CEREALES y GEAGRO VID, para compartir con tu equipo técnico."},
+  "quote": {"html": "<p><strong>No todos los productores trabajan de la misma manera.</strong></p><p>GEAGRO se adapta a las posibilidades de gestión de información de pequeños y medianos productores, para que sepan <strong>qué hacer, cuándo hacerlo</strong> y tengan información para tomar mejores decisiones.</p>",
+            "name": "José María Fantasía", "role": "Ingeniero en Sistemas · Analista funcional",
+            "img": L ~ "images/shared/jose-maria.jpg", "webp": L ~ "images/shared/jose-maria.webp"},
+  "form": {
+    "rows": [
+      [{"name": "nombre", "label": "Nombre y apellido", "required": true, "autocomplete": "name", "wa": "Nombre"},
+       {"name": "empresa", "label": "Establecimiento o empresa", "autocomplete": "organization", "wa": "Establecimiento"}],
+      [{"name": "email", "label": "Email", "type": "email", "required": true, "autocomplete": "email"},
+       {"name": "telefono", "label": "Teléfono / WhatsApp", "type": "tel", "autocomplete": "tel", "wa": "Teléfono"}],
+      [{"name": "localidad", "label": "Localidad y provincia", "placeholder": "Ej.: Tandil, Buenos Aires", "wa": "Localidad"},
+       {"name": "superficie", "label": "Superficie aproximada (ha)", "inputmode": "decimal", "placeholder": "Ej.: 250", "wa": "Superficie", "suffix": "ha"}]],
+    "radios": {"legend": "¿Qué versión te interesa?", "name": "version", "options": [["campo", "CEREALES", "CEREALES"], ["vid", "VID", "VID"], ["ambas", "Ambas", "Ambas"]]},
+    "message": {"label": "Contanos sobre tu producción", "placeholder": "Cultivos, campañas, cómo registrás hoy la información…"}},
+}) }}
+
+</div>
+<script src="{{ asset('js/product.js') }}" defer></script>
+{% endblock %}

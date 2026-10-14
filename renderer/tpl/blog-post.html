@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import "partials/product.html" as pp with context %}
+{# Artículo de blog (generado por el administrador). PG.post = {title, summary, date, author, image, body_html, related, ...} #}
+{% set A = PG.post %}
+{% block schema %}{{ jsonld(A.schema) }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block body_class %}page-blog-post{% endblock %}
+{% block content %}
+<div class="pp pp-theme-{{ P.key }} pp-blog">
+  <article class="pp-section pp-white">
+    <div class="pp-container pp-article">
+      <p class="pp-blog-meta"><a href="{{ page_url('/' ~ A.index_path) }}">{{ A.index_title }}</a> · <time datetime="{{ A.date }}">{{ A.date_label }}</time>{% if A.author %} · {{ A.author }}{% endif %}</p>
+      <h1>{{ A.title }}</h1>
+      {% if A.summary %}<p class="pp-article-lead">{{ A.summary }}</p>{% endif %}
+      {% if A.image %}<img class="pp-article-img" src="{{ prefix }}assets/{{ A.image.src }}" alt="{{ A.image.alt }}" width="{{ A.image.w }}" height="{{ A.image.h }}">{% endif %}
+      <div class="pp-article-body">{{ A.body_html|replace("__ASSETS__/", prefix ~ "assets/")|safe }}</div>
+      {% if A.categories or A.tags %}<p class="pp-blog-tags">{% for c in A.categories %}<span>{{ c }}</span>{% endfor %}{% for t in A.tags %}<span>#{{ t }}</span>{% endfor %}</p>{% endif %}
+    </div>
+  </article>
+  {% if A.related %}
+  <section class="pp-section pp-soft">
+    <div class="pp-container">
+      <h2 class="pp-blog-related-title">Artículos relacionados</h2>
+      <ul class="pp-blog-grid">
+        {% for r in A.related %}<li><a class="pp-blog-card" href="{{ page_url('/' ~ r.path) }}"><span class="pp-blog-meta">{{ r.date_label }}</span><h3>{{ r.title }}</h3><p>{{ r.summary }}</p></a></li>{% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "wagtailadmin/base.html" %}
+{% block titletag %}Actualizar precios{% endblock %}
+{% block content %}
+{% include "wagtailadmin/shared/header.html" with title="Actualizar precios" icon="tag" %}
+<div class="nice-padding">
+  <p>Todos los planes en una pantalla. Cada precio se carga una sola vez y se actualiza en la home, la landing del plan, el comparador y los datos estructurados.
+     «Guardar borradores» no cambia nada aprobado; «Guardar y aprobar» deja los precios listos para publicar desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
+  <form method="post">{% csrf_token %}
+    <table class="gwa-tabla">
+      <thead><tr><th>Sitio</th><th>Plan</th><th class="gwa-num">Abono mensual ($)</th><th class="gwa-num">Implementación ($)</th><th>Vigente hasta</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for f in filas %}
+        <tr>
+          <td><span class="gwa-dot" style="background: {{ f.p.sitio.color }}"></span> {{ f.p.sitio.nombre }}</td>
+          <td><a href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">{{ f.p }}</a>{% if not f.p.visible %} <span class="gwa-badge gwa-sin_publicar">oculto</span>{% endif %}</td>
+          <td class="gwa-num"><input type="text" name="precio_{{ f.p.pk }}" value="{{ f.v.precio }}" inputmode="numeric" aria-label="Abono de {{ f.p }}"></td>
+          <td class="gwa-num"><input type="text" name="impl_{{ f.p.pk }}" value="{{ f.v.implementacion }}" inputmode="numeric" aria-label="Implementación de {{ f.p }}"></td>
+          <td><input type="date" name="hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" aria-label="Vigencia de {{ f.p }}"></td>
+          <td>{% if f.b %}<span class="gwa-badge gwa-pendiente">Borrador (aprobado: ${{ f.p.precio }})</span>{% elif f.p.live %}<span class="gwa-badge gwa-al_dia">Aprobado</span>{% else %}<span class="gwa-badge gwa-sin_publicar">Sin aprobar</span>{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="6">No hay planes en tus sitios.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    <div class="gwa-acciones w-mt-6">
+      <button class="button button-secondary" name="accion" value="borrador">Guardar borradores</button>
+      <button class="button" name="accion" value="aprobar">Guardar y aprobar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

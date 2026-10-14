@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as m with context %}
+{% import "partials/product.html" as pp with context %}
+{% import "partials/standalone.html" as sx with context %}
+{#
+  GEAGRO CEREALES (geagro.ar/cereales/): contenido migrado de la página publicada, con los componentes del sitio nuevo.
+  Palabras clave: software de gestión agrícola · software para gestión de cereales.
+#}
+{% set L = "geagro-landing/" %}
+{% set BROCHURE = "docs/Brochure-GEAGRO-CEREALES.pdf" %}
+{% set FAQS = [
+  ("¿Qué puedo planificar con GEAGRO CEREALES?", "<p>Cultivos, labores e insumos de cada campaña, por lote. A partir de esa planificación generás órdenes de trabajo y seguís el ciclo productivo hasta la cosecha.</p>"),
+  ("¿Cómo controla los insumos?", "<p>Llevás el stock, el consumo y el costo de semillas, fertilizantes y fitosanitarios, y comparás los insumos necesarios con los comprados.</p>"),
+  ("¿Puedo ver el costo por lote?", "<p>Sí. Analizás la inversión por lote y comparás el costo estimado con el real, junto con el rendimiento de la campaña.</p>"),
+  ("¿Sirve si guardo grano en acopiadores?", "<p>Sí. Además de tus silos propios, registrás acopiadores externos, certificados de depósito, servicios realizados, stock disponible y retiros.</p>"),
+  ("¿Registra el transporte de la producción?", "<p>Sí, el módulo de logística y transporte registra y controla los movimientos vinculados a la producción.</p>"),
+  ("¿Cómo pido una demo?", "<p>Completá el formulario de esta página o escribinos por WhatsApp. Te contactamos para conocer tu producción y coordinar la presentación. Los planes y precios están en la <a href=\"" ~ page_url('/#planes') ~ "\">página principal de GEAGRO</a>.</p>"),
+] %}
+{% set FAQS = faq_items(FAQS) %}
+
+{% block schema %}
+{{ m.faq_schema(FAQS) }}
+{{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "@id": canonical ~ "#software", "name": "GEAGRO CEREALES",
+  "applicationCategory": "BusinessApplication", "applicationSubCategory": "Software de gestión agrícola", "operatingSystem": "Web",
+  "url": canonical, "description": description, "inLanguage": "es-AR", "image": og_image,
+  "publisher": {"@id": abs_url("#organizacion")}, "isPartOf": {"@id": abs_url("#web")},
+  "featureList": ["Gestión de campos y lotes", "Planificación de campañas agrícolas", "Gestión de insumos", "Registro de labores y operaciones",
+                  "Control de costos productivos", "Órdenes de trabajo", "Indicadores y gráficos productivos", "Logística y transporte", "Gestión de acopio"]}) }}
+{{ jsonld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+  {"@type": "ListItem", "position": 1, "name": "GEAGRO", "item": abs_url()},
+  {"@type": "ListItem", "position": 2, "name": "GEAGRO CEREALES", "item": canonical}]}) }}
+{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block preload %}
+<link rel="preload" as="image" type="image/avif" href="{{ prefix }}assets/images/cereales/campo-bg-1600.avif" media="(min-width: 901px)" fetchpriority="high">
+<link rel="preload" as="image" type="image/avif" href="{{ prefix }}assets/images/cereales/campo-bg-900.avif" media="(max-width: 900px)" fetchpriority="high">
+{% endblock %}
+{% block body_class %}page-geagro page-cereales page-product{% endblock %}
+
+{% block content %}
+<div class="pp pp-theme-geagro">
+
+{{ pp.hero(hero_data({
+  "img": L ~ "images/cereales/campo-bg-1600.webp", "img_sm": L ~ "images/cereales/campo-bg-900.webp", "wave_next": "#fff",
+  "logo": "geagro/logo-geagro-white.svg", "logo_alt": "GEAGRO, software de gestión agropecuaria", "logo_w": 300, "logo_h": 64,
+  "eyebrow": "GEAGRO CEREALES",
+  "title": [["Software de gestión", false], ["agrícola para ordenar", false], ["cada campaña", true]],
+  "lead": "Un software agrícola pensado para productores y equipos técnicos que necesitan planificar, ejecutar y controlar cada campaña, organizando la información de sus lotes, insumos y labores para tomar mejores decisiones productivas.",
+  "actions": [{"label": "Solicitar demo de CEREALES", "href": "#demo", "style": "accent", "version": "campo"},
+              {"label": "Qué incluye", "href": "#incluye", "style": "outline-light"}],
+  "media": {"monitor": {"src": L ~ "images/cereales/panel-campo.jpg", "webp": L ~ "images/cereales/panel-campo.webp",
+            "alt": "Panel productivo de GEAGRO CEREALES con riesgo sanitario, próxima acción, insumos a comprar e indicadores de la campaña", "w": 615, "h": 410}},
+})) }}
+
+{{ pp.modules({
+  "id": "incluye", "eyebrow": "Qué incluye", "title": "Software agrícola para la gestión de campos, lotes y campañas",
+  "items": [
+    {"icon": L ~ "icons/cereales/campo-campo.svg", "title": "Gestión de campos y lotes", "text": "Organización completa de la superficie productiva, cultivos y campañas."},
+    {"icon": L ~ "icons/cereales/campo-plan-tecnico.svg", "title": "Planificación de campañas agrícolas", "text": "Definición de cultivos, labores y seguimiento del ciclo productivo."},
+    {"icon": L ~ "icons/cereales/campo-insumos.svg", "title": "Gestión de insumos", "text": "Control de stock, consumo y costos de semillas, fertilizantes y fitosanitarios."},
+    {"icon": L ~ "icons/cereales/campo-operaciones.svg", "title": "Registro de labores y operaciones", "text": "Seguimiento de siembra, fertilización, pulverización y cosecha."},
+    {"icon": L ~ "icons/cereales/campo-control.svg", "title": "Control de costos productivos", "text": "Análisis de inversión por lote y comparación entre costo estimado y real."},
+    {"icon": L ~ "icons/cereales/campo-compras.svg", "title": "Órdenes de trabajo", "text": "Generación y seguimiento de tareas en campo."},
+    {"icon": L ~ "icons/cereales/campo-graficos.svg", "title": "Indicadores y gráficos productivos", "text": "Visualización de rendimiento, costos y evolución de la campaña."},
+    {"icon": L ~ "icons/cereales/campo-transporte.svg", "title": "Logística y transporte", "text": "Registro y control de movimientos vinculados a la producción."},
+    {"icon": L ~ "icons/cereales/campo-acopio.svg", "title": "Gestión de acopio", "text": "Control del grano almacenado, stock disponible y movimientos, en silos propios y en acopiadores externos."},
+  ],
+}) }}
+
+{{ sx.cols({
+  "id": "acopio", "soft": true, "eyebrow": "Acopio", "title": "Controlá dónde está tu producción y cuánto grano tenés disponible.",
+  "lead": "Toda la trazabilidad del grano en un mismo sistema.",
+  "cards": [
+    {"icon": L ~ "icons/proceso/campo-acopio-propio.svg", "title": "Acopio propio", "checks": [
+      ["Silos propios", "Gestión de la capacidad y ubicación de los silos."],
+      ["Stock por especie y campaña", "Stock disponible por cultivo y campaña."],
+      ["Ingresos y salidas", "Registro de movimientos de entrada y salida de grano."],
+      ["Transferencias entre silos", "Movimientos internos de grano entre silos propios."],
+      ["Calidad del grano", "Registro y control de parámetros de calidad por lote."]]},
+    {"icon": L ~ "icons/proceso/campo-acopio-terceros.svg", "title": "Acopio en terceros", "checks": [
+      ["Acopiadores externos", "Registro de acopiadores y vinculación de la producción."],
+      ["Certificados de depósito", "Gestión de certificados y control de lo almacenado."],
+      ["Stock disponible", "Stock por especie, campaña y acopiador."],
+      ["Servicios realizados", "Registro de servicios como secada y limpieza."],
+      ["Retiros y movimientos", "Control de retiros y movimientos del grano almacenado."]]},
+  ],
+}) }}
+
+{{ sx.split({
+  "id": "produccion", "eyebrow": "Producción y economía", "title": "Gestión productiva y económica en un solo sistema",
+  "items": [
+    {"title": "Producción agrícola", "text": "Organizá cultivos, lotes y labores en un entorno unificado. Registrá cada actividad y seguí el estado de la campaña en tiempo real."},
+    {"title": "Control económico", "text": "Analizá costos por lote, compará inversión estimada contra real e insumos necesarios contra comprados, y evaluá el rendimiento de cada campaña para mejorar las próximas."},
+  ],
+  "media": {"src": L ~ "images/cereales/panel-campo.jpg", "webp": L ~ "images/cereales/panel-campo.webp",
+            "alt": "Indicadores de rendimiento, costos y ejecución de campaña en GEAGRO CEREALES", "w": 615, "h": 410},
+}) }}
+
+{{ sx.steps({
+  "id": "como-funciona", "bg": "#f2faf2",
+  "eyebrow": "Cómo funciona", "title": "Ordená tu campaña. Controlá cada etapa", "dot": true,
+  "lead": "Integrando cada etapa eliminás desorden, reducís errores y obtenés una visión clara de tu producción.",
+  "items": [
+    {"icon": L ~ "icons/proceso/campo-paso-planifica.svg", "title": "Planificación de campaña"},
+    {"icon": L ~ "icons/proceso/campo-paso-asigna.svg", "title": "Asignación de operaciones"},
+    {"icon": L ~ "icons/proceso/campo-paso-compra.svg", "title": "Compra de insumos"},
+    {"icon": L ~ "icons/proceso/campo-paso-ejecucion.svg", "title": "Ejecución de campaña"},
+    {"icon": L ~ "icons/proceso/campo-paso-analisis.svg", "title": "Análisis y estadística de resultados"},
+  ],
+}) }}
+
+{{ pp.band({
+  "eyebrow": "Demo de GEAGRO CEREALES",
+  "title": "Te mostramos GEAGRO CEREALES con tus propios lotes.",
+  "text": "Coordinamos una demo para conocer tu campaña y mostrarte cómo planificar, ejecutar y controlar cada etapa.",
+  "actions": [{"label": "Solicitar demo", "href": "#demo", "style": "accent", "arrow": "→", "version": "campo"},
+              {"label": "Ver planes y precios", "href": page_url("/#planes"), "style": "ghost-light"}],
+}) }}
+
+{{ pp.faq({"title": "Sobre GEAGRO CEREALES", "lead": "¿Tenés otra duda? Escribinos por WhatsApp o dejanos tus datos en el formulario de demo.", "items": FAQS}) }}
+
+{{ pp.convert({
+  "product": "GEAGRO",
+  "brochure": {"name": "Brochure de GEAGRO CEREALES", "meta": "PDF · 10 páginas · 3 MB", "icon": L ~ "icons/brand/isologo-campo.svg",
+               "href": BROCHURE, "file": "Brochure-GEAGRO-CEREALES.pdf",
+               "text": "Módulos, funcionalidades y paneles de GEAGRO CEREALES, para compartir con tu equipo técnico."},
+  "form": {
+    "title": "Solicitá tu demo de GEAGRO CEREALES",
+    "rows": [
+      [{"name": "nombre", "label": "Nombre y apellido", "required": true, "autocomplete": "name", "wa": "Nombre"},
+       {"name": "empresa", "label": "Establecimiento o empresa", "autocomplete": "organization", "wa": "Establecimiento"}],
+      [{"name": "email", "label": "Email", "type": "email", "required": true, "autocomplete": "email"},
+       {"name": "telefono", "label": "Teléfono / WhatsApp", "type": "tel", "autocomplete": "tel", "wa": "Teléfono"}],
+      [{"name": "localidad", "label": "Localidad y provincia", "placeholder": "Ej.: Tandil, Buenos Aires", "wa": "Localidad"},
+       {"name": "superficie", "label": "Superficie aproximada (ha)", "inputmode": "decimal", "placeholder": "Ej.: 250", "wa": "Superficie", "suffix": "ha"}]],
+    "radios": {"legend": "¿Qué versión te interesa?", "name": "version", "options": [["campo", "CEREALES", "CEREALES"], ["vid", "VID", "VID"], ["ambas", "Ambas", "Ambas"]]},
+    "message": {"label": "Contanos sobre tu producción", "placeholder": "Cultivos, campañas, cómo registrás hoy la información…"}},
+}) }}
+
+</div>
+<script src="{{ asset('js/product.js') }}" defer></script>
+{% endblock %}

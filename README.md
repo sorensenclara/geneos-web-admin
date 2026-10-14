@@ -1,36 +1,111 @@
 # GENEOS Web Admin
 
-Administrador centralizado de contenidos para los sitios web de GENEOS (GENEOS institucional, GERP, GEAGRO Cereales y Vid, GEMA).
-Wagtail + PostgreSQL; los sitios públicos siguen siendo estáticos y se generan con el motor de plantillas actual.
+Administrador centralizado de contenidos de las webs de GENEOS: GENEOS (institucional), GERP, GEAGRO (líneas Cereales y Vid) y GEMA.
+Django 6 + Wagtail 7.4 LTS. Las webs públicas siguen siendo estáticas: el administrador genera los archivos con las mismas plantillas de hoy.
 
-**Estado:** propuesta en revisión. Todavía no hay implementación: este repositorio contiene la propuesta y el prototipo con el que se probó el circuito de publicación.
+**Estado: etapa 1, solo local.** No publica en las webs actuales, no toca dominios ni DNS y no depende de ningún proveedor.
+Este repositorio es independiente de los sistemas Django operativos y de los repositorios de las webs (que solo se leen).
 
-- `docs/propuesta.html`: propuesta técnica completa (auditoría, arquitectura, modelo de datos, mockups, hosting, plan, migración).
-- `prototipo-publicacion/`: app de Django/Wagtail usada para probar Editar → Borrador → Vista previa → Aprobación → Publicación → Web pública, y el caso de despliegue fallido.
+## Probarlo en tu Mac
 
-Este repositorio es independiente de los sistemas Django operativos de GENEOS y de los repositorios de las webs.
-
-## Probar el prototipo
+Requisitos: Python 3.12 o más nuevo (`python3 --version`) y la carpeta `GENEOS WEB` al lado de este repositorio
+(`~/Documents/GENEOS WEB` y `~/Documents/geneos-web-admin`), con su carpeta `public/` generada como está hoy. El administrador solo lee esa carpeta.
 
 ```bash
-python3 -m venv .venv && . .venv/bin/activate
-pip install "wagtail>=7.4,<7.5" "django>=5.2,<6.1" jinja2 pillow
-wagtail start webadmin poc && cd poc
-cp -r ../prototipo-publicacion/publishing .
+cd ~/Documents/geneos-web-admin
+scripts/iniciar.sh
 ```
 
-Agregar `"publishing"` a `INSTALLED_APPS` y estas variables en `webadmin/settings/base.py`:
+La primera vez crea el entorno, la base local, importa el contenido actual de las webs y te pide usuario y contraseña
+(esa es tu cuenta de administradora, con acceso a todo). Después abrí <http://localhost:8000/admin/>.
+Para volver a entrar otro día: `scripts/iniciar.sh` de nuevo. Para empezar de cero: borrá la carpeta `var/` y ejecutalo otra vez.
 
-```python
-WEB_TOOLS_DIR = "/ruta/a/GENEOS WEB/tools/sitios-comerciales"   # exportador (debe aceptar WEB_DATA_DIR)
-WEB_PUBLIC_ROOT = "/ruta/a/carpeta-publica-de-prueba"
-WEB_PREVIEW_ROOT = "/ruta/a/carpeta-de-vistas-previas"
+Si GEAGRO no está en la ruta de siempre, copiá `.env.example` como `.env` y completá `GEAGRO_SRC_DIR`.
+
+### Tres pruebas
+
+1. **Editar una página.** Páginas → GERP · Inicio → cambiá el «Título principal» (un renglón por línea; `**así**` va resaltado)
+   → *Guardar borrador*. Con el ícono de vista previa (la pantallita, arriba a la derecha) ves la página real con el cambio al costado del formulario, mientras escribís.
+   Desde el botón ▲ junto a *Guardar borrador* → *Publicar* lo aprobás.
+2. **Actualizar un precio.** Menú *Actualizar precios* → cambiá el abono → *Guardar y aprobar*.
+   El precio cambia en la tarjeta, la landing, el comparador, los datos estructurados y en las preguntas frecuentes que lo mencionan.
+3. **Previsualizar y publicar.** *Estado de las webs* → el sitio muestra «cambios aprobados sin publicar» →
+   *Vista previa de la web completa* → *Publicar en la web* → *Ver la web publicada (local)*.
+   *Volver a la versión anterior* deshace la última publicación.
+
+## Cómo está organizado
+
+| Carpeta | Qué hay |
+|---|---|
+| `sitios/` | Sitios, líneas de GEAGRO, contacto, destino de publicación, roles y permisos, tarea de aprobación por sitio. `manage.py inicializar` |
+| `contenidos/` | Páginas (encabezado, botones, SEO, secciones visibles), blog con artículos por bloques, planes y precios, comparador, FAQ, testimonios, sectores, redirecciones, recursos descargables |
+| `publicacion/` | Del contenido aprobado a los datos del generador, vista previa, controles, publicación con versiones, vuelta atrás y estado de cada web |
+| `formularios/` | API del formulario de demo (antispam, consentimiento, aviso por email) y listado de pedidos |
+| `renderer/` | Motor de sitios comerciales (copia de `GENEOS WEB/tools/sitios-comerciales`) que acepta los datos del administrador |
+| `templates/`, `static/gwa/` | Pantallas propias del panel y estilo GENEOS |
+
+### Aprobado ≠ publicado
+
+- **Borrador**: guardado, no cambia nada.
+- **Aprobado**: versión vigente dentro del administrador. Queda en la lista «pendiente de publicar».
+- **En la web**: la última publicación que terminó bien. Cada publicación se genera completa, se controla
+  (un solo H1 por página, títulos, precios en la home) y recién entonces reemplaza a la anterior de forma atómica.
+  Si algo falla, la web queda como estaba y el error queda registrado.
+
+En cada sitio, «Actualizar la web al aprobar cada cambio» permite publicar automáticamente al aprobar (apagado por defecto).
+
+### Roles
+
+Tres grupos por sitio y, en GEAGRO, también por línea: **Editor** (edita y envía a aprobación), **Publicador** (aprueba y publica)
+y **Administrador** (además borra y cambia la configuración del sitio). Se asigna a las personas desde *Propiedades → Usuarios* (cada persona en el grupo que corresponda).
+Cada permiso se verifica en el servidor: un editor de GEMA no ve ni puede abrir contenido de GERP, ni de otra línea.
+Las cuentas de superusuario (la tuya) administran todo.
+
+### Publicación independiente del proveedor
+
+En *Sitios y accesos → Sitios y contacto → Publicación*:
+
+- **Carpeta local con versiones** (por defecto): `var/publico/<sitio>/versiones/<fecha>` y el enlace `actual`.
+- **Comando de despliegue**: después de generar y controlar, ejecuta un comando con `{carpeta}`. Ejemplos, cuando Infra defina:
+  `npx wrangler pages deploy {carpeta} --project-name=gerp` (Cloudflare Pages) · `rsync -a --delete {carpeta}/ usuario@servidor:/var/www/gerp/`.
+  Las credenciales van en variables de entorno del servidor, nunca en el repositorio ni en la web.
+
+El formulario de demo envía a `GWA_URL_PUBLICA/api/formularios/demo/`. En local es `http://localhost:8000`; en el servidor
+se configura con la URL pública del administrador y `GWA_CORS_EXTRA` con los dominios de las webs.
+
+## GEMA: web comercial y aplicación
+
+`https://gema.geneos.com.ar/` hoy sirve una **landing comercial estática** (título «GEMA - PLATAFORMA DE GESTIÓN DE MATAFUEGOS»,
+restos de una plantilla «Softing», precio «ARS83.300 + IVA», enlaces rotos, sin login). No responde como la aplicación Django.
+Queda configurado como dominio **no confirmado**: la web se genera sin URL canónica ni sitemap hasta confirmarlo.
+Propuesta para validar con Infra: la web comercial en `gema.geneos.com.ar` y la aplicación en un subdominio propio
+(por ejemplo `app.gema.geneos.com.ar`), sin mezclar ambos. No se modificó nada.
+
+## Límites de la etapa 1
+
+- La web institucional de GENEOS tiene sus páginas y su SEO cargados, pero su generador (`build.py`) se conecta en la etapa 7.
+- Brochures: se suben a *Recursos descargables*; todavía no reemplazan los enlaces de las plantillas.
+- Íconos y logos de los planes se indican con la ruta del archivo; la carga como imagen queda para una etapa siguiente.
+- Sin segundo factor de autenticación todavía (previsto para el servidor).
+
+## Validaciones comerciales pendientes
+
+- Importes de GERP Lite, Core y Plus y la leyenda «vigentes hasta diciembre de 2026».
+- Valores «A confirmar» del comparador de GERP (cada valor tiene su fuente y un campo «Validado por»).
+- Testimonios de INBIO HIGHWAY, KORRONTE y CELIMUNDO: texto exacto y autorización (no se publican hasta marcarlos como autorizados).
+- GEMA: una pregunta frecuente dice «30 dólares oficiales» mientras el plan muestra $89.250 + IVA.
+- Vigencia de los precios de GEAGRO y GEMA (no tienen fecha cargada).
+
+## Pruebas automáticas
+
+```bash
+.venv/bin/python manage.py test
 ```
 
-y en `webadmin/urls.py`, antes de las rutas de Wagtail, la ruta privada de vistas previas:
+Permisos por sitio y línea, borrador/aprobado/publicado de un precio, publicación fallida que no toca la web, vuelta atrás,
+testimonios no autorizados y antispam del formulario.
 
-```python
-path("__preview/<path:path>", staff_member_required(static_serve), {"document_root": settings.WEB_PREVIEW_ROOT}),
-```
+## Documentación previa
 
-El exportador del prototipo lee los datos desde la variable de entorno `WEB_DATA_DIR` (cambio de 2 líneas en `export.py`, pendiente de incorporar en la rama `2026` de GENEOS WEB).
+- `docs/propuesta.html`: propuesta técnica (auditoría, arquitectura, modelo de datos, mockups, hosting, plan).
+- `prototipo-publicacion/`: prototipo con el que se probó el circuito de publicación.

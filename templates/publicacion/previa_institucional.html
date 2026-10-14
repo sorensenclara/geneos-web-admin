@@ -1,0 +1,9 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>{{ obj.title|default:obj }}</title>
+<style>body{font:17px/1.6 "Titillium Web",system-ui,sans-serif;margin:0;color:#1d1d1d}header{background:#000;color:#fff;padding:16px 24px;font-weight:700}main{max-width:780px;margin:0 auto;padding:32px 20px}
+.aviso{background:#fff4d6;border-radius:10px;padding:12px 16px;font-size:.92rem}.serp{border:1px solid #ddd;border-radius:10px;padding:12px 16px;margin-top:20px}.serp b{color:#1a0dab;font-weight:400;font-size:1.1rem}</style></head>
+<body><header>GENEOS</header><main>
+<p class="aviso">Vista previa de contenido. La web institucional todavía se genera con su propio sistema: el diseño final se verá cuando se conecte (etapa 7).</p>
+<h1>{{ obj.hero_titulo|default:obj.title|linebreaksbr }}</h1>
+{% if obj.hero_bajada %}<p>{{ obj.hero_bajada }}</p>{% endif %}
+<div class="serp"><small>{{ sitio.dominio }}/{{ obj.ruta_publica }}</small><br><b>{{ obj.seo_title|default:obj.title }}</b><br><small>{{ obj.search_description }}</small></div>
+</main></body></html>

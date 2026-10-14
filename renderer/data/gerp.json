@@ -1,0 +1,179 @@
+{
+  "_comentario": [
+    "Configuración única de GERP: precios, módulos, funcionalidades, comparador, sectores y testimonios.",
+    "La usan la home (tarjetas, comparador, FAQ, datos estructurados) y las landings /lite/, /core/ y /plus/.",
+    "Comparador: true = incluido · false = no incluido · null = sin confirmar (se muestra 'A confirmar') · texto = valor descriptivo.",
+    "Fuente de cada dato: web anterior gerp.ar (tabla de precios y páginas de cada plan, octubre 2026). No agregar prestaciones sin confirmación."
+  ],
+  "price_note": "Precios en pesos argentinos, más IVA. Precios vigentes hasta diciembre de 2026.",
+  "show_pending": true,
+  "pending_label": "A confirmar",
+  "pending_label_public": "Consultar",
+
+  "plans": [
+    {
+      "key": "lite", "name": "LITE", "label": "GERP Lite", "slug": "lite/",
+      "color": "#254d99", "accent": "#3673b9", "hover": "#3673b9", "soft": "#f1f5fb", "deep_rgb": "37, 77, 153",
+      "icon": "img/2024/11/G-ERP-Lite.svg", "logo_white": "gerp-planes/gerp-lite-logo-blanco.svg",
+      "short": "Pequeñas empresas y emprendimientos",
+      "audience": "Para pequeñas empresas y emprendimientos que necesitan ordenar su facturación, sus clientes, sus proveedores y su stock, con hasta 3 usuarios.",
+      "price": "89.250", "price_num": 89250, "impl": "446.250",
+      "card_feats": ["Hasta 3 usuarios", "Módulo Inventario", "Módulo Compra y Venta", "Contabilidad y Facturación"],
+      "title": "GERP Lite | Software de gestión para pequeñas empresas",
+      "description": "GERP Lite: software de gestión para pequeñas empresas y emprendimientos. Inventario, compras y ventas, facturación y contabilidad, hasta 3 usuarios. Precio y demo.",
+      "h1": ["Software de gestión para", "pequeñas empresas", "y emprendimientos"],
+      "modules": [
+        {"icon": "bi-box-seam", "title": "Inventario", "text": "Stock de tus productos, con entradas y salidas registradas."},
+        {"icon": "bi-arrow-left-right", "title": "Compra y Venta", "text": "Compras y ventas en un mismo módulo, simple de usar."},
+        {"icon": "bi-files", "title": "Contabilidad y Facturación", "text": "Comprobantes de compra y venta, y su registro contable."}
+      ],
+      "functions": [
+        {"icon": "bi-box-seam", "title": "Inventario", "checks": [
+          ["Entradas y salidas simplificadas", "Registrás el ingreso y el egreso de mercadería sin pasos de más."],
+          ["Movimientos automáticos de stock", "Cada comprobante actualiza el inventario."],
+          ["Lotes y vencimientos", "Se gestionan al crear los comprobantes."]]},
+        {"icon": "bi-file-earmark-text", "title": "Informes y documentos", "checks": [
+          ["Facturas de compra y de venta", "Reportes descargables."],
+          ["Reportes impositivos", "Libro IVA compras, libro IVA ventas, y ventas y compras por jurisdicción."],
+          ["Cuentas a cobrar y a pagar", "Reportes de facturas pendientes de cobro y de pago."]]}
+      ],
+      "faqs": [
+        ["¿Cuántos usuarios incluye GERP Lite?", "Hasta 3 usuarios. Si tu equipo es más grande, GERP Core y GERP Plus permiten múltiples usuarios con distintos niveles de acceso."],
+        ["¿Puedo controlar lotes y vencimientos?", "Sí. En GERP Lite gestionás lotes y vencimientos al crear los comprobantes."],
+        ["¿Qué reportes impositivos incluye?", "Libro IVA compras, libro IVA ventas, y ventas y compras por jurisdicción, además de los reportes de facturas a cobrar y a pagar."]
+      ]
+    },
+    {
+      "key": "core", "name": "CORE", "label": "GERP Core", "slug": "core/", "featured": true,
+      "color": "#138338", "accent": "#1e9f4b", "hover": "#0b6b33", "soft": "#f0f8f2", "deep_rgb": "19, 131, 56",
+      "icon": "img/2024/11/G-ERP-Core.svg", "logo_white": "gerp-planes/gerp-core-logo-blanco.svg",
+      "short": "Medianas empresas",
+      "audience": "Para medianas empresas que necesitan el circuito completo de compras y ventas, informes contables y varios usuarios con distintos niveles de acceso.",
+      "price": "178.500", "price_num": 178500, "impl": "892.500",
+      "card_feats": ["Múltiples usuarios diferenciados", "Módulo Inventario", "Módulo Compra", "Módulo Venta", "Módulo Facturación", "Módulo Contabilidad"],
+      "title": "GERP Core | Sistema de gestión de compras y ventas para pymes",
+      "description": "GERP Core: sistema de gestión para medianas empresas. Circuito completo de compras y ventas, facturación, contabilidad e inventario, con múltiples usuarios. Precio y demo.",
+      "h1": ["Sistema de gestión", "de compras y ventas para", "medianas empresas"],
+      "modules": [
+        {"icon": "bi-box-seam", "title": "Inventario", "text": "Stock de tus productos, con recepción y despacho de mercadería."},
+        {"icon": "bi-cart", "title": "Compras", "text": "Presupuestos, órdenes de compra, recepción y pagos a proveedores."},
+        {"icon": "bi-shop", "title": "Ventas", "text": "Pedidos de clientes, despacho y cobranzas."},
+        {"icon": "bi-file-earmark-text", "title": "Facturación", "text": "Facturas a clientes y de proveedores, y notas de crédito."},
+        {"icon": "bi-coin", "title": "Contabilidad", "text": "Registro contable e informes para tomar decisiones."}
+      ],
+      "functions": [
+        {"icon": "bi-cart", "title": "Circuito de compras", "checks": [
+          ["Presupuestos y órdenes de compra", "La orden se genera a partir del presupuesto."],
+          ["Autorización de compras", "Cada compra pasa por su aprobación."],
+          ["Recepción de mercadería", "El ingreso queda vinculado a la orden."],
+          ["Facturas de proveedores y notas de crédito", "Registro de comprobantes y rectificativas."],
+          ["Pagos a proveedores", "Seguimiento de lo que debés y lo que pagaste."]]},
+        {"icon": "bi-shop", "title": "Circuito de ventas", "checks": [
+          ["Pedidos de clientes", "Cada venta empieza con su pedido."],
+          ["Autorización de ventas", "Control antes de comprometer mercadería."],
+          ["Despacho de mercadería", "La entrega queda vinculada al pedido."],
+          ["Facturas a clientes y notas de crédito", "La factura se genera desde el pedido."],
+          ["Cobranzas", "Registro de los pagos de tus clientes."]]}
+      ],
+      "functions_note": "Incluye múltiples usuarios con distintos niveles de visualización y acceso.",
+      "faqs": [
+        ["¿Cuántos usuarios puedo tener?", "Múltiples usuarios, cada uno con su nivel de visualización y de acceso."],
+        ["¿Qué incluye el circuito de compras?", "Presupuestos, órdenes de compra generadas desde el presupuesto, autorización, recepción de mercadería, facturas de proveedores, notas de crédito y pagos."],
+        ["¿Qué diferencia hay entre GERP Core y GERP Plus?", "GERP Plus suma un módulo de CRM (leads, oportunidades, equipos de venta y comisiones) y un módulo de producción MRP (listas de materiales, órdenes de producción y centros de producción)."]
+      ]
+    },
+    {
+      "key": "plus", "name": "PLUS", "label": "GERP Plus", "slug": "plus/",
+      "color": "#921d74", "accent": "#b82d88", "hover": "#b82d88", "soft": "#faf1f7", "deep_rgb": "146, 29, 116",
+      "icon": "img/2024/11/G-ERP-Plus.svg", "logo_white": "gerp-planes/gerp-plus-logo-blanco.svg",
+      "short": "Gestión integral con CRM y producción",
+      "audience": "Para empresas que quieren gestionar todas sus áreas en un solo sistema, sumando oportunidades comerciales (CRM) y producción (MRP).",
+      "price": "446.250", "price_num": 446250, "impl": "1.785.000",
+      "card_feats": ["Múltiples usuarios diferenciados", "Módulo Inventario", "Módulo Compra", "Módulo Venta", "Módulo Facturación", "Módulo Contabilidad", "Módulo CRM", "Módulo MRP"],
+      "title": "GERP Plus | ERP con CRM y producción (MRP) para empresas",
+      "description": "GERP Plus: ERP completo con CRM y producción MRP. Compras, ventas, facturación, contabilidad, inventario, oportunidades comerciales y fabricación. Precio y demo.",
+      "h1": ["ERP completo", "con CRM y producción", "para tu empresa"],
+      "modules": [
+        {"icon": "bi-box-seam", "title": "Inventario", "text": "Stock de productos y materias primas."},
+        {"icon": "bi-cart", "title": "Compras", "text": "Circuito completo, del presupuesto al pago."},
+        {"icon": "bi-shop", "title": "Ventas", "text": "Circuito completo, del pedido a la cobranza."},
+        {"icon": "bi-file-earmark-text", "title": "Facturación", "text": "Facturas a clientes y de proveedores, y notas de crédito."},
+        {"icon": "bi-coin", "title": "Contabilidad", "text": "Registro contable de tus operaciones."},
+        {"icon": "bi-people", "title": "CRM", "text": "Leads, oportunidades, equipos de venta y comisiones."},
+        {"icon": "bi-gear", "title": "MRP", "text": "Listas de materiales, órdenes y centros de producción."}
+      ],
+      "functions": [
+        {"icon": "bi-people", "title": "CRM", "checks": [
+          ["Leads", "Registro de cada contacto comercial."],
+          ["Oportunidades de venta", "Vinculadas al futuro pedido de venta."],
+          ["Actividades y equipos de trabajo", "Organización de equipos de venta y tareas."],
+          ["Comisiones", "Por facturas pagadas, por porcentaje o por pagos parciales y totales."]]},
+        {"icon": "bi-gear", "title": "Producción (MRP)", "checks": [
+          ["Listas de materiales", "Qué se necesita para fabricar cada producto."],
+          ["Órdenes de producción", "Planificación y seguimiento de la fabricación."],
+          ["Órdenes de desecho", "Registro de mermas."],
+          ["Centros de producción", "Dónde se realiza cada etapa."],
+          ["Subproductos", "Producciones que generan más de un producto."]]}
+      ],
+      "functions_note": "Incluye además los circuitos completos de compras y ventas, y múltiples usuarios con distintos niveles de acceso.",
+      "faqs": [
+        ["¿Qué puedo gestionar con el CRM?", "Leads, oportunidades de venta vinculadas al pedido, actividades y equipos de trabajo, y comisiones por facturas pagadas, por porcentaje o por pagos parciales y totales."],
+        ["¿Qué puedo gestionar con el MRP?", "Listas de materiales, órdenes de producción, órdenes de desecho, centros de producción y subproductos."],
+        ["¿Incluye compras y ventas?", "Sí. GERP Plus incluye los circuitos completos de compras y de ventas, además de inventario, facturación y contabilidad."]
+      ]
+    }
+  ],
+
+  "implementation_faq": "Configuramos el sistema, cargamos tus datos iniciales, capacitamos a las personas que lo van a usar y te acompañamos con soporte. La implementación de {plan} tiene un costo único de ${impl} + IVA.",
+
+  "features": [
+    {"group": "basic", "label": "Usuarios", "values": {"lite": "Hasta 3", "core": "Múltiples, con permisos", "plus": "Múltiples, con permisos"}},
+    {"group": "basic", "label": "Inventario", "values": {"lite": true, "core": true, "plus": true}},
+    {"group": "basic", "label": "Compras y ventas", "values": {"lite": "Módulo integrado", "core": "Módulos separados", "plus": "Módulos separados"}},
+    {"group": "basic", "label": "Facturación y contabilidad", "values": {"lite": "Módulo integrado", "core": "Módulos separados", "plus": "Módulos separados"}},
+    {"group": "basic", "label": "Facturación electrónica ARCA (ex AFIP)", "values": {"lite": null, "core": null, "plus": null}},
+    {"group": "basic", "label": "CRM: oportunidades comerciales", "values": {"lite": false, "core": false, "plus": true}},
+    {"group": "basic", "label": "Producción (MRP)", "values": {"lite": false, "core": false, "plus": true}},
+    {"group": "advanced", "label": "Circuito completo de compras, con autorización", "values": {"lite": null, "core": true, "plus": true}},
+    {"group": "advanced", "label": "Circuito completo de ventas, con autorización", "values": {"lite": null, "core": true, "plus": true}},
+    {"group": "advanced", "label": "Notas de crédito de compras y ventas", "values": {"lite": null, "core": true, "plus": true}},
+    {"group": "advanced", "label": "Lotes y vencimientos", "values": {"lite": true, "core": null, "plus": null}},
+    {"group": "advanced", "label": "Reportes impositivos (libros IVA, por jurisdicción)", "values": {"lite": true, "core": null, "plus": null}},
+    {"group": "advanced", "label": "Reportes de cuentas a cobrar y a pagar", "values": {"lite": true, "core": null, "plus": null}},
+    {"group": "advanced", "label": "Informes personalizados", "values": {"lite": null, "core": true, "plus": null}},
+    {"group": "advanced", "label": "Leads, equipos de venta y comisiones", "values": {"lite": false, "core": false, "plus": true}},
+    {"group": "advanced", "label": "Listas de materiales y órdenes de producción", "values": {"lite": false, "core": false, "plus": true}}
+  ],
+
+  "sectors": [
+    {"icon": "img/sectores/mayoristas.svg", "title": "Mayoristas", "text": "Inventario, pedidos, facturación y seguimiento de operaciones a gran escala."},
+    {"icon": "img/sectores/retail.svg", "title": "Retail y minoristas", "text": "Gestión integral para cadenas y sucursales, con control de inventario y ventas."},
+    {"icon": "img/sectores/manufactureros.svg", "title": "Manufactureros", "text": "Producción, materias primas e inventario en el mismo sistema, con GERP Plus."},
+    {"icon": "img/sectores/laboratorios.svg", "title": "Laboratorios", "text": "Trazabilidad de insumos, con control de vencimientos y números de serie."}
+  ],
+
+  "testimonials": [
+    {"company": "INBIO HIGHWAY", "publish": false, "text": null, "pending": "Copiar el texto exacto desde gerp.ar (WordPress) y confirmar vigencia y autorización."},
+    {"company": "KORRONTE", "publish": false, "text": null, "pending": "Copiar el texto exacto desde gerp.ar (WordPress) y confirmar vigencia y autorización."},
+    {"company": "CELIMUNDO", "publish": false, "text": null, "pending": "Copiar el texto exacto desde gerp.ar (WordPress) y confirmar vigencia y autorización."}
+  ],
+
+  "pending_validation": [
+    "Importes de abono e implementación de Lite, Core y Plus (validación comercial).",
+    "Leyenda de vigencia: «Precios vigentes hasta diciembre de 2026».",
+    "Testimonios de INBIO HIGHWAY, KORRONTE y CELIMUNDO: texto exacto, vigencia y autorización (no se publican hasta confirmar)."
+  ],
+
+  "redirects": [
+    ["index.php/gerp-lite-odoo/", "lite/"],
+    ["index.php/gerp-core-odoo/", "core/"],
+    ["index.php/gerp-lite-odoo-2/", "core/"],
+    ["index.php/gerp-plus-odoo/", "plus/"],
+    ["index.php/gerp-lite-odoo-2-2/", "plus/"],
+    ["index.php/planes-precios-erp-gerp/", "#planes"],
+    ["index.php/faqs-g-erp/", "#faq"],
+    ["index.php/help-faqs/", "#faq"],
+    ["index.php/quienes-somos/", "#nosotros"],
+    ["index.php/contact/", "#demo"]
+  ]
+}

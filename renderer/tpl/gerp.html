@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as m with context %}
+{% import "partials/product.html" as pp with context %}
+{% import "partials/standalone.html" as sx with context %}
+{#
+  GERP · contenido de la página. Misma estructura y componentes que GEAGRO
+  (partials/product.html + assets/css/product.css, tema .pp-theme-gerp).
+#}
+{% set BROCHURE = "descargas/brochure-gerp-software-de-gestion-empresarial.pdf" %}
+{# Planes, precios, comparador, sectores y testimonios: data/gerp.json (variable D) #}
+{% set D = GERP %}
+{% set plan_radios = [] %}{% for p in D.plans %}{% set _ = plan_radios.append([p.key, p.name, p.label]) %}{% endfor %}
+{% set plan_choice = namespace(html="") %}{% for p in D.plans %}{% set plan_choice.html = plan_choice.html ~ "<li><strong><a href=\"" ~ page_url("/" ~ p.slug) ~ "\">" ~ p.label ~ "</a></strong>: " ~ p.audience|replace("Para ", "para ") ~ "</li>" %}{% endfor %}
+{% set plan_choice = plan_choice.html %}
+{% set FAQS = [
+  ("¿Qué es un software de gestión ERP?", "<p>Un ERP (<em>Enterprise Resource Planning</em>) es un sistema que reúne en un solo lugar las áreas de tu negocio: stock, compras, ventas, facturación, contabilidad, clientes y producción. En lugar de planillas sueltas, todos trabajan sobre la misma información actualizada.</p>"),
+  ("¿Qué es GERP y qué relación tiene con Odoo?", "<p>GERP es el software de gestión de GENEOS. Está construido sobre <strong>Odoo Community</strong>, la versión libre y de código abierto de uno de los ERP más usados del mundo, y lo entregamos <strong>configurado y listo para usar</strong>, con implementación, capacitación y soporte de nuestro equipo.</p>"),
+  ("¿Necesito instalar algo en mi computadora?", "<p>No. GERP es un sistema de gestión <strong>online</strong>: se usa desde el navegador en computadoras, tablets o celulares, con tu usuario y contraseña, desde donde estés.</p>"),
+  ("¿Qué plan me conviene?", "<ul>" ~ plan_choice ~ "</ul><p>Podés ver las diferencias en el <a href=\"#comparar\">comparador de planes</a>. Si tenés dudas, <a href=\"" ~ wa('Hola, quiero que me asesoren sobre qué plan de GERP me conviene') ~ "\">escribinos y te asesoramos</a>.</p>"),
+  ("¿GERP emite factura electrónica?", "<p>Sí. GERP permite emitir facturas electrónicas autorizadas por <strong>ARCA (ex AFIP)</strong>, con CAE. Consultanos su alcance según el plan que elijas.</p>"),
+  ("¿Pueden adaptar el sistema a mi negocio?", "<p>Sí. Además de los planes, <strong>desarrollamos módulos y funcionalidades a medida</strong> sobre Odoo: relevamos tus procesos, los analizamos y creamos la solución con tecnología.</p>"),
+  ("¿Cómo es la implementación?", "<p>Configuramos el sistema, cargamos tus datos iniciales, capacitamos a las personas que lo van a usar y te acompañamos con soporte. Nuestro equipo se actualiza constantemente para atender tus requisitos y los cambios del país.</p>"),
+] %}
+{% set FAQS = faq_items(FAQS) %}
+
+{% block schema %}
+{{ m.faq_schema(FAQS) }}
+{% set offers = [] %}
+{% for p in D.plans %}
+{% set _ = offers.append({"@type": "Offer", "name": p.label, "description": p.short, "price": p.price_num, "priceCurrency": "ARS",
+  "priceSpecification": {"@type": "UnitPriceSpecification", "price": p.price_num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false},
+  "url": abs_url(p.slug)}) %}
+{% endfor %}
+{{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "GERP", "alternateName": "GERP Software de Gestión Empresarial",
+  "applicationCategory": "BusinessApplication", "applicationSubCategory": "ERP", "operatingSystem": "Web",
+  "description": description, "url": "https://gerp.ar/", "image": abs_url("assets/img/2026/01/Beneficios-GERP-1536x1029-1-1024x686.webp"),
+  "featureList": ["Inventario y compras", "Ventas y e-commerce", "Facturación y contabilidad", "CRM y oportunidades", "Producción (MRP)", "Reportes"],
+  "publisher": {"@id": abs_url("#organizacion")}, "offers": offers}) }}
+{{ m.service_schema("Implementación de software de gestión ERP Odoo", "Implementación de ERP", "Implementación, desarrollo a medida, capacitación y soporte del software de gestión GERP basado en Odoo Community.") }}
+{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block preload %}
+<link rel="preload" as="image" type="image/webp" href="{{ asset('img/gerp/gerp-hero-1920.webp') }}" media="(min-width: 901px)" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="{{ asset('img/gerp/gerp-hero-900.webp') }}" media="(max-width: 900px)" fetchpriority="high">
+{% endblock %}
+{% block body_class %}page-gerp page-product{% endblock %}
+
+{% block content %}
+<div class="pp pp-theme-gerp">
+
+{{ pp.hero(hero_data({
+  "img": "img/gerp/gerp-hero-1920.webp", "img_sm": "img/gerp/gerp-hero-900.webp", "fade": ".05", "pos": "right center", "wave_next": "#f6eef6",
+  "logo": "productos/gerp-logo-blanco.svg", "logo_alt": "GERP, software de gestión empresarial", "logo_w": 296, "logo_h": 87,
+  "title": [["Software de gestión ERP", false], ["para todo <span class=\"pp-hl\">tu negocio</span>", false]],
+  "lead": "GERP es nuestro sistema de gestión empresarial basado en <strong>Odoo</strong>: integra todas las áreas de tu empresa en una sola plataforma online, configurada y <strong>lista para usar</strong>.",
+  "actions": [{"label": "Solicitar demo", "href": "#demo", "icon": "bi-arrow-right"},
+              {"label": "Ver planes y precios", "href": "#planes", "style": "outline-light", "icon": "bi-arrow-right"}],
+  "media": {"shot": {"src": "2026/01/Beneficios-GERP-1536x1029-1-1024x686.png", "alt": "GERP en computadora, tablet y celular: inventario, ventas y reportes", "w": 1024, "h": 686}},
+})) }}
+
+{{ pp.steps({
+  "id": "como-funciona", "wave_next": "#fff", "wave_back": ".6",
+  "eyebrow": "Cómo funciona", "title": "De la información a la acción", "dot": true,
+  "lead": "Transformá los datos de tu empresa en decisiones concretas. GERP integra tus procesos y te acompaña en cada etapa de crecimiento.",
+  "more": {"label": "Conocé los módulos", "href": "#modulos"},
+  "items": [
+    {"icon": "bi-clipboard-data", "title": "Registrá", "text": "Centralizá toda la información de tu negocio."},
+    {"icon": "bi-diagram-3", "title": "Organizá", "text": "Estandarizá procesos y equipos de trabajo."},
+    {"icon": "bi-check2-circle", "title": "Gestioná", "text": "Controlá tus operaciones en tiempo real."},
+    {"icon": "bi-bar-chart-line", "title": "Analizá", "text": "Convertí tus datos en mejores decisiones."},
+  ],
+}) }}
+
+{{ pp.modules({
+  "id": "modulos", "href": "#planes", "eyebrow": "Módulos", "title": "Todo tu negocio en un solo software",
+  "lead": "Si buscás un <strong>ERP para pymes</strong> sencillo y efectivo, GERP es tu solución: dejá atrás las planillas de cálculo y gestioná cada área de tu empresa en una sola plataforma online.",
+  "items": [
+    {"icon": "bi-box", "color": "#178943", "title": "Inventario y compras", "text": "Analizá productos, costos, trazabilidad y vencimientos, con reglas de abastecimiento automáticas para no quedarte sin stock."},
+    {"icon": "bi-cart", "color": "#99146a", "title": "Ventas y e-commerce", "text": "Gestioná tus ventas y tu tienda online con el control de stock de tus productos."},
+    {"icon": "bi-files", "color": "#99146a", "title": "Facturación y contabilidad", "text": "Registrá facturas, pagos y cobranzas, y generá informes financieros personalizados."},
+    {"icon": "bi-people", "color": "#294b9b", "title": "CRM y oportunidades", "text": "Seguí cada oportunidad comercial y cada lead, con el historial de cada cliente a mano (plan PLUS)."},
+    {"icon": "bi-gear", "color": "#178943", "title": "Producción", "text": "MRP: planificá la fabricación, controlá materias primas y seguí cada producto en el proceso productivo (plan PLUS)."},
+    {"icon": "bi-pie-chart", "color": "#99146a", "title": "Reportes", "text": "Personalizá informes para dejar las planillas de cálculo y tomar decisiones con tu información."},
+  ],
+}) }}
+
+{% set sector_items = [] %}
+{% for x in D.sectors %}{% set _ = sector_items.append({"icon": x.icon, "title": x.title, "text": x.text}) %}{% endfor %}
+{% if show("sectores") %}{{ pp.modules({"id": "sectores", "soft": true, "cols": 4, "eyebrow": "Sectores", "title": "Pensado para tu sector", "items": sector_items}) }}{% endif %}
+
+{{ sx.plans(D) }}
+
+{% if show("comparar") %}{{ sx.compare(D) }}{% endif %}
+
+{{ pp.cta({
+  "img": "img/gerp/gerp-cta-1920.webp", "img_sm": "img/gerp/gerp-cta-900.webp", "pos": "right center",
+  "eyebrow": "Tu empresa más eficiente",
+  "title": ["Ordená tu negocio.", "Tomá decisiones", "con información real."],
+  "text": "Integrá tus áreas, reducí tiempos y hacé crecer tu empresa con GERP.",
+  "actions": [{"label": "Solicitar demo", "href": "#demo", "style": "accent", "icon": "bi-arrow-right"},
+              {"label": "Descargar brochure", "href": asset(BROCHURE), "style": "ghost-light", "icon": "bi-download", "download": "brochure-gerp-software-de-gestion-empresarial.pdf"}],
+}) }}
+
+{{ pp.about({
+  "id": "nosotros", "color": "#fff",
+  "eyebrow": "Sobre GERP", "title": "GERP es gestión empresarial, creada por GENEOS.",
+  "paragraphs": ["Somos una cooperativa de software de Tandil formada por <strong>profesionales de Tecnología, Económicas, Comunicación y Diseño.</strong>",
+                 "Hace más de 10 años desarrollamos <strong>soluciones informáticas con software libre</strong>, acompañando cada proyecto desde el análisis hasta su implementación."],
+  "stats": [{"icon": "bi-calendar-event", "title": "10+ años", "text": "desarrollando software"},
+            {"icon": "bi-people", "title": "Equipo multidisciplinario", "text": "tecnología + gestión + diseño"},
+            {"icon": "bi-code-slash", "title": "Software libre", "text": "basado en Odoo Community, sin licencias por usuario"}],
+  "close": "GERP nace de esa experiencia: un <strong>software de gestión empresarial</strong> basado en Odoo, configurado y listo para usar.",
+}) }}
+
+{% if show("clientes") %}{{ pp.clients("Empresas que ya usan nuestro software de gestión", [
+  "2024/03/INBIO-HIGHWAY.png", "2024/03/Mercado-de-Consumo-Popular-Organizado-Para-la-Vida-Digna-ME.CO_.PO_.png",
+  ("2024/03/VIAL-AGRO.png", "https://www.vialagro.com.ar/"), ("2024/03/Celimundo.png", "https://www.celimundo.com/"),
+  ("2024/03/WM-Argentina.png", "https://wmargentina.com/"), "2024/03/Phujoyapu.png",
+  ("2024/03/Redimec-Proveedor-de-Soluciones.png", "https://www.redimec.com.ar/"), ("2024/03/Divina-Lenceria.png", "https://lenceriadivina.com.ar/"),
+  ("2024/08/Clientes-GENEOS_Korronte.png", "https://www.instagram.com/korronteaceros/"), ("2024/08/Clientes-GENEOS_GEA.png", "https://gea-srl.com.ar/"),
+  "clientes/Silos-Emel.png",
+]) }}{% endif %}
+
+{% if show("testimonios") %}{{ sx.testimonials(D) }}{% endif %}
+
+{% if show("faq") %}{{ pp.faq({"title": "Lo que más nos preguntan", "lead": "Respondemos las dudas más comunes sobre GERP, su implementación y sus funcionalidades.", "items": FAQS}) }}{% endif %}
+
+{{ pp.convert({
+  "product": "GERP",
+  "brochure": {"eyebrow": "Material", "href": BROCHURE, "file": "brochure-gerp-software-de-gestion-empresarial.pdf",
+               "cover": "gerp/gerp-brochure.webp", "cover_alt": "Brochure de GERP, software de gestión empresarial", "cover_w": 501, "cover_h": 560,
+               "text": "Conocé en detalle las funcionalidades, los planes y los módulos de GERP (PDF · 19 páginas · 1,5 MB)."},
+  "form": {
+    "text": "Completá el formulario y te contactamos para mostrarte cómo GERP puede adaptarse a tu empresa.",
+    "rows": [
+      [{"name": "nombre", "label": "Nombre y apellido", "required": true, "autocomplete": "name", "wa": "Nombre"},
+       {"name": "empresa", "label": "Empresa", "autocomplete": "organization"}],
+      [{"name": "email", "label": "Email", "type": "email", "required": true, "autocomplete": "email"},
+       {"name": "telefono", "label": "Teléfono / WhatsApp", "type": "tel", "autocomplete": "tel", "wa": "Teléfono"}]],
+    "radios": {"legend": "¿Qué plan te interesa?", "name": "plan", "options": [["nose", "(plan a definir)", "No sé todavía"]] + plan_radios},
+    "message": {"label": "Mensaje", "placeholder": "Contanos brevemente sobre tu empresa y tus necesidades…"}},
+}) }}
+
+</div>
+<script src="{{ asset('js/product.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as m with context %}
+{% import "partials/product.html" as pp with context %}
+{% import "partials/standalone.html" as sx with context %}
+{#
+  GEAGRO VID (geagro.ar/vid/): contenido migrado de la página publicada, con los componentes del sitio nuevo.
+  Palabras clave: software para gestión de viñedos · software de gestión vitivinícola.
+#}
+{% set L = "geagro-landing/" %}
+{% set BROCHURE = "docs/Brochure-GEAGRO-VID.pdf" %}
+{% set FAQS = [
+  ("¿Qué datos climáticos usa GEAGRO VID?", "<p>Lluvias, temperatura, humedad, vientos y condiciones críticas. Con esa información detecta riesgos y genera alertas.</p>"),
+  ("¿Cómo funcionan las alertas agronómicas?", "<p>El sistema cruza los datos climáticos con el estado fenológico del cultivo, detecta riesgos sanitarios y climáticos (por ejemplo, heladas) y te indica la próxima acción con su prioridad.</p>"),
+  ("¿Qué es el plan técnico del viñedo?", "<p>Es la definición de labores e insumos según las etapas del ciclo fenológico. A partir de él se planifican automáticamente las órdenes de trabajo.</p>"),
+  ("¿Puedo ver el historial de aplicaciones?", "<p>Sí. Queda registrado el historial de aplicaciones y labores realizadas en cada campaña y cultivo.</p>"),
+  ("¿Sirve para equipos técnicos que asesoran a varios productores?", "<p>Está pensada para productores y equipos técnicos. Contanos cómo trabajan en el formulario de demo y te mostramos cómo organizarlo.</p>"),
+  ("¿Cómo pido una demo?", "<p>Completá el formulario de esta página o escribinos por WhatsApp. Te contactamos para conocer tu viñedo y coordinar la presentación. Los planes y precios están en la <a href=\"" ~ page_url('/#planes') ~ "\">página principal de GEAGRO</a>.</p>"),
+] %}
+{% set FAQS = faq_items(FAQS) %}
+
+{% block schema %}
+{{ m.faq_schema(FAQS) }}
+{{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "@id": canonical ~ "#software", "name": "GEAGRO VID",
+  "applicationCategory": "BusinessApplication", "applicationSubCategory": "Software de gestión de viñedos", "operatingSystem": "Web",
+  "url": canonical, "description": description, "inLanguage": "es-AR", "image": og_image,
+  "publisher": {"@id": abs_url("#organizacion")}, "isPartOf": {"@id": abs_url("#web")},
+  "featureList": ["Gestión de viñedos y cultivos", "Plan técnico del viñedo", "Alertas agronómicas", "Integración de datos climáticos",
+                  "Registro de intervenciones", "Seguimiento de órdenes de trabajo", "Estado del viñedo", "Evaluación del desempeño"]}) }}
+{{ jsonld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+  {"@type": "ListItem", "position": 1, "name": "GEAGRO", "item": abs_url()},
+  {"@type": "ListItem", "position": 2, "name": "GEAGRO VID", "item": canonical}]}) }}
+{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block preload %}
+<link rel="preload" as="image" type="image/avif" href="{{ prefix }}assets/images/vid/vid-bg-1600.avif" media="(min-width: 901px)" fetchpriority="high">
+<link rel="preload" as="image" type="image/avif" href="{{ prefix }}assets/images/vid/vid-bg-900.avif" media="(max-width: 900px)" fetchpriority="high">
+{% endblock %}
+{% block body_class %}page-geagro page-vid page-product{% endblock %}
+
+{% block content %}
+<div class="pp pp-theme-geagro">
+
+{{ pp.hero(hero_data({
+  "img": L ~ "images/vid/vid-bg-1600.webp", "img_sm": L ~ "images/vid/vid-bg-900.webp", "wave_next": "#fff",
+  "logo": "geagro/logo-geagro-white.svg", "logo_alt": "GEAGRO, software de gestión agropecuaria", "logo_w": 300, "logo_h": 64,
+  "eyebrow": "GEAGRO VID",
+  "title": [["Software de gestión", false], ["de viñedos para", false], ["planificar y controlar", false], ["tu producción", true]],
+  "lead": "Una solución especializada en viñedos, para productores vitivinícolas y equipos técnicos que necesitan interpretar información climática, fenológica y sanitaria para actuar a tiempo y optimizar cada etapa del cultivo.",
+  "actions": [{"label": "Solicitar demo de VID", "href": "#demo", "style": "primary", "version": "vid"},
+              {"label": "Qué incluye", "href": "#incluye", "style": "outline-light"}],
+  "media": {"monitor": {"src": L ~ "images/vid/panel-vid.jpg", "webp": L ~ "images/vid/panel-vid.webp",
+            "alt": "Panel productivo de GEAGRO VID con riesgo sanitario por heladas, próxima acción y ejecución de órdenes de trabajo", "w": 864, "h": 699}},
+})) }}
+
+{{ pp.modules({
+  "id": "incluye", "cols": 4, "eyebrow": "Qué incluye", "title": "Gestión de viñedos a lo largo de toda la campaña",
+  "items": [
+    {"icon": L ~ "icons/vid/vid-campo.svg", "title": "Gestión de viñedos y cultivos", "text": "Organización completa de la superficie productiva por unidad técnica."},
+    {"icon": L ~ "icons/vid/vid-plan-tecnico.svg", "title": "Plan técnico del viñedo", "text": "Labores e insumos según las etapas del ciclo fenológico, para automatizar la planificación de órdenes de trabajo."},
+    {"icon": L ~ "icons/vid/vid-graficos.svg", "title": "Alertas agronómicas", "text": "Detección de riesgos sanitarios y climáticos para actuar a tiempo."},
+    {"icon": L ~ "icons/vid/vid-clima.svg", "title": "Integración de datos climáticos", "text": "Análisis de lluvias, temperatura, humedad, vientos y condiciones críticas."},
+    {"icon": L ~ "icons/vid/vid-operaciones.svg", "title": "Registro de intervenciones", "text": "Historial de aplicaciones y labores realizadas en cada campaña y cultivo."},
+    {"icon": L ~ "icons/vid/vid-compras.svg", "title": "Seguimiento de órdenes de trabajo", "text": "Estado de cada orden y labores realizadas."},
+    {"icon": L ~ "icons/vid/vid-insumos.svg", "title": "Estado del viñedo en tiempo real", "text": "Estado productivo y sanitario, con indicadores y análisis técnico."},
+    {"icon": L ~ "icons/vid/vid-control.svg", "title": "Evaluación del desempeño", "text": "Rendimientos y costos del viñedo a lo largo de la campaña."},
+  ],
+}) }}
+
+{{ sx.split({
+  "id": "decisiones", "soft": true, "eyebrow": "Decisiones a tiempo", "title": "Con GEAGRO VID gestionás tu viñedo para decidir mejor",
+  "checks": [
+    ["Detecta riesgos sanitarios", "De forma automática, a partir de las condiciones del cuartel."],
+    ["Mejora la calidad y el rendimiento", "Reducís la incertidumbre y actuás en el momento justo en cada campaña."],
+    ["Identifica el estado fenológico", "Del cultivo en cada etapa de la campaña."],
+    ["Prioriza acciones", "Según cada situación."],
+  ],
+  "note": "El sistema analiza la información y te indica <strong>qué hacer, cuándo hacerlo y con qué prioridad</strong>, para actuar a tiempo en cada campaña y lote.",
+  "media": {"src": L ~ "images/vid/panel-vid.jpg", "webp": L ~ "images/vid/panel-vid.webp",
+            "alt": "Panel de GEAGRO VID con alerta por riesgo de heladas y próximas actividades del viñedo", "w": 864, "h": 699},
+}) }}
+
+{{ sx.steps({
+  "id": "como-funciona", "bg": "#fff",
+  "eyebrow": "Cómo funciona", "title": "Del dato del viñedo a la acción", "dot": true,
+  "lead": "GEAGRO VID transforma información compleja en decisiones simples: reducís la incertidumbre y actuás en el momento justo, mejorando la calidad y el rendimiento del viñedo.",
+  "items": [
+    {"icon": L ~ "icons/proceso/vid-paso-clima.svg", "title": "Registra datos climáticos"},
+    {"icon": L ~ "icons/proceso/vid-paso-alerta.svg", "title": "Detecta riesgo y genera alerta"},
+    {"icon": L ~ "icons/proceso/vid-paso-planifica.svg", "title": "Permite planificar acciones estratégicas"},
+    {"icon": L ~ "icons/proceso/vid-paso-gestiona.svg", "title": "Gestiona las operaciones"},
+  ],
+}) }}
+
+{{ pp.band({
+  "eyebrow": "Demo de GEAGRO VID",
+  "title": "Te mostramos GEAGRO VID con tus propios cuarteles.",
+  "text": "Coordinamos una demo para conocer tu viñedo y mostrarte cómo anticipar riesgos y priorizar labores.",
+  "actions": [{"label": "Solicitar demo", "href": "#demo", "style": "accent", "arrow": "→", "version": "vid"},
+              {"label": "Ver planes y precios", "href": page_url("/#planes"), "style": "ghost-light"}],
+}) }}
+
+{{ pp.faq({"title": "Sobre GEAGRO VID", "lead": "¿Tenés otra duda? Escribinos por WhatsApp o dejanos tus datos en el formulario de demo.", "items": FAQS}) }}
+
+{{ pp.convert({
+  "product": "GEAGRO",
+  "brochure": {"name": "Brochure de GEAGRO VID", "meta": "PDF · 9 páginas · 1,7 MB", "icon": L ~ "icons/brand/isologo-vid.svg",
+               "href": BROCHURE, "file": "Brochure-GEAGRO-VID.pdf",
+               "text": "Módulos, funcionalidades y paneles de GEAGRO VID, para compartir con tu equipo técnico."},
+  "form": {
+    "title": "Solicitá tu demo de GEAGRO VID",
+    "rows": [
+      [{"name": "nombre", "label": "Nombre y apellido", "required": true, "autocomplete": "name", "wa": "Nombre"},
+       {"name": "empresa", "label": "Establecimiento o empresa", "autocomplete": "organization", "wa": "Establecimiento"}],
+      [{"name": "email", "label": "Email", "type": "email", "required": true, "autocomplete": "email"},
+       {"name": "telefono", "label": "Teléfono / WhatsApp", "type": "tel", "autocomplete": "tel", "wa": "Teléfono"}],
+      [{"name": "localidad", "label": "Localidad y provincia", "placeholder": "Ej.: Tandil, Buenos Aires", "wa": "Localidad"},
+       {"name": "superficie", "label": "Superficie aproximada (ha)", "inputmode": "decimal", "placeholder": "Ej.: 250", "wa": "Superficie", "suffix": "ha"}]],
+    "radios": {"legend": "¿Qué versión te interesa?", "name": "version", "options": [["vid", "VID", "VID"], ["campo", "CEREALES", "CEREALES"], ["ambas", "Ambas", "Ambas"]]},
+    "message": {"label": "Contanos sobre tu viñedo", "placeholder": "Superficie, variedades, cómo registrás hoy la información…"}},
+}) }}
+
+</div>
+<script src="{{ asset('js/product.js') }}" defer></script>
+{% endblock %}

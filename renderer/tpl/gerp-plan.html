@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% import "partials/macros.html" as m with context %}
+{% import "partials/product.html" as pp with context %}
+{% import "partials/standalone.html" as sx with context %}
+{#
+  Landing de un plan de GERP (/lite/, /core/, /plus/). Todo el contenido sale de data/gerp.json:
+  esta plantilla no tiene precios, módulos ni textos comerciales propios.
+#}
+{% set D = GERP %}
+{% set PLAN = D.plans|selectattr("key", "equalto", PG.plan)|first %}
+{% set OTHERS = D.plans|rejectattr("key", "equalto", PG.plan)|list %}
+{% set BROCHURE = "descargas/brochure-gerp-software-de-gestion-empresarial.pdf" %}
+{% set FAQS = [] %}
+{% for q, a in PLAN.faqs %}{% set _ = FAQS.append((q, a if a.startswith("<") else "<p>" ~ a ~ "</p>")) %}{% endfor %}
+{% set _ = FAQS.append(("¿Cómo es la implementación?", "<p>" ~ D.implementation_faq|replace("{plan}", PLAN.label)|replace("{impl}", PLAN.impl) ~ "</p>")) %}
+{% set _ = FAQS.append(("¿Cómo pido una demo?", "<p>Completá el formulario de esta página o escribinos por WhatsApp. Te contactamos para conocer tu empresa y mostrarte " ~ PLAN.label ~ ".</p>")) %}
+{% set FAQS = faq_items(FAQS) %}
+{% set plan_radios = [[PLAN.key, PLAN.name, PLAN.label]] %}
+{% for p in OTHERS %}{% set _ = plan_radios.append([p.key, p.name, p.label]) %}{% endfor %}
+{% set _ = plan_radios.append(["nose", "(plan a definir)", "No sé todavía"]) %}
+
+{% block schema %}
+{{ m.faq_schema(FAQS) }}
+{{ jsonld({"@context": "https://schema.org", "@type": "SoftwareApplication", "@id": canonical ~ "#software", "name": PLAN.label,
+  "applicationCategory": "BusinessApplication", "applicationSubCategory": "ERP", "operatingSystem": "Web",
+  "description": description, "url": canonical, "image": abs_url("assets/" ~ PLAN.icon), "inLanguage": "es-AR",
+  "publisher": {"@id": abs_url("#organizacion")},
+  "featureList": PLAN.modules|map(attribute="title")|list,
+  "offers": {"@type": "Offer", "name": PLAN.label, "price": PLAN.price_num, "priceCurrency": "ARS", "url": canonical,
+             "priceSpecification": {"@type": "UnitPriceSpecification", "price": PLAN.price_num, "priceCurrency": "ARS", "unitText": "mes", "valueAddedTaxIncluded": false}}}) }}
+{{ jsonld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+  {"@type": "ListItem", "position": 1, "name": "GERP", "item": abs_url()},
+  {"@type": "ListItem", "position": 2, "name": PLAN.label, "item": canonical}]}) }}
+{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block preload %}
+<link rel="preload" as="image" type="image/webp" href="{{ asset('img/gerp/gerp-hero-1920.webp') }}" media="(min-width: 901px)" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="{{ asset('img/gerp/gerp-hero-900.webp') }}" media="(max-width: 900px)" fetchpriority="high">
+{% endblock %}
+{% block body_class %}page-gerp page-plan page-plan-{{ PLAN.key }}{% endblock %}
+
+{% block content %}
+{# Identidad del plan: los colores de su ícono original reemplazan los del tema GERP en esta página #}
+<div class="pp pp-theme-gerp pp-plan-page" style="--pp-deep-rgb: {{ PLAN.deep_rgb }}; --pp-accent: {{ PLAN.color }}; --pp-eyebrow-2: {{ PLAN.color }}; --pp-steps-ico: {{ PLAN.color }}; --pp-highlight: {{ PLAN.accent }}; --pp-btn: {{ PLAN.color }}; --pp-btn-hover: {{ PLAN.hover }}; --pp-btn2: #fff; --pp-btn2-text: {{ PLAN.color }}; --pp-soft: {{ PLAN.soft }}; --pp-soft-2: {{ PLAN.soft }}; --pp-icon-bg: {{ PLAN.soft }}; --pp-line: {{ PLAN.accent }}; --pp-quote-bg: {{ PLAN.color }};">
+
+{% set h1 = [] %}{% for line in PLAN.h1 %}{% set _ = h1.append([line, false]) %}{% endfor %}
+{{ pp.hero(hero_data({
+  "img": "img/gerp/gerp-hero-1920.webp", "img_sm": "img/gerp/gerp-hero-900.webp", "fade": ".25", "pos": "right center", "wave_next": PLAN.soft,
+  "logo": PLAN.logo_white, "logo_alt": PLAN.label, "logo_w": 231, "logo_h": 95,
+  "title": h1,
+  "lead": PLAN.audience,
+  "actions": [{"label": "Solicitar demo", "href": "#demo", "style": "accent", "icon": "bi-arrow-right", "version": PLAN.key},
+              {"label": "Ver precio", "href": "#precio", "style": "outline-light", "icon": "bi-arrow-down"}],
+  "media": {"shot": {"src": "2026/01/Beneficios-GERP-1536x1029-1-1024x686.png", "alt": PLAN.label ~ " en computadora, tablet y celular", "w": 1024, "h": 686}},
+})) }}
+
+<section class="pp-section pp-soft" id="precio" aria-labelledby="precio-title">
+  <div class="pp-container pp-fit">
+    <div class="pp-fit-copy">
+      <p class="pp-eyebrow">Para quién es</p>
+      <h2 id="precio-title">¿Para quién es {{ PLAN.label }}?</h2>
+      <p>{{ PLAN.audience }}</p>
+      <p class="pp-fit-links"><a class="pp-more" href="#incluye">Módulos incluidos {{ icon('bi-arrow-right', 'icon bi') }}</a> <a class="pp-more" href="#comparar">Comparar con otros planes {{ icon('bi-arrow-right', 'icon bi') }}</a></p>
+      <p class="pp-note" style="text-align:left">(*) {{ D.price_note }}</p>
+    </div>
+    {{ sx.plan_card(D, PLAN, link=False) }}
+  </div>
+</section>
+
+{% set mod_items = [] %}
+{% for mod in PLAN.modules %}{% set _ = mod_items.append({"icon": mod.icon, "color": PLAN.color, "title": mod.title, "text": mod.text}) %}{% endfor %}
+{{ pp.modules({"id": "incluye", "eyebrow": "Módulos incluidos", "title": "Qué incluye " ~ PLAN.label,
+  "cols": (5 if PLAN.modules|length == 5 else 4 if PLAN.modules|length > 3 else None), "items": mod_items}) }}
+
+{{ sx.cols({"id": "funcionalidades", "soft": true, "eyebrow": "Funcionalidades", "title": "Cómo trabajás con " ~ PLAN.label,
+  "cards": PLAN.functions, "note": PLAN.functions_note}) }}
+
+{{ sx.compare(D, current=PLAN.key) }}
+
+<section class="pp-section pp-soft" id="otros-planes" aria-labelledby="otros-title">
+  <div class="pp-container">
+    <header class="pp-head"><p class="pp-eyebrow">Otros planes</p><h2 id="otros-title">¿Buscás otra opción?</h2></header>
+    <div class="pp-others">
+      {% for p in OTHERS %}
+      <a class="pp-other" href="{{ page_url('/' ~ p.slug) }}" style="{{ sx.plan_vars(p) }}">
+        <img src="{{ asset(p.icon) }}" alt="" width="60" height="57" loading="lazy">
+        <b>{{ p.name }}</b>
+        <span>{{ p.short }}</span>
+        <em>${{ p.price }} + IVA / mes · Conocer el plan →</em>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{{ pp.faq({"title": "Preguntas sobre " ~ PLAN.label, "lead": "¿Tenés otra duda? Escribinos o dejanos tus datos en el formulario de demo.", "items": FAQS}) }}
+
+{{ pp.convert({
+  "product": "GERP",
+  "brochure": {"eyebrow": "Material", "href": BROCHURE, "file": "brochure-gerp-software-de-gestion-empresarial.pdf",
+               "cover": "gerp/gerp-brochure.webp", "cover_alt": "Brochure de GERP, software de gestión empresarial", "cover_w": 501, "cover_h": 560,
+               "text": "Conocé en detalle las funcionalidades, los planes y los módulos de GERP (PDF · 19 páginas · 1,5 MB)."},
+  "form": {
+    "title": "Solicitá tu demo de " ~ PLAN.label,
+    "text": "Completá el formulario y te contactamos para mostrarte cómo " ~ PLAN.label ~ " puede adaptarse a tu empresa.",
+    "rows": [
+      [{"name": "nombre", "label": "Nombre y apellido", "required": true, "autocomplete": "name", "wa": "Nombre"},
+       {"name": "empresa", "label": "Empresa", "autocomplete": "organization"}],
+      [{"name": "email", "label": "Email", "type": "email", "required": true, "autocomplete": "email"},
+       {"name": "telefono", "label": "Teléfono / WhatsApp", "type": "tel", "autocomplete": "tel", "wa": "Teléfono"}]],
+    "radios": {"legend": "¿Qué plan te interesa?", "name": "plan", "options": plan_radios},
+    "message": {"label": "Mensaje", "placeholder": "Contanos brevemente sobre tu empresa y tus necesidades…"}},
+}) }}
+
+</div>
+<script src="{{ asset('js/product.js') }}" defer></script>
+{% endblock %}

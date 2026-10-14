@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  {# SITIO COMERCIAL INDEPENDIENTE · {{ P.name }}. Dominio previsto: {{ P.domain or "a definir" }}.
+     Si se publica en un dominio de prueba, cambiar robots a "noindex" hasta el lanzamiento. #}
+  <meta name="robots" content="{{ PG.robots or "index, follow, max-image-preview:large" }}">
+  {% if P.domain %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:site_name" content="{{ P.name }}">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description }}">
+  {% if P.domain %}<meta property="og:url" content="{{ canonical }}">{% endif %}
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  {% if PG.og_alt %}<meta property="og:image:alt" content="{{ PG.og_alt }}">{% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ title }}">
+  <meta name="twitter:description" content="{{ description }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+  {% if PG.og_alt %}<meta name="twitter:image:alt" content="{{ PG.og_alt }}">{% endif %}
+  <meta name="theme-color" content="#ffffff">
+  {# Favicons del producto (favicon.io): favicon.ico en la raíz y el resto en assets/icons/favicon/ #}
+  <link rel="icon" href="{{ prefix }}favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ prefix }}assets/icons/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ prefix }}assets/icons/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ prefix }}assets/icons/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="{{ prefix }}assets/icons/favicon/site.webmanifest">
+  {% if P.local_fonts %}
+  {# Fuentes alojadas en el sitio (Titillium Web, licencia OFL): sin conexiones a terceros antes del primer render #}
+  <link rel="preload" href="{{ prefix }}assets/fonts/titillium-web-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ prefix }}assets/fonts/titillium-web-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 400; font-display: swap; src: url("{{ prefix }}assets/fonts/titillium-web-latin-400-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 600; font-display: swap; src: url("{{ prefix }}assets/fonts/titillium-web-latin-600-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 700; font-display: swap; src: url("{{ prefix }}assets/fonts/titillium-web-latin-700-normal.woff2") format("woff2"); }
+  </style>
+  {% else %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {% set fonts = "https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" %}
+  <link rel="preload" as="style" href="{{ fonts }}">
+  <link rel="stylesheet" href="{{ fonts }}" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="{{ fonts }}"></noscript>
+  {% endif %}
+  {% block preload %}{% endblock %}
+  <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+  <link rel="stylesheet" href="{{ prefix }}assets/css/site.css">
+  {% block head %}{% endblock %}
+  {% set graph = [
+      {"@type": "Organization", "@id": abs_url("#organizacion"), "name": "GENEOS", "legalName": site.legal_name,
+       "url": "https://geneos.coop.ar/", "email": site.email, "telephone": site.phone,
+       "address": {"@type": "PostalAddress", "streetAddress": site.street, "addressLocality": site.city, "addressRegion": site.province, "postalCode": site.postal_code, "addressCountry": site.country}}] %}
+  {% if P.website %}{% set _ = graph.append({"@type": "WebSite", "@id": abs_url("#web"), "url": abs_url(), "name": P.name, "inLanguage": "es-AR", "publisher": {"@id": abs_url("#organizacion")}}) %}{% endif %}
+  {% set wp = {"@type": "WebPage", "@id": canonical ~ "#pagina", "url": canonical, "name": title, "description": description, "inLanguage": "es-AR",
+       "publisher": {"@id": abs_url("#organizacion")}, "primaryImageOfPage": og_image} %}
+  {% if P.website %}{% set _ = wp.update({"isPartOf": {"@id": abs_url("#web")}}) %}{% endif %}
+  {% set _ = graph.append(wp) %}
+  {{ jsonld({"@context": "https://schema.org", "@graph": graph}) }}
+  {% block schema %}{% endblock %}
+</head>
+<body class="standalone pp-theme-{{ P.key }} {% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{ page_url('/') }}"{% if not PG.out %} aria-current="page"{% endif %}><img src="{{ img(P.header_logo) }}" alt="{{ P.name }}{% if PG.out %}, ir al inicio{% endif %}" width="{{ P.header_logo_w }}" height="{{ P.header_logo_h }}"></a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="menu" aria-label="Abrir menú">{{ icon('ui-menu') }}</button>
+      <nav class="site-nav" id="menu" aria-label="Navegación principal">
+        <ul>
+          {% for label, href in PG.nav if show(href.lstrip("/#") if href.startswith("#") else "") %}<li><a href="{{ page_url(href) }}"{% if href.lstrip('/') == PG.out and PG.out %} aria-current="page"{% endif %}>{{ label }}</a></li>{% endfor %}
+          <li class="nav-cta"><a href="#demo">Solicitar demo</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main id="contenido">
+    {% block content %}{% endblock %}
+  </main>
+  {# Títulos del footer: en GEAGRO no son encabezados (no compiten con la jerarquía H2 del contenido) #}
+  {% set ft = "p" if P.key == "geagro" else "h2" %}
+  <footer class="site-footer">
+    <div class="container footer-cols">
+      <div class="footer-about">
+        <img src="{{ img(P.logo) }}" alt="{{ P.name }}" width="{{ P.logo_w }}" height="{{ P.logo_h }}" loading="lazy" style="height:44px;width:auto">
+        <p>{{ P.footer_text }}</p>
+      </div>
+      <nav aria-label="{{ P.name }}">
+        <{{ ft }} class="footer-title">{{ P.name }}</{{ ft }}>
+        <ul class="footer-links">
+          {% for label, href in (P.footer_pages or PG.nav) %}<li><a href="{{ page_url(href) }}">{{ label }}</a></li>{% endfor %}
+          <li><a href="#demo">Solicitar demo</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="GENEOS">
+        <{{ ft }} class="footer-title">Un producto de GENEOS</{{ ft }}>
+        <ul class="footer-links">
+          <li><a href="https://geneos.coop.ar/">GENEOS · Cooperativa de software libre</a></li>
+          {% for label, href in P.siblings %}<li><a href="{{ href }}">{{ label }}</a></li>{% endfor %}
+        </ul>
+      </nav>
+      <address class="footer-contact">
+        <{{ ft }} class="footer-title">Contacto</{{ ft }}>
+        <a class="footer-item" href="{{ wa() }}" target="_blank" rel="noopener"><span class="footer-icon">{{ icon('ui-whatsapp') }}</span><span>{{ site.whatsapp_label }}</span></a>
+        <a class="footer-item" href="mailto:{{ site.email }}"><span class="footer-icon">{{ icon('ui-mail') }}</span><span>{{ site.email }}</span></a>
+        <a class="footer-item" href="{{ site.maps }}" target="_blank" rel="noopener"><span class="footer-icon">{{ icon('ui-map') }}</span><span>{{ site.address }}<br><small>{{ site.region }}</small></span></a>
+      </address>
+    </div>
+    <div class="container footer-bottom">
+      <a class="footer-geneos" href="https://geneos.coop.ar/"><img src="{{ img('2023/10/Logo-Geneos-white.png') }}" alt="GENEOS" width="140" height="45" loading="lazy"></a>
+      <p class="credit">© {{ year }} Cooperativa GENEOS Ltda. · Software libre hecho en Tandil, Argentina</p>
+    </div>
+  </footer>
+  <a class="wa-float" href="{{ wa() }}" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">{{ icon('ui-whatsapp') }}</a>
+  <script src="{{ asset('js/main.js') }}" defer></script>
+  <script src="{{ prefix }}assets/js/site.js" defer></script>
+  {% if FORM and FORM.endpoint %}
+  {# Formulario de demo conectado al administrador: guarda el pedido y avisa por email. WhatsApp sigue como alternativa. #}
+  <script>window.GWA_FORM = {{ FORM|tojson }};</script>
+  <script src="{{ prefix }}assets/js/formulario.js" defer></script>
+  {% endif %}
+</body>
+</html>

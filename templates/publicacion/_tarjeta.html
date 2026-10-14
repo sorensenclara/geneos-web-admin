@@ -1,0 +1,17 @@
+{% load wagtailadmin_tags %}
+<div class="gwa-card">
+  <h3><span class="gwa-dot" style="background: {{ e.sitio.color }}"></span>{{ e.sitio.nombre }}</h3>
+  <p>
+    {% if e.situacion == "al_dia" %}<span class="gwa-badge gwa-al_dia">La web está al día</span>
+    {% elif e.situacion == "pendiente" %}<span class="gwa-badge gwa-pendiente">{{ e.pendientes|length }} cambio{{ e.pendientes|length|pluralize }} aprobado{{ e.pendientes|length|pluralize }} sin publicar</span>
+    {% elif e.situacion == "error" %}<span class="gwa-badge gwa-error">La última publicación falló</span>
+    {% elif e.situacion == "no_conectado" %}<span class="gwa-badge gwa-no_conectado">Web no conectada todavía (etapa 7)</span>
+    {% else %}<span class="gwa-badge gwa-sin_publicar">Todavía no se publicó desde el administrador</span>{% endif %}
+  </p>
+  <p class="gwa-meta">
+    {% if e.ultimo_ok %}En la web: versión del {{ e.ultimo_ok.finalizado|date:"d/m/Y H:i" }}{% else %}Sin publicaciones{% endif %}
+    {% if e.borradores %} · {{ e.borradores }} borrador{{ e.borradores|pluralize:"es" }}{% endif %}
+    {% if e.revision %} · {{ e.revision }} en revisión{% endif %}
+  </p>
+  <div class="gwa-acciones"><a class="button button-small button-secondary" href="{% url 'gwa_sitio' e.sitio.clave %}">Ver detalle y publicar</a></div>
+</div>
