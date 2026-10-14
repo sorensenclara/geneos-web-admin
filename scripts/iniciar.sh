@@ -4,7 +4,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PY="${PYTHON:-python3}"
+PY="${PYTHON:-}"
+if [ -z "$PY" ]; then
+  for c in python3.14 python3.13 python3.12 /opt/homebrew/bin/python3 python3; do
+    if command -v "$c" >/dev/null && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then PY="$c"; break; fi
+  done
+fi
+[ -n "$PY" ] || { echo "Falta Python 3.12 o más nuevo (brew install python)."; exit 1; }
 if [ ! -d .venv ]; then
   echo "→ Creando el entorno de Python (.venv)…"
   "$PY" -m venv .venv
