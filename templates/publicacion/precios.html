@@ -6,12 +6,12 @@
   <p>Cada importe se carga una sola vez, acá o en el plan. La web lo toma para las tarjetas de planes, las landings, el comparador,
      los datos para buscadores y las preguntas frecuentes que lo mencionan con <code>[precio:clave]</code>.
      «Guardar borradores» no cambia nada aprobado; «Guardar y aprobar» deja los precios listos para publicar desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
-  <p class="help">Leyenda de vigencia vacía: no se muestra ninguna leyenda ni el (*). El aviso de vencimiento no se publica: solo te avisa en el inicio.</p>
+  <p class="help">Leyenda de vigencia vacía: no se muestra ninguna leyenda ni el (*). El aviso de vencimiento, la última modificación y el historial son internos: no se publican.</p>
   <form method="post">{% csrf_token %}
     <div class="gwa-scroll">
     <table class="gwa-tabla gwa-precios">
       <thead><tr><th>Plan</th><th class="gwa-num">Abono mensual</th><th class="gwa-num">Implementación</th><th>Moneda</th><th>+ IVA</th>
-        <th>Leyenda de vigencia</th><th>Aviso de vencimiento</th><th>Estado</th></tr></thead>
+        <th>Leyenda de vigencia</th><th>Aviso de vencimiento</th><th>Estado</th><th>Última modificación</th></tr></thead>
       <tbody>
       {% for f in filas %}
         <tr>
@@ -25,8 +25,10 @@
           <td><input type="text" name="leyenda_vigencia_{{ f.p.pk }}" value="{{ f.v.leyenda_vigencia }}" class="gwa-leyenda" placeholder="Sin leyenda" aria-label="Leyenda de vigencia de {{ f.p }}"></td>
           <td><input type="date" name="vigente_hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" aria-label="Aviso de vencimiento de {{ f.p }}"></td>
           <td>{% if f.b %}<span class="gwa-badge gwa-pendiente">Borrador (aprobado: {{ f.p.simbolo }}{{ f.p.precio }})</span>{% elif f.p.live %}<span class="gwa-badge gwa-al_dia">Aprobado</span>{% else %}<span class="gwa-badge gwa-sin_publicar">Sin aprobar</span>{% endif %}</td>
+          <td class="gwa-interno">{% if f.p.ultima_modificacion %}{{ f.p.ultima_modificacion|date:"d/m/Y H:i" }}<br><small>{{ f.p.modificado_por }}</small>
+            · <a href="{% url 'wagtailsnippets_contenidos_plan:history' f.p.pk %}">historial</a>{% else %}—{% endif %}</td>
         </tr>
-      {% empty %}<tr><td colspan="8">No hay planes en tus sitios.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="9">No hay planes en tus sitios.</td></tr>{% endfor %}
       </tbody>
     </table>
     </div>

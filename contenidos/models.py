@@ -355,6 +355,18 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
         except ValueError:
             return 0
 
+    # Uso interno (no se exporta a las webs): quién y cuándo modificó el plan por última vez
+    @property
+    def ultima_modificacion(self):
+        return self.latest_revision.created_at if self.latest_revision_id else None
+
+    @property
+    def modificado_por(self):
+        r = self.latest_revision
+        if r is None:
+            return "—"
+        return (r.user.get_full_name() or r.user.get_username()) if r.user else "Carga inicial"
+
     @property
     def simbolo(self):
         return SIMBOLO.get(self.moneda, "$")

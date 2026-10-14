@@ -92,7 +92,7 @@ Propuesta para validar con Infra: la web comercial en `gema.geneos.com.ar` y la 
 
 Cada plan (*Oferta comercial → Planes y precios*, o todos juntos en *Actualizar precios*) tiene como campos independientes:
 abono mensual, implementación, moneda, «más IVA», leyenda de vigencia y un aviso de vencimiento que no se publica.
-Una leyenda vacía no muestra ni la nota ni el (*).
+Una leyenda vacía no muestra ni la nota ni el (*). La lista de planes y «Actualizar precios» muestran la fecha de la última modificación y quién la hizo, con acceso al historial de cada plan; esos datos son internos y no se publican.
 
 Importes de origen (octubre 2026), copiados de las páginas publicadas:
 
@@ -103,7 +103,7 @@ Importes de origen (octubre 2026), copiados de las páginas publicadas:
 | GERP Plus | $446.250 + IVA | $1.785.000 + IVA | ídem |
 | GEAGRO Lite | $89.250 + IVA | $624.750 + IVA | sin leyenda |
 | GEAGRO Plus | $178.500 + IVA | $1.071.000 + IVA | sin leyenda |
-| GEMA Plan mensual | $89.250 + IVA | $349.750 + IVA | «Precios válidos para Octubre, Noviembre y Diciembre. Actualización bimestral.» |
+| GEMA Plan mensual | $89.250 + IVA | $349.750 + IVA | «Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.» |
 
 Dónde se muestra cada precio (todo sale del plan):
 
@@ -117,14 +117,14 @@ En las preguntas frecuentes los importes no se escriben: se usa `[precio:clave]`
 una respuesta con un importe escrito a mano ni con una clave de plan que no existe.
 
 Comparador de GERP: los valores «A confirmar» quedan en el administrador, pero en la web la celda queda vacía,
-y una fila sin ningún dato confirmado no se muestra (hoy: «Facturación electrónica ARCA (ex AFIP)»).
+y las filas se muestran siempre, aunque todas sus celdas estén vacías (hoy: «Facturación electrónica ARCA (AFIP)»).
 
 ## Validaciones comerciales pendientes
 
 - Valores «A confirmar» del comparador de GERP (cada valor tiene su fuente y un campo «Validado por»).
 - Testimonios de INBIO HIGHWAY, KORRONTE y CELIMUNDO: siguen pendientes. Para publicar uno hay que cargar texto,
   autor, quién lo autorizó y la fecha, y marcarlo como autorizado.
-- GEMA: la leyenda publicada menciona octubre a diciembre sin año; revisarla cuando cambie el bimestre.
+- GEMA: la leyenda menciona octubre a diciembre sin año; actualizarla al cambiar el trimestre.
 
 ## Pruebas automáticas
 

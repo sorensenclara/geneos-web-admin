@@ -174,9 +174,8 @@
         </thead>
         {% for grp, gtitle in [("basic", "Funcionalidades básicas"), ("advanced", "Funcionalidades avanzadas")] %}
         <tbody class="pp-cmp-{{ grp }}"{% if grp == "advanced" %} id="cmp-avanzadas-{{ current or 'home' }}"{% endif %}>
-          {# Las filas sin ningún dato confirmado no se muestran #}
-          {% set rows = [] %}
-          {% for f in D.features if f.group == grp %}{% set nv = namespace(ok=false) %}{% for p in D.plans %}{% if f["values"].get(p.key) is not none %}{% set nv.ok = true %}{% endif %}{% endfor %}{% if nv.ok %}{% set _ = rows.append(f) %}{% endif %}{% endfor %}
+          {# Todas las filas se muestran; las celdas sin dato confirmado quedan vacías #}
+          {% set rows = D.features|selectattr("group", "equalto", grp)|list %}
           {% set ns = namespace(any_summary=false) %}
           {% for f in rows %}{% if not ((f.summary is sameas false) or (f.summary is not defined and grp == "advanced")) %}{% set ns.any_summary = true %}{% endif %}{% endfor %}
           {% set any_summary = ns.any_summary %}

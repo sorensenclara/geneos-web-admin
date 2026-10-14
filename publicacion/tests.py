@@ -162,7 +162,7 @@ class Circuito(TestCase):
         html = self._web(self.gema)
         self.assertIn("el abono es de $89.250 + IVA por mes", html)
         self.assertNotIn("dólares", html)
-        self.assertIn("(*) Precios válidos para Octubre", html)
+        self.assertIn("(*) Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.", html)
         self.client.force_login(self.clara)
         self.client.post("/admin/precios/", self._form_precios(plan, precio="95", moneda="USD", mas_iva=False, leyenda_vigencia="", accion="aprobar"))
         html = self._web(self.gema)
@@ -191,10 +191,27 @@ class Circuito(TestCase):
         home = self._web(self.gerp)
         self.assertNotIn("A confirmar", home)
         self.assertNotIn("Consultar", home)
-        self.assertNotIn("Facturación electrónica ARCA (ex AFIP)</th>", home)  # fila sin ningún dato confirmado
+        # La fila sin ningún dato confirmado se muestra igual, con sus celdas vacías
+        import re
+        fila = re.search(r"<tr[^>]*><th scope=\"row\">Facturación electrónica ARCA \(AFIP\)</th>(.*?)</tr>", home, re.S)
+        self.assertIsNotNone(fila)
+        self.assertEqual(re.sub(r"<td[^>]*></td>", "", fila.group(1)).strip(), "")
         self.assertIn("Lotes y vencimientos</th>", home)                       # fila con datos: las celdas sin confirmar quedan vacías
         from contenidos.models import ValorFuncionalidad
         self.assertTrue(ValorFuncionalidad.objects.filter(estado="a_confirmar").exists())  # siguen pendientes en el administrador
+
+    def test_ultima_modificacion_interna(self):
+        plan = Plan.objects.get(sitio=self.gema)
+        self.client.force_login(self.clara)
+        self.client.post("/admin/precios/", self._form_precios(plan, precio="91.000", accion="aprobar"))
+        plan.refresh_from_db()
+        self.assertEqual(plan.modificado_por, "clara")
+        self.assertIsNotNone(plan.ultima_modificacion)
+        pantalla = self.client.get("/admin/precios/").content.decode()
+        self.assertIn("historial", pantalla)
+        html = self._web(self.gema)
+        self.assertNotIn("clara", html)
+        self.assertNotIn("Última modificación", html)
 
     def test_testimonio_autorizado_exige_datos(self):
         from django.core.exceptions import ValidationError

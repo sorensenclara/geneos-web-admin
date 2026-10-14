@@ -62,7 +62,7 @@ PLANES_SIMPLES = {
     "geagro": [dict(clave="lite", nombre="Lite", precio="89.250", implementacion="624.750", color="#22b24c", orden=1),
                dict(clave="plus", nombre="Plus", precio="178.500", implementacion="1.071.000", color="#0b3422", orden=2, destacado=True)],
     "gema": [dict(clave="mensual", nombre="Plan mensual", precio="89.250", implementacion="349.750", orden=1,
-                  leyenda_vigencia="Precios válidos para Octubre, Noviembre y Diciembre. Actualización bimestral.",
+                  leyenda_vigencia="Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.",
                   publico_corto="Plataforma online personalizada",
                   caracteristicas="Plataforma online personalizada\nCarga ILIMITADA de clientes\nUso de todas las funciones")],
 }

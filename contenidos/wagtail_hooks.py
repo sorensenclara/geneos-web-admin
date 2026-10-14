@@ -1,3 +1,5 @@
+from django.utils.timezone import localtime
+from wagtail.admin.ui.tables import Column
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
@@ -26,7 +28,12 @@ class PlanViewSet(PorSitio):
     model = Plan
     icon = "tag"
     menu_label = "Planes y precios"
-    list_display = ["__str__", "sitio", "precio", "implementacion", "vigente_hasta", "visible", "live"]
+    list_display = ["__str__", "sitio", "precio", "implementacion", "visible", "live",
+                    Column("ultima_modificacion", label="Última modificación", accessor=lambda p: p.ultima_modificacion and localtime(p.ultima_modificacion).strftime("%d/%m/%Y %H:%M")),
+                    Column("modificado_por", label="Modificado por")]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("latest_revision__user", "sitio")
 
 
 class FuncionalidadViewSet(PorSitio):

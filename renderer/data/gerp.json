@@ -2,7 +2,7 @@
   "_comentario": [
     "Configuración única de GERP: precios, módulos, funcionalidades, comparador, sectores y testimonios.",
     "La usan la home (tarjetas, comparador, FAQ, datos estructurados) y las landings /lite/, /core/ y /plus/.",
-    "Comparador: true = incluido · false = no incluido · null = sin confirmar (en la web no se muestra nada; una fila sin ningún dato confirmado no se muestra) · texto = valor descriptivo.",
+    "Comparador: true = incluido · false = no incluido · null = sin confirmar (en la web la celda queda vacía; la fila se muestra igual) · texto = valor descriptivo.",
     "Fuente de cada dato: web anterior gerp.ar (tabla de precios y páginas de cada plan, octubre 2026). No agregar prestaciones sin confirmación."
   ],
   "price_note": "Los valores informados son precios vigentes hasta diciembre 2026",
@@ -131,7 +131,7 @@
     {"group": "basic", "label": "Inventario", "values": {"lite": true, "core": true, "plus": true}},
     {"group": "basic", "label": "Compras y ventas", "values": {"lite": "Módulo integrado", "core": "Módulos separados", "plus": "Módulos separados"}},
     {"group": "basic", "label": "Facturación y contabilidad", "values": {"lite": "Módulo integrado", "core": "Módulos separados", "plus": "Módulos separados"}},
-    {"group": "basic", "label": "Facturación electrónica ARCA (ex AFIP)", "values": {"lite": null, "core": null, "plus": null}},
+    {"group": "basic", "label": "Facturación electrónica ARCA (AFIP)", "values": {"lite": null, "core": null, "plus": null}},
     {"group": "basic", "label": "CRM: oportunidades comerciales", "values": {"lite": false, "core": false, "plus": true}},
     {"group": "basic", "label": "Producción (MRP)", "values": {"lite": false, "core": false, "plus": true}},
     {"group": "advanced", "label": "Circuito completo de compras, con autorización", "values": {"lite": null, "core": true, "plus": true}},
