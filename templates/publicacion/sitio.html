@@ -8,6 +8,10 @@
     La web sigue mostrando la versión anterior{% if e.ultimo_ok %} ({{ e.ultimo_ok.finalizado|date:"d/m/Y H:i" }}){% endif %}.
     <a href="{% url 'gwa_despliegue' e.error.pk %}">Ver el error</a></div>
   {% endif %}
+  {% if e.sitio.motor == "institucional" and e.situacion != "no_conectado" %}
+  <div class="gwa-aviso">Las páginas de GENEOS se siguen generando con su propio <code>build.py</code>, sin cambios en su diseño, rutas ni SEO.
+    El administrador le suma las Noticias cuando estén activas y aprobadas.</div>
+  {% endif %}
   {% if e.situacion == "no_conectado" %}
   <div class="gwa-aviso warn">La web institucional de GENEOS todavía se genera con su propio <code>build.py</code>. Sus contenidos y su SEO ya se pueden cargar acá; la conexión del generador es parte de la etapa 7.</div>
   {% endif %}

@@ -5,11 +5,13 @@ El formato es el mismo que ya usa el motor de sitios (renderer/data/*.json), as�
 """
 import copy
 import json
+from django.db import models
 import re
 from datetime import date
 from pathlib import Path
 
 from django.conf import settings
+from django.utils import timezone
 from django.utils.html import escape
 from wagtail.models import Page
 from wagtail.rich_text import expand_db_html
@@ -19,7 +21,7 @@ from contenidos.models import (ArticuloPage, BlogIndexPage, Funcionalidad, Ident
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 RENDERER = Path(settings.GWA_RENDERER_DIR)
-CARPETAS = {"gerp": "gerp-web", "geagro": "geagro-web", "gema": "gema-web"}
+CARPETAS = {"gerp": "gerp-web", "geagro": "geagro-web", "gema": "gema-web", "geneos": "geneos-web"}
 
 
 def fecha_larga(d):
@@ -209,67 +211,165 @@ def faqs(fuente):
     return res
 
 
-def datos_blog(fuente, files):
+def _config_blog(fuente):
+    """Configuración del blog que vale para esta generación: la aprobada; en una vista previa, el borrador que se está viendo.
+    En la vista previa de un artículo o del blog, el blog se muestra aunque todavía no esté activo (solo en la vista previa)."""
+    from editorial.models import ConfigBlog, config_actual, config_aprobada
     sitio = fuente.sitio
-    if not sitio.usa_blog:
+    over = next((o for (n, _pk), o in fuente.over.items() if n == "ConfigBlog"), None)
+    previa = any(n in ("ArticuloPage", "BlogIndexPage", "ConfigBlog") for n, _pk in fuente.over)
+    config = over or config_aprobada(sitio)
+    if previa and (config is None or not config.activo):
+        config = copy.copy(over or config_actual(sitio) or ConfigBlog.nueva(sitio))
+        config.activo = True
+    return config if config is not None and config.activo else None
+
+
+def _og_imagen(img, files):
+    """Imagen para redes del artículo (1200×630, JPEG): queda en assets/blog/og/."""
+    r = img.get_rendition("fill-1200x630|format-jpeg|jpegquality-85")
+    nombre = f"blog/og/{Path(r.file.name).name}"
+    files.append([r.file.path, nombre])
+    return {"src": nombre, "alt": img.description or img.title, "w": r.width, "h": r.height}
+
+
+def _fecha(dt):
+    return timezone.localtime(dt).date().isoformat() if dt else None
+
+
+def datos_blog(fuente, files):
+    """Portada, listados por línea y artículos del blog del sitio, según su configuración (editorial.ConfigBlog).
+    Cada artículo tiene una sola dirección (/<ruta del blog>/<slug>/); los listados de línea lo enlazan, no lo copian."""
+    from sitios.models import LineaProducto
+    sitio = fuente.sitio
+    config = _config_blog(fuente)
+    if config is None:
         return {}
-    indices = fuente.paginas(BlogIndexPage)
-    if not indices:
-        return {}
-    articulos = [a for a in fuente.paginas(ArticuloPage) if a.fecha]
-    por_padre = {}
-    for a in articulos:
-        por_padre.setdefault(a.get_parent().pk, []).append(a)
-    lineas = {i.pk: i for i in indices}
+    ruta = config.ruta.strip("/") + "/"
+    dominio = sitio.dominio_publico
+    articulos = sorted((a for a in fuente.paginas(ArticuloPage) if a.fecha), key=lambda a: (a.fecha, a.pk or 0), reverse=True)
+    lineas_sitio = list(LineaProducto.objects.filter(sitio=sitio).order_by("orden"))
+    indices_linea = {i.linea_id: i for i in fuente.paginas(BlogIndexPage) if i.linea_id}
+    for i in BlogIndexPage.objects.filter(linea__in=lineas_sitio):
+        indices_linea.setdefault(i.linea_id, i)
+    imagenes = {}
+
+    def abs_url(path):
+        return f"{dominio}/{path}" if dominio else "/" + path
+
+    def lineas_de(a):
+        return list(a.lineas.all())
+
+    def cats_de(a):
+        return list(a.categorias.all())
 
     def tarjeta(a, incluir_img=True):
-        padre = lineas.get(a.get_parent().pk)
-        return {"path": a.ruta, "title": a.title, "summary": a.resumen, "date": a.fecha.isoformat(), "date_label": fecha_larga(a.fecha),
-                "line_label": padre.linea.nombre if padre and padre.linea else "",
-                "image": imagen_archivo(a.imagen, "fill-1200x675|format-webp", files) if (incluir_img and a.imagen) else None,
-                "categories": [c.nombre for c in a.categorias.all()] if a.pk else [],
-                "schema": {"@type": "BlogPosting", "headline": a.title, "datePublished": a.fecha.isoformat(), "url": (sitio.dominio_publico + "/" + a.ruta) if sitio.dominio_publico else "/" + a.ruta}}
+        path = f"{ruta}{a.slug}/"
+        img = None
+        if incluir_img and a.imagen:
+            if a.imagen.pk not in imagenes:
+                imagenes[a.imagen.pk] = imagen_archivo(a.imagen, "fill-1200x675|format-webp", files)
+            img = imagenes[a.imagen.pk]
+        cats = [c.nombre for c in cats_de(a)] if config.mostrar_categorias else []
+        return {"path": path, "title": a.title, "summary": a.resumen, "date": a.fecha.isoformat(), "date_label": fecha_larga(a.fecha),
+                "lines": [l.nombre for l in lineas_de(a)], "line_label": " · ".join(l.nombre for l in lineas_de(a)),
+                "image": img, "categories": cats, "category": cats[0] if cats else ""}
 
-    posts, idx = [], []
-    for i in indices:
-        propios = por_padre.get(i.pk, [])
-        incluidos = list(propios)
-        if i.reune_lineas:
-            for otro in indices:
-                if otro.pk != i.pk:
-                    incluidos += por_padre.get(otro.pk, [])
-        incluidos.sort(key=lambda a: a.fecha, reverse=True)
-        filtros = []
-        if i.reune_lineas:
-            filtros = [("Todos", "/" + i.ruta_publica, True)] + [(o.linea.nombre, "/" + o.ruta_publica, False) for o in indices if o.pk != i.pk and o.linea]
-        elif i.linea:
-            general = [o for o in indices if o.reune_lineas]
-            if general:
-                filtros = [("Todos", "/" + general[0].ruta_publica, False), (i.linea.nombre, "/" + i.ruta_publica, True)]
-        cards = [tarjeta(a) for a in incluidos]
-        n = max(1, i.articulos_por_pagina)
+    def listado(path, titulo, intro, posts, filtros, seo_title, robots_base=None):
+        n = max(1, config.articulos_por_pagina)
+        cards = [tarjeta(a) for a in posts]
         grupos = [cards[k:k + n] for k in range(0, len(cards), n)] or [[]]
+        res = []
+        indice = [{k: c[k] for k in ("path", "title", "summary", "date_label", "categories", "line_label", "image")} for c in cards]
+        categorias = sorted({c for card in cards for c in card["categories"]})
         for num, grupo in enumerate(grupos, 1):
-            ruta = i.ruta_publica if num == 1 else f"{i.ruta_publica}pagina/{num}/"
-            idx.append({"path": ruta, "title": i.title, "intro": i.intro, "posts": grupo, "filters": filtros,
-                        "pages": [(k, "/" + (i.ruta_publica if k == 1 else f"{i.ruta_publica}pagina/{k}/"), k == num) for k in range(1, len(grupos) + 1)],
-                        "seo_title": i.seo_title or f"{i.title} | {sitio.nombre}", "description": i.search_description or i.intro or f"Artículos de {sitio.nombre}",
-                        "robots": "noindex, follow" if (not i.indexar or num > 1) else None})
-        for a in propios:
-            rel = list(a.relacionados.all()) if a.pk else []
+            p = path if num == 1 else f"{path}pagina/{num}/"
+            res.append({"path": p, "title": titulo, "intro": intro, "label": config.nombre_menu, "posts": grupo, "filters": filtros,
+                        "featured": bool(config.mostrar_destacado and num == 1 and grupo), "categories": categorias if config.mostrar_buscador else [],
+                        "search": config.mostrar_buscador, "index": indice if config.mostrar_buscador else [],
+                        "show_date": config.mostrar_fecha, "page": num, "num_pages": len(grupos),
+                        "pages": [(k, "/" + (path if k == 1 else f"{path}pagina/{k}/"), k == num) for k in range(1, len(grupos) + 1)],
+                        "prev": ("/" + (path if num == 2 else f"{path}pagina/{num - 1}/")) if num > 1 else None,
+                        "next": f"/{path}pagina/{num + 1}/" if num < len(grupos) else None,
+                        "seo_title": seo_title if num == 1 else f"{seo_title} · página {num}",
+                        "description": intro or f"Artículos de {sitio.nombre}",
+                        "robots": "noindex, follow" if (robots_base or num > 1) else None,
+                        "lastmod": max([_fecha(a.last_published_at) or a.fecha.isoformat() for a in posts] or [_fecha(config.last_published_at) or date.today().isoformat()])})
+        return res
+
+    idx = []
+    lineas_con_listado = [l for l in lineas_sitio if config.listados_por_linea]
+    def ruta_linea(l):
+        i = indices_linea.get(l.pk)
+        return (i.ruta_publica if i and i.ruta_publica else f"{l.ruta}{ruta}")
+    filtros = []
+    if lineas_con_listado:
+        filtros = [("Todos", "/" + ruta, True)] + [(l.nombre, "/" + ruta_linea(l), False) for l in lineas_con_listado]
+    idx += listado(ruta, config.titulo, config.descripcion, articulos, filtros, f"{config.titulo} | {sitio.nombre}")
+    for l in lineas_con_listado:
+        i = indices_linea.get(l.pk)
+        titulo = i.title if (i and i.live) else f"{config.titulo} {l.nombre}"
+        intro = (i.intro if (i and i.live and i.intro) else config.descripcion)
+        propios = [a for a in articulos if any(x.pk == l.pk for x in lineas_de(a))]
+        f = [("Todos", "/" + ruta, False)] + [(o.nombre, "/" + ruta_linea(o), o.pk == l.pk) for o in lineas_con_listado]
+        idx += listado(ruta_linea(l), titulo, intro, propios, f, f"{titulo} | {sitio.nombre}", robots_base=(i and i.live and not i.indexar))
+
+    posts = []
+    for a in articulos:
+        d = tarjeta(a)
+        rel = []
+        if config.mostrar_relacionados:
+            vivos = {b.pk: b for b in articulos}
+            rel = [vivos[b.pk] for b in (a.relacionados.all() if a.pk else []) if b.pk in vivos]
             if not rel:
-                cats = set(a.categorias.values_list("pk", flat=True)) if a.pk else set()
-                rel = [b for b in incluidos if b.pk != a.pk and cats & set(b.categorias.values_list("pk", flat=True))][:3]
-            d = tarjeta(a)
-            d.update({"author": a.autor, "body_html": cuerpo_html(a.cuerpo, files), "index_path": i.ruta_publica, "index_title": i.title,
-                      "tags": [t.name for t in a.tags.all()] if a.pk else [],
-                      "related": [tarjeta(b, incluir_img=False) for b in rel if b.live],
-                      "seo_title": a.seo_title or f"{a.title} | {sitio.nombre}", "description": a.search_description or a.resumen,
-                      "robots": None if a.indexar else "noindex, follow"})
-            d["schema"] = dict(d["schema"], **{"@context": "https://schema.org", "description": a.resumen, "author": {"@type": "Organization", "name": a.autor or "GENEOS"},
-                                               "publisher": {"@type": "Organization", "name": "Cooperativa GENEOS"}})
-            posts.append(d)
-    return {"indexes": idx, "posts": posts}
+                cats = {c.pk for c in cats_de(a)}
+                lins = {l.pk for l in lineas_de(a)}
+                rel = [b for b in articulos if b.pk != a.pk and cats & {c.pk for c in cats_de(b)}]
+                rel += [b for b in articulos if b.pk != a.pk and b not in rel and lins & {l.pk for l in lineas_de(b)}]
+            rel = rel[:3]
+        autor = a.autor if (config.mostrar_autor and a.autor_id) else None
+        og = a.imagen_og or a.imagen
+        og_img = _og_imagen(og, files) if og else None
+        url = abs_url(d["path"])
+        d.update({"author": autor.nombre if autor else "", "author_role": autor.cargo if autor else "", "show_date": config.mostrar_fecha,
+                  "body_html": cuerpo_html(a.cuerpo, files), "index_path": ruta, "index_title": config.nombre_menu,
+                  "tags": [t.name for t in a.tags.all()] if a.pk else [],
+                  "related": [tarjeta(b) for b in rel],
+                  "seo_title": a.seo_title or f"{a.title} | {sitio.nombre}", "description": a.search_description or a.resumen,
+                  "robots": None if a.indexar else "noindex, follow", "canonical": a.canonical or None,
+                  "og": og_img, "modified": _fecha(a.last_published_at) or a.fecha.isoformat(), "lastmod": _fecha(a.last_published_at) or a.fecha.isoformat()})
+        schema = {"@context": "https://schema.org", "@type": "BlogPosting", "headline": a.title[:110], "description": a.resumen,
+                  "datePublished": a.fecha.isoformat(), "dateModified": d["modified"], "url": url, "mainEntityOfPage": url, "inLanguage": "es-AR",
+                  "author": ({"@type": "Person", "name": autor.nombre} if autor else {"@type": "Organization", "name": sitio.nombre}),
+                  "publisher": {"@type": "Organization", "name": "Cooperativa GENEOS"}}
+        if og_img and dominio:
+            schema["image"] = f"{dominio}/assets/{og_img['src']}"
+        if d["categories"]:
+            schema["articleSection"] = d["categories"][0]
+        if d["tags"]:
+            schema["keywords"] = ", ".join(d["tags"])
+        d["schema"] = schema
+        posts.append(d)
+    menu = {"label": config.nombre_menu, "href": "/" + ruta, "position": config.menu_posicion}
+    return {"indexes": idx, "posts": posts, "menu": menu}
+
+
+def ultima_modificacion(fuente):
+    """Fecha real del último cambio aprobado del sitio (para el <lastmod> del sitemap de las páginas que no son del blog)."""
+    sitio = fuente.sitio
+    fechas = [sitio.actualizado]
+    from editorial.models import ConfigBlog
+    for model in (Plan, Funcionalidad, Sector, PreguntaFrecuente, Testimonio, IdentidadSitio, ConfigBlog):
+        f = model.objects.filter(sitio=sitio, live=True).aggregate(m=models.Max("last_published_at"))["m"]
+        if f:
+            fechas.append(f)
+    paginas = {}
+    for p in fuente.paginas(PaginaWeb):
+        if p.last_published_at:
+            fechas.append(p.last_published_at)
+            paginas[p.ruta_publica] = p.last_published_at
+    general = max(fechas)
+    return _fecha(general), {r: _fecha(max(f, general)) for r, f in paginas.items()}
 
 
 def valor_funcionalidad(v):
@@ -451,6 +551,13 @@ def datos_sitio(sitio, overrides=None):
     if sitio.clave == "gema" and (Sector.objects.filter(sitio=sitio).exists() or fuente.snippets(Sector)):
         pd["sectors"] = sectores_web(fuente)  # «¿Para quién es GEMA?»
     pd["blog"] = datos_blog(fuente, files)
+    general, por_pagina = ultima_modificacion(fuente)
+    pd["lastmod"] = dict(por_pagina, **{b["path"]: b["lastmod"] for b in pd["blog"].get("indexes", []) + pd["blog"].get("posts", [])})
+    pd["lastmod_default"] = general
+    if sitio.clave != "gerp":  # GERP ya las recibe en gerp.json
+        reds = fuente.snippets(Redireccion)
+        if reds:
+            pd["redirects"] = [[r.origen, r.destino] for r in reds]
     pd["identity"] = datos_identidad(fuente, files)
     if sitio.usa_formularios:
         pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento}

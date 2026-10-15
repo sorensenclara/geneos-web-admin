@@ -1,0 +1,27 @@
+{# Pestaña SEO del artículo: vista aproximada del resultado en Google, con los textos que se están escribiendo. #}
+<div class="gwa-gprev" data-gprev data-dominio="{{ self.instance.get_site.sitio_web.dominio_publico|default:'' }}">
+  <div class="gwa-gprev-url" data-gprev-url></div>
+  <div class="gwa-gprev-tit" data-gprev-tit></div>
+  <div class="gwa-gprev-desc" data-gprev-desc></div>
+</div>
+<p class="gwa-gprev-cuenta" data-gprev-cuenta></p>
+<p class="help">Vista aproximada: Google puede mostrar otro título o fragmento. Si el título SEO o la meta descripción quedan vacíos, se usan el título y el resumen del artículo.</p>
+<script>
+(() => {
+  const box = document.currentScript.previousElementSibling.previousElementSibling.previousElementSibling;
+  const $ = (id) => document.getElementById(id);
+  const sitio = box.dataset.dominio || "";
+  function actualizar() {
+    const titulo = ($("id_seo_title")?.value || $("id_title")?.value || "Título del artículo").trim();
+    const desc = ($("id_search_description")?.value || $("id_resumen")?.value || "").trim();
+    const slug = ($("id_slug")?.value || "").trim();
+    box.querySelector("[data-gprev-url]").textContent = (sitio.replace(/^https?:\/\//, "") || "dominio a definir") + " › … › " + (slug || "articulo");
+    box.querySelector("[data-gprev-tit]").textContent = titulo.length > 60 ? titulo.slice(0, 59) + "…" : titulo;
+    box.querySelector("[data-gprev-desc]").textContent = desc.length > 160 ? desc.slice(0, 159) + "…" : (desc || "Escribí un resumen o una meta descripción.");
+    const c = box.parentElement.querySelector("[data-gprev-cuenta]");
+    c.innerHTML = `Título: <span class="${titulo.length > 60 ? "is-largo" : ""}">${titulo.length} / 60</span> · Descripción: <span class="${desc.length > 160 ? "is-largo" : ""}">${desc.length} / 160</span>`;
+  }
+  document.addEventListener("input", (e) => { if (["id_seo_title", "id_title", "id_search_description", "id_resumen", "id_slug"].includes(e.target.id)) actualizar(); });
+  actualizar();
+})();
+</script>

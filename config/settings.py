@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [h for h in env("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",
 CSRF_TRUSTED_ORIGINS = [o for o in env("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 
 INSTALLED_APPS = [
-    "sitios", "contenidos", "publicacion", "formularios",
+    "sitios", "contenidos", "editorial", "publicacion", "formularios",
     "wagtail.contrib.forms", "wagtail.contrib.redirects", "wagtail.contrib.table_block", "wagtail.contrib.settings",
     "wagtail.embeds", "wagtail.sites", "wagtail.users", "wagtail.snippets", "wagtail.documents", "wagtail.images",
     "wagtail.search", "wagtail.admin", "wagtail", "modelcluster", "taggit", "django_filters",

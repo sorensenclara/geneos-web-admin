@@ -1,63 +1,92 @@
 {% extends "base.html" %}
 {% import "partials/product.html" as pp with context %}
-{# Índice de blog (generado por el administrador). PG.blog = {title, intro, posts: [...], lines: [...]} #}
+{# Portada o listado de línea del blog (administrador → Blog y noticias). Misma plantilla para todos los sitios: toma el color,
+   el encabezado y el pie de cada producto. PG.blog = {title, intro, label, posts, featured, filters, categories, index, pages…} #}
 {% set B = PG.blog %}
 {% block schema %}
 {{ jsonld({"@context": "https://schema.org", "@type": "Blog", "name": B.title, "url": canonical, "inLanguage": "es-AR",
-  "blogPost": B.posts|map(attribute="schema")|list}) }}
+  "blogPost": B.posts|map(attribute="path")|map("regex_replace", "^", abs_url(""))|list}) }}
 {% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">
+  <link rel="stylesheet" href="{{ prefix }}assets/css/blog.css?v={{ V["blog.css"] }}">
+  {% if B.prev %}<link rel="prev" href="{{ page_url(B.prev) }}">{% endif %}{% if B.next %}<link rel="next" href="{{ page_url(B.next) }}">{% endif %}{% endblock %}
 {% block body_class %}page-blog{% endblock %}
 {% block content %}
+{% set lista = B.posts[1:] if B.featured else B.posts %}
 <div class="pp pp-theme-{{ P.key }} pp-blog">
   <section class="pp-section pp-soft pp-blog-head">
     <div class="pp-container">
-      <p class="pp-eyebrow">Blog</p>
-      <h1>{{ B.title }}</h1>
+      <p class="pp-eyebrow">{{ B.label }}</p>
+      <h1>{{ B.title }}{% if B.page > 1 %} <span class="bl-pagina">· página {{ B.page }}</span>{% endif %}</h1>
       {% if B.intro %}<p class="pp-blog-intro">{{ B.intro }}</p>{% endif %}
-      {% if B.filters %}
-      <nav class="pp-blog-filters" aria-label="Filtrar artículos">
-        {% for lab, href, current in B.filters %}<a href="{{ page_url(href) }}"{% if current %} aria-current="page"{% endif %}>{{ lab }}</a>{% endfor %}
-      </nav>
+      {% if B.filters or B.search %}
+      <div class="bl-herramientas">
+        {% if B.filters %}
+        <nav class="pp-blog-filters" aria-label="Línea">
+          {% for lab, href, current in B.filters %}<a href="{{ page_url(href) }}"{% if current %} aria-current="page"{% endif %}>{{ lab }}</a>{% endfor %}
+        </nav>
+        {% endif %}
+        {% if B.search %}
+        <div class="bl-buscar" role="search">
+          {% if B.categories %}
+          <label><span class="sr-only">Categoría</span><select data-blog-cat><option value="">Todas las categorías</option>{% for c in B.categories %}<option>{{ c }}</option>{% endfor %}</select></label>
+          {% endif %}
+          <label class="bl-buscar-q"><span class="sr-only">Buscar artículos</span><input type="search" placeholder="Buscar artículos…" data-blog-search></label>
+        </div>
+        {% endif %}
+      </div>
       {% endif %}
-      <label class="pp-blog-search"><span class="sr-only">Buscar artículos</span><input type="search" placeholder="Buscar artículos…" data-blog-search></label>
     </div>
   </section>
   <section class="pp-section pp-white">
-    <div class="pp-container">
+    <div class="pp-container" data-blog-paginas>
       {% if B.posts %}
-      <ul class="pp-blog-grid" data-blog-list>
-        {% for a in B.posts %}
-        <li data-search="{{ (a.title ~ ' ' ~ a.summary ~ ' ' ~ a.categories|join(' '))|lower }}">
-          <a class="pp-blog-card" href="{{ page_url('/' ~ a.path) }}">
-            {% if a.image %}<img src="{{ prefix }}assets/{{ a.image.src }}" alt="{{ a.image.alt }}" width="{{ a.image.w }}" height="{{ a.image.h }}" loading="lazy" decoding="async">{% endif %}
-            <span class="pp-blog-meta">{{ a.date_label }}{% if a.line_label %} · {{ a.line_label }}{% endif %}</span>
-            <h2>{{ a.title }}</h2>
-            <p>{{ a.summary }}</p>
-          </a>
-        </li>
+      {% if B.featured %}{% set a = B.posts[0] %}
+      <a class="bl-destacado" href="{{ page_url('/' ~ a.path) }}">
+        {% if a.image %}<img src="{{ prefix }}assets/{{ a.image.src }}" alt="{{ a.image.alt }}" width="{{ a.image.w }}" height="{{ a.image.h }}" fetchpriority="high" decoding="async">{% else %}<span class="bl-sin-img" aria-hidden="true"></span>{% endif %}
+        <span class="bl-destacado-txt">
+          {% if a.category %}<span class="bl-cat">{{ a.category }}</span>{% endif %}
+          <h2>{{ a.title }}</h2>
+          <p>{{ a.summary }}</p>
+          <span class="pp-blog-meta">{% if B.show_date %}<time datetime="{{ a.date }}">{{ a.date_label }}</time>{% endif %}{% if a.line_label %}{% if B.show_date %} · {% endif %}{{ a.line_label }}{% endif %}</span>
+        </span>
+      </a>
+      {% endif %}
+      {% if lista %}
+      <ul class="pp-blog-grid bl-grid">
+        {% for a in lista %}
+        <li><a class="pp-blog-card" href="{{ page_url('/' ~ a.path) }}">
+          {% if a.image %}<img src="{{ prefix }}assets/{{ a.image.src }}" alt="{{ a.image.alt }}" width="{{ a.image.w }}" height="{{ a.image.h }}" loading="lazy" decoding="async">{% else %}<span class="bl-sin-img" aria-hidden="true"></span>{% endif %}
+          {% if a.category %}<span class="bl-cat">{{ a.category }}</span>{% endif %}
+          <h2>{{ a.title }}</h2>
+          <p>{{ a.summary }}</p>
+          <span class="pp-blog-meta">{% if B.show_date %}<time datetime="{{ a.date }}">{{ a.date_label }}</time>{% endif %}{% if a.line_label %}{% if B.show_date %} · {% endif %}{{ a.line_label }}{% endif %}</span>
+        </a></li>
         {% endfor %}
       </ul>
-      <p class="pp-blog-empty" data-blog-empty hidden>No hay artículos que coincidan con la búsqueda.</p>
-      {% if B.pages and B.pages|length > 1 %}
-      <nav class="pp-blog-pages" aria-label="Páginas del blog">{% for n, href, current in B.pages %}<a href="{{ page_url(href) }}"{% if current %} aria-current="page"{% endif %}>{{ n }}</a>{% endfor %}</nav>
+      {% endif %}
+      {% if B.num_pages > 1 %}
+      <nav class="pp-blog-pages" aria-label="Páginas">
+        {% if B.prev %}<a href="{{ page_url(B.prev) }}" rel="prev" aria-label="Página anterior">‹</a>{% endif %}
+        {% for n, href, current in B.pages %}<a href="{{ page_url(href) }}"{% if current %} aria-current="page"{% endif %}>{{ n }}</a>{% endfor %}
+        {% if B.next %}<a href="{{ page_url(B.next) }}" rel="next" aria-label="Página siguiente">›</a>{% endif %}
+      </nav>
       {% endif %}
       {% else %}
       <p class="pp-blog-empty">Todavía no hay artículos publicados.</p>
       {% endif %}
     </div>
+    {% if B.search %}
+    <div class="pp-container" data-blog-resultados hidden>
+      <p class="bl-resumen" aria-live="polite" data-blog-cuenta></p>
+      <ul class="pp-blog-grid bl-grid" data-blog-lista></ul>
+    </div>
+    {% endif %}
   </section>
 </div>
-<script>
-/* Buscador del blog: filtra las tarjetas de esta página sin servidor */
-(() => {
-  const q = document.querySelector("[data-blog-search]"), items = [...document.querySelectorAll("[data-blog-list] > li")], empty = document.querySelector("[data-blog-empty]");
-  if (!q) return;
-  q.addEventListener("input", () => {
-    const t = q.value.trim().toLowerCase(); let n = 0;
-    items.forEach((li) => { const ok = !t || li.dataset.search.includes(t); li.hidden = !ok; n += ok; });
-    if (empty) empty.hidden = n > 0;
-  });
-})();
-</script>
+{% if B.search %}
+{# Índice de todos los artículos de este listado: el buscador y el filtro de categoría funcionan sin servidor y abarcan todas las páginas #}
+<script type="application/json" id="blog-indice">{{ {"base": prefix, "show_date": B.show_date, "posts": B.index}|tojson }}</script>
+<script src="{{ prefix }}assets/js/blog.js?v={{ V["blog.js"] }}" defer></script>
+{% endif %}
 {% endblock %}

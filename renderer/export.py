@@ -169,20 +169,40 @@ def export(key, P):
     for k in ("header_logo", "header_logo_w", "header_logo_h", "logo", "logo_w", "logo_h"):
         if IDENT.get(k):
             P[k] = IDENT[k]
+    if PD.get("redirects"):  # direcciones anteriores cargadas en el administrador (p. ej. un artículo que cambió de dirección)
+        P["redirects"] = list(P.get("redirects") or []) + [tuple(r) for r in PD["redirects"]]
+    BLOG = PD.get("blog") or {}
+    MENU = BLOG.get("menu")
+
+    def con_blog(nav):
+        """Enlace «Blog» o «Noticias» en el menú (escritorio y celular), en la posición elegida en el administrador."""
+        if not MENU:
+            return nav
+        nav = list(nav)
+        pos = MENU.get("position") or 0
+        item = (MENU["label"], MENU["href"])
+        nav.insert(pos - 1 if 0 < pos <= len(nav) else len(nav), item)
+        return nav
+
+    if MENU and P.get("footer_pages"):
+        P["footer_pages"] = list(P["footer_pages"]) + [(f'{P["name"]} · {MENU["label"]}', MENU["href"])]
     pages = []
     for pg in P["pages"]:
         o = (PD.get("pages") or {}).get(pg["out"], {})
-        pages.append(dict(pg, **{k: v for k, v in o.items() if k in ("title", "description", "robots", "og_alt") and v}))
-    # Blog (índices y artículos)
+        pg = dict(pg, **{k: v for k, v in o.items() if k in ("title", "description", "robots", "og_alt") and v})
+        pg["nav"] = con_blog(pg["nav"])
+        pages.append(pg)
+    # Blog (portada, listados por línea y artículos)
     def raiz(href):
         return href if not href.startswith("#") else "/" + href
-    home_nav = [(it[0], raiz(it[1])) + ((tuple((a, raiz(b)) for a, b in it[2]),) if len(it) > 2 else ()) for it in P["pages"][0]["nav"]]
-    for b in (PD.get("blog") or {}).get("indexes", []):
+    home_nav = [(it[0], raiz(it[1])) + ((tuple((a, raiz(b)) for a, b in it[2]),) if len(it) > 2 else ()) for it in pages[0]["nav"]]
+    for b in BLOG.get("indexes", []):
         pages.append(dict(tpl="blog-index.html", out=b["path"], crumb=b["title"], title=b["seo_title"], description=b["description"],
                           og=P["pages"][0]["og"], nav=home_nav, robots=b.get("robots"), blog=b))
-    for a in (PD.get("blog") or {}).get("posts", []):
+    for a in BLOG.get("posts", []):
         pages.append(dict(tpl="blog-post.html", out=a["path"], crumb=a["title"], title=a["seo_title"], description=a["description"],
-                          og=P["pages"][0]["og"], nav=home_nav, robots=a.get("robots"), post=a))
+                          og=P["pages"][0]["og"], og_file=(a.get("og") or {}).get("src"), og_alt=(a.get("og") or {}).get("alt"),
+                          og_type="article", canonical=a.get("canonical"), nav=home_nav, robots=a.get("robots"), post=a))
     P["pages"] = pages
     out = OUTROOT / P["folder"]
     out.mkdir(parents=True, exist_ok=True)
@@ -308,12 +328,15 @@ def export(key, P):
         prefix = "../" * pg["out"].count("/")
         env, asset = make_env(prefix)
         env.globals["PAGE_OVER"].update((PD.get("pages") or {}).get(pg["out"], {}))
-        og = pg["og"]
-        og_url = (P["domain"] or "https://geneos.coop.ar") + "/assets/" + dest(og)
-        asset(og)
+        if pg.get("og_file"):  # imagen para redes propia del artículo (la entrega el administrador)
+            og_url = (P["domain"] or "https://geneos.coop.ar") + "/assets/" + pg["og_file"]
+        else:
+            og = pg["og"]
+            og_url = (P["domain"] or "https://geneos.coop.ar") + "/assets/" + dest(og)
+            asset(og)
         page = {"out": pg["out"], "crumb": pg.get("crumb", P["name"])}
         html = env.get_template(pg["tpl"]).render(P=P, PG=pg, page=page, title=pg["title"], description=pg["description"],
-                                                  path="/" + pg["out"], canonical=env.globals["abs_url"](pg["out"]),
+                                                  path="/" + pg["out"], canonical=pg.get("canonical") or env.globals["abs_url"](pg["out"]),
                                                   crumbs=[], og_image=og_url)
         # Las imágenes de fondo se pasan como variables CSS en style="": el navegador resuelve esas url()
         # relativas a la hoja de estilos que usa la variable (assets/css/), no a la página.
@@ -352,9 +375,9 @@ def export(key, P):
         t = out / "assets" / d
         t.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, t)
-    # Archivos propios de los sitios comerciales (site.css, site.js)
+    # Archivos propios de los sitios comerciales (site.css, site.js; blog.css y blog.js solo si el sitio tiene blog)
     for f in (HERE / "static").rglob("*"):
-        if f.is_file():
+        if f.is_file() and (BLOG or not f.name.startswith("blog.")):
             t = out / "assets" / f.relative_to(HERE / "static")
             t.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, t)
@@ -425,8 +448,11 @@ def export(key, P):
     robots = "User-agent: *\nAllow: /\n" + (f"Sitemap: {P['domain']}/sitemap.xml\n" if P["domain"] else "")
     (out / "robots.txt").write_text(robots)
     if P["domain"]:
-        urls = "".join(f'  <url><loc>{P["domain"]}/{pg["out"]}</loc><lastmod>{date.today().isoformat()}</lastmod></url>\n'
-                       for pg in P["pages"] if "noindex" not in (pg.get("robots") or ""))
+        # Fecha real del último cambio aprobado de cada página (administrador); sin datos, la del día
+        lastmod = PD.get("lastmod") or {}
+        defecto = PD.get("lastmod_default") or date.today().isoformat()
+        urls = "".join(f'  <url><loc>{P["domain"]}/{pg["out"]}</loc><lastmod>{lastmod.get(pg["out"], defecto)}</lastmod></url>\n'
+                       for pg in P["pages"] if "noindex" not in (pg.get("robots") or "") and not pg.get("canonical"))
         (out / "sitemap.xml").write_text(
             f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}</urlset>\n')
     if not ARGS.no_project_files:

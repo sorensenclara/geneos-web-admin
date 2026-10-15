@@ -1,0 +1,35 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% block titletag %}{{ idea.titulo }} · Ideas{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="lightbulb" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><a href="{% url 'blog:index' %}?sitio={{ idea.sitio.clave }}">Blog de {{ idea.sitio.nombre }}</a>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Detalle de la idea</span></nav>
+        <h1>{{ idea.titulo }}</h1>
+        <p>{% if idea.verificada %}<span class="gwa-bl-badge is-v" style="position:static">Tendencia verificada</span>{% elif idea.tipo == 'ia' %}<span class="gwa-bl-badge is-ia" style="position:static">Idea de IA</span>{% else %}<span class="gwa-bl-badge is-int" style="position:static">Idea editorial</span>{% endif %}</p>
+      </div>
+    </div>
+  </div>
+  <section class="gu-card gwa-bl-panel">
+    <dl class="gwa-estado-art">
+      <dt>Producto</dt><dd>{{ idea.sitio.nombre }}{% if idea.linea %} · {{ idea.linea.nombre }}{% endif %}</dd>
+      <dt>Por qué conviene</dt><dd>{{ idea.descripcion|default:"—" }}</dd>
+      <dt>Palabras clave</dt><dd>{{ idea.palabras_clave|default:"—" }}</dd>
+      <dt>Intención de búsqueda</dt><dd>{{ idea.intencion|default:"—" }}</dd>
+      <dt>Fuente</dt><dd>{{ idea.fuente }}{% if idea.dato %} · valor en la fuente: {{ idea.dato }}{% endif %}</dd>
+      <dt>Fecha de consulta</dt><dd>{{ idea.consultado|date:"d/m/Y" }}</dd>
+      {% if idea.importacion %}<dt>Importación</dt><dd>{{ idea.importacion.archivo|default:"CSV" }} · {{ idea.importacion.region }}{% if idea.importacion.periodo %} · {{ idea.importacion.periodo }}{% endif %}</dd>{% endif %}
+      {% if idea.enlace_comercial %}<dt>Página comercial relacionada</dt><dd>{{ idea.enlace_comercial }}</dd>{% endif %}
+      <dt>Estado</dt><dd>{{ idea.get_estado_display }}{% if idea.articulo %} · <a href="{% url 'wagtailadmin_pages:edit' idea.articulo.pk %}">ver borrador</a>{% endif %}</dd>
+    </dl>
+    {% if not idea.verificada %}<div class="gu-alert warning">{% icon name="warning" classname="gu-icon" %}<p>Esta idea no tiene datos de búsqueda detrás. Verificá el interés en Google Trends antes de escribir.</p></div>{% endif %}
+    <div class="gwa-bl-head-acc">
+      <a class="gu-btn gu-btn-outline" href="{{ trends }}" target="_blank" rel="noopener">{% icon name="link-external" classname="gu-icon" %}Investigar en Google Trends</a>
+      {% if not idea.articulo %}<form method="post" action="{% url 'blog:idea_accion' idea.pk 'borrador' %}">{% csrf_token %}<button class="gu-btn gu-btn-primary" type="submit">Crear borrador</button></form>{% endif %}
+      {% if idea.estado == 'descartada' %}<form method="post" action="{% url 'blog:idea_accion' idea.pk 'restaurar' %}">{% csrf_token %}<button class="gu-btn gu-btn-ghost" type="submit">Restaurar</button></form>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

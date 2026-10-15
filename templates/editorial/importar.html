@@ -1,0 +1,32 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% block titletag %}Importar tendencias · {{ sitio.nombre }}{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="file-up" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><a href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Blog de {{ sitio.nombre }}</a>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Importar tendencias</span></nav>
+        <h1>Importar CSV de Google Trends</h1>
+        <p>Las consultas del archivo se muestran como «Tendencia verificada», con la fecha y la región que indiques. Los valores se copian tal como figuran: nada se calcula ni se estima.</p>
+      </div>
+    </div>
+  </div>
+  <section class="gu-card gwa-bl-panel">
+    <ol class="gwa-bl-pasos">
+      <li>Abrí <a href="https://trends.google.com/trends/explore?geo=AR&hl=es" target="_blank" rel="noopener">Google Trends</a> con el término, «Argentina» y el período.</li>
+      <li>En «Consultas relacionadas», tocá el botón de descarga (⤓) para bajar el CSV.</li>
+      <li>Subilo acá con la fecha en que hiciste la consulta.</li>
+    </ol>
+    <form method="post" enctype="multipart/form-data" class="gwa-bl-form">{% csrf_token %}
+      <label>Archivo CSV<input type="file" name="archivo" accept=".csv,text/csv" required></label>
+      <label>Término consultado<input type="text" name="termino" maxlength="120" placeholder="Ej.: siembra de soja"></label>
+      {% if lineas %}<label>Línea<select name="linea"><option value="">General</option>{% for l in lineas %}<option value="{{ l.pk }}">{{ l.nombre }}</option>{% endfor %}</select></label>{% endif %}
+      <label>Región<input type="text" name="region" value="Argentina" maxlength="60"></label>
+      <label>Período<input type="text" name="periodo" maxlength="60" placeholder="Ej.: últimos 12 meses"></label>
+      <label>Fecha de la consulta<input type="date" name="consultado" value="{{ hoy|date:'Y-m-d' }}" required></label>
+      <div class="gwa-bl-head-acc"><a class="gu-btn gu-btn-ghost" href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Cancelar</a><button class="gu-btn gu-btn-primary" type="submit">Importar</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

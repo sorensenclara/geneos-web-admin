@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{# Noticias de GENEOS (administrador → Blog y noticias). Usa el encabezado, el pie y los estilos de la web de GENEOS. #}
+{% set B = page.blog %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/blog.css') }}">{% endblock %}
+{% block schema %}{{ jsonld({"@context": "https://schema.org", "@type": "Blog", "name": B.title, "url": abs_url(page.out), "inLanguage": "es-AR",
+  "blogPost": B.posts|map(attribute="path")|map("regex_replace", "^", abs_url(""))|list}) }}{% endblock %}
+{% block body_class %}page-blog{% endblock %}
+{% block content %}
+{% set lista = B.posts[1:] if B.featured else B.posts %}
+<div class="gw-blog pp-blog">
+  <section class="section theme-black-green">
+    <div class="container bl-encabezado">
+      <p class="hx-eyebrow hx-eyebrow-light">{{ B.label }}</p>
+      <h1>{{ B.title }}{% if B.page > 1 %} <span class="bl-pagina">· página {{ B.page }}</span>{% endif %}</h1>
+      {% if B.intro %}<p class="hx-lead">{{ B.intro }}</p>{% endif %}
+      {% if B.search %}
+      <div class="bl-buscar" role="search">
+        {% if B.categories %}<label><span class="sr-only">Categoría</span><select data-blog-cat><option value="">Todas las categorías</option>{% for c in B.categories %}<option>{{ c }}</option>{% endfor %}</select></label>{% endif %}
+        <label class="bl-buscar-q"><span class="sr-only">Buscar noticias</span><input type="search" placeholder="Buscar…" data-blog-search></label>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  <section class="section">
+    <div class="container" data-blog-paginas>
+      {% if B.posts %}
+      {% if B.featured %}{% set a = B.posts[0] %}
+      <a class="bl-destacado" href="{{ url('/' ~ a.path) }}">
+        {% if a.image %}<img src="{{ asset('img/' ~ a.image.src) }}" alt="{{ a.image.alt }}" width="{{ a.image.w }}" height="{{ a.image.h }}" fetchpriority="high">{% else %}<span class="bl-sin-img" aria-hidden="true"></span>{% endif %}
+        <span class="bl-destacado-txt">{% if a.category %}<span class="bl-cat">{{ a.category }}</span>{% endif %}<h2>{{ a.title }}</h2><p>{{ a.summary }}</p>
+          {% if B.show_date %}<span class="pp-blog-meta"><time datetime="{{ a.date }}">{{ a.date_label }}</time></span>{% endif %}</span>
+      </a>
+      {% endif %}
+      {% if lista %}
+      <ul class="pp-blog-grid bl-grid">
+        {% for a in lista %}<li><a class="pp-blog-card" href="{{ url('/' ~ a.path) }}">
+          {% if a.image %}<img src="{{ asset('img/' ~ a.image.src) }}" alt="{{ a.image.alt }}" width="{{ a.image.w }}" height="{{ a.image.h }}" loading="lazy">{% else %}<span class="bl-sin-img" aria-hidden="true"></span>{% endif %}
+          {% if a.category %}<span class="bl-cat">{{ a.category }}</span>{% endif %}<h2>{{ a.title }}</h2><p>{{ a.summary }}</p>
+          {% if B.show_date %}<span class="pp-blog-meta"><time datetime="{{ a.date }}">{{ a.date_label }}</time></span>{% endif %}</a></li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if B.num_pages > 1 %}<nav class="pp-blog-pages" aria-label="Páginas">{% for n, href, current in B.pages %}<a href="{{ url(href) }}"{% if current %} aria-current="page"{% endif %}>{{ n }}</a>{% endfor %}</nav>{% endif %}
+      {% else %}<p class="pp-blog-empty">Todavía no hay noticias publicadas.</p>{% endif %}
+    </div>
+    {% if B.search %}<div class="container" data-blog-resultados hidden><p class="bl-resumen" aria-live="polite" data-blog-cuenta></p><ul class="pp-blog-grid bl-grid" data-blog-lista></ul></div>{% endif %}
+  </section>
+</div>
+{% if B.search %}
+<script type="application/json" id="blog-indice">{{ {"base": url("/"), "img": asset("img/"), "show_date": B.show_date, "posts": B.index}|tojson }}</script>
+<script src="{{ asset('js/blog.js') }}" defer></script>
+{% endif %}
+{% endblock %}
+{% block tambien %}{% endblock %}

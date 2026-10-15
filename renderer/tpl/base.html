@@ -9,7 +9,7 @@
      Si se publica en un dominio de prueba, cambiar robots a "noindex" hasta el lanzamiento. #}
   <meta name="robots" content="{{ PG.robots or "index, follow, max-image-preview:large" }}">
   {% if P.domain %}<link rel="canonical" href="{{ canonical }}">{% endif %}
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="{{ PG.og_type or "website" }}">
   <meta property="og:locale" content="es_AR">
   <meta property="og:site_name" content="{{ P.name }}">
   <meta property="og:title" content="{{ title }}">

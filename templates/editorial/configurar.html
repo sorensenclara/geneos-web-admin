@@ -1,0 +1,21 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% block titletag %}Configurar blog · {{ sitio.nombre }}{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="cog" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><a href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Blog de {{ sitio.nombre }}</a>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Configurar</span></nav>
+        <h1>Configurar el blog de {{ sitio.nombre }}</h1>
+        <p>Se crea una configuración en borrador, con el blog desactivado. Después elegís el nombre («Blog» o «Noticias»), la dirección y qué se muestra.
+           La web cambia recién cuando la aprobás y usás «Publicar en la web».</p>
+      </div>
+    </div>
+  </div>
+  <form method="post" class="gwa-bl-head-acc">{% csrf_token %}
+    <a class="gu-btn gu-btn-ghost" href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Cancelar</a>
+    <button class="gu-btn gu-btn-primary" type="submit">{% icon name="cog" classname="gu-icon" %}Crear configuración</button>
+  </form>
+</div>
+{% endblock %}

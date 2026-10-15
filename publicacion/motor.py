@@ -21,17 +21,25 @@ class ErrorGeneracion(Exception):
     pass
 
 
+def conectado(sitio):
+    return sitio.clave in CARPETAS
+
+
 def generar(sitio, destino, overrides=None):
-    """Genera la web del sitio en `destino`/<carpeta>. Devuelve (carpeta, datos, registro)."""
-    if sitio.motor != "comercial" or sitio.clave not in CARPETAS:
-        raise NoConectado(f"La web de {sitio.nombre} todavía no está conectada al generador (etapa 7).")
+    """Genera la web del sitio en `destino`/<carpeta>. Devuelve (carpeta, datos, registro).
+    GENEOS usa su propio build.py (GENEOS WEB, sin modificarlo) y suma las Noticias del administrador (renderer/export_geneos.py)."""
+    if not conectado(sitio):
+        raise NoConectado(f"La web de {sitio.nombre} todavía no está conectada al generador.")
     archivos, _files = datos_sitio(sitio, overrides)
     tmp = Path(tempfile.mkdtemp(prefix="gwa-datos-", dir=settings.GWA_VAR_DIR))
     try:
         for nombre, contenido in archivos.items():
             (tmp / nombre).write_text(json.dumps(contenido, ensure_ascii=False, indent=1))
         env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), WEB_DATA_DIR=str(tmp), GEAGRO_SRC_DIR=str(settings.GEAGRO_SRC_DIR))
-        cmd = [sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export.py"), sitio.clave, "--out", str(destino), "--no-project-files"]
+        if sitio.motor == "institucional":
+            cmd = [sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export_geneos.py"), "--out", str(destino)]
+        else:
+            cmd = [sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export.py"), sitio.clave, "--out", str(destino), "--no-project-files"]
         r = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=600)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

@@ -37,7 +37,7 @@ def menu_estado():
 @hooks.register("insert_global_admin_css")
 def css():
     """Sistema de diseño GENEOS UI (tokens oscuros + componentes de GELECTRIC) sobre todo el administrador."""
-    hojas = ["gwa/ui/tokens.css", "gwa/ui/componentes.css", "gwa/ui/wagtail.css", "gwa/admin.css"]
+    hojas = ["gwa/ui/tokens.css", "gwa/ui/componentes.css", "gwa/ui/wagtail.css", "gwa/admin.css", "gwa/blog.css"]
     return format_html("".join('<link rel="stylesheet" href="{}">' for _ in hojas), *[static(h) for h in hojas])
 
 

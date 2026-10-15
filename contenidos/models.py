@@ -160,11 +160,13 @@ class BlogIndexPage(SeoMixin, Page):
     linea = models.ForeignKey(LineaProducto, verbose_name="Línea de producto", null=True, blank=True, on_delete=models.SET_NULL)
     intro = models.TextField("Introducción", blank=True)
     reune_lineas = models.BooleanField("Reunir artículos de las líneas", default=False,
-                                       help_text="GEAGRO /blog/: muestra también los artículos de Cereales y Vid, enlazados a su dirección original.")
+                                       help_text="Sin uso desde el blog universal: el blog general siempre reúne los artículos del sitio.")
     articulos_por_pagina = models.PositiveSmallIntegerField(default=12)
 
-    content_panels = Page.content_panels + [FieldPanel("intro"), FieldRowPanel([FieldPanel("linea"), FieldPanel("reune_lineas")]),
-                                            FieldPanel("articulos_por_pagina")]
+    content_panels = Page.content_panels + [
+        HelpPanel("<p>El nombre, la dirección, el menú y las opciones del blog se configuran en <b>Contenidos → Blog y noticias</b>. "
+                  "Los artículos se crean siempre en el blog general del sitio; en GEAGRO, la línea se marca en cada artículo.</p>"),
+        FieldPanel("intro"), FieldPanel("linea", read_only=True)]
     promote_panels = []
     edit_handler = TabbedInterface([ObjectList(content_panels, heading="Contenido"),
                                     ObjectList(SeoMixin.seo_panels + [FieldPanel("slug")], heading="SEO")])
@@ -194,15 +196,94 @@ class CategoriaBlog(models.Model):
         return f"{self.nombre} ({self.linea or self.sitio})"
 
 
+class AutorBlog(models.Model):
+    """Firma de los artículos de un sitio. Opcional: un artículo sin autor se firma como el producto."""
+    sitio = models.ForeignKey(SitioWeb, verbose_name="Sitio", on_delete=models.CASCADE)
+    nombre = models.CharField("Nombre", max_length=80)
+    cargo = models.CharField("Rol o cargo", max_length=80, blank=True)
+    bio = models.TextField("Presentación breve", blank=True, max_length=400)
+    foto = models.ForeignKey("wagtailimages.Image", verbose_name="Foto", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    activo = models.BooleanField("Disponible para nuevos artículos", default=True)
+    actualizado = models.DateTimeField(auto_now=True)
+    panels = [FieldPanel("sitio"), FieldRowPanel([FieldPanel("nombre"), FieldPanel("cargo")]), FieldPanel("bio"), FieldPanel("foto"), FieldPanel("activo")]
+    base_form_class = FormPorSitio
+
+    class Meta:
+        verbose_name = "autor"
+        verbose_name_plural = "autores"
+        ordering = ["sitio", "nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+    @property
+    def iniciales(self):
+        partes = self.nombre.split()
+        return ((partes[0][0] + partes[-1][0]) if len(partes) > 1 else self.nombre[:2]).upper()
+
+
 class ArticuloTag(TaggedItemBase):
     content_object = ParentalKey("contenidos.ArticuloPage", related_name="tagged_items", on_delete=models.CASCADE)
 
 
+class ArticuloForm(WagtailAdminPageForm):
+    """Editor del artículo: ofrece solo las líneas, categorías, autores y relacionados del sitio del blog.
+    Un artículo nuevo puede llegar con la línea elegida en «Blog y noticias» (editorial.vistas)."""
+
+    def __init__(self, *args, parent_page=None, **kwargs):
+        super().__init__(*args, parent_page=parent_page, **kwargs)
+        page = self.instance if self.instance.pk else parent_page
+        sitio = sitio_de_pagina(page) if page is not None else None
+        if sitio is None:
+            return
+        lineas = LineaProducto.objects.filter(sitio=sitio)
+        if "lineas" in self.fields:
+            if lineas.exists():
+                self.fields["lineas"].queryset = lineas
+                if not self.instance.pk and not self.is_bound:
+                    from editorial.contexto import linea_inicial
+                    lid = linea_inicial()
+                    if lid and lineas.filter(pk=lid).exists():
+                        self.initial["lineas"] = [lid]
+            else:
+                del self.fields["lineas"]
+        if "categorias" in self.fields:
+            self.fields["categorias"].queryset = CategoriaBlog.objects.filter(sitio=sitio)
+        if "autor" in self.fields:
+            self.fields["autor"].queryset = AutorBlog.objects.filter(sitio=sitio)
+        if "relacionados" in self.fields and sitio.site:
+            qs = ArticuloPage.objects.descendant_of(sitio.site.root_page)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            self.fields["relacionados"].queryset = qs
+
+
+class EstadoArticuloPanel(HelpPanel):
+    """Pestaña «Publicación»: estado editorial y si el artículo está efectivamente en la web."""
+
+    class BoundPanel(HelpPanel.BoundPanel):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            from editorial.estado import estado_articulo_html
+            self.content = estado_articulo_html(self.instance)
+
+
+ORIGENES = [("", "Escrito desde cero"), ("verificada", "Tendencia verificada"), ("sectorial", "Fuente sectorial"),
+            ("interna", "Idea editorial (contenidos propios)"), ("ia", "Idea de IA")]
+
+
 class ArticuloPage(SeoMixin, Page):
-    resumen = models.TextField("Resumen", max_length=300)
+    resumen = models.TextField("Resumen o bajada", max_length=300)
     imagen = models.ForeignKey("wagtailimages.Image", verbose_name="Imagen destacada", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
-    autor = models.CharField("Autor", max_length=80, blank=True)
+    autor = models.ForeignKey(AutorBlog, verbose_name="Autor", null=True, blank=True, on_delete=models.SET_NULL, related_name="articulos",
+                              help_text="Opcional. Se cargan en Contenidos → Autores.")
     fecha = models.DateField("Fecha de publicación")
+    lineas = ParentalManyToManyField(LineaProducto, verbose_name="Líneas de producto", blank=True,
+                                     help_text="Solo GEAGRO. El artículo tiene una sola dirección (/blog/…) y aparece también en el listado de cada línea marcada.")
+    origen = models.CharField("Origen", max_length=12, choices=ORIGENES, blank=True, default="")
+    fuentes = models.TextField("Fuentes consultadas", blank=True,
+                               help_text="Uso interno: de dónde salen los datos del artículo. No se publica.")
+    palabras_clave = models.CharField("Palabras clave sugeridas", max_length=250, blank=True, help_text="Uso interno, separadas por coma. No se publican.")
     categorias = ParentalManyToManyField(CategoriaBlog, verbose_name="Categorías", blank=True)
     tags = ClusterTaggableManager("Etiquetas", through=ArticuloTag, blank=True)
     cuerpo = StreamField([
@@ -223,12 +304,24 @@ class ArticuloPage(SeoMixin, Page):
                                  help_text="Si es una copia adaptada de un artículo de otro sitio. Reescribí el texto: no publiques textos idénticos en dos dominios.")
 
     content_panels = Page.content_panels + [
-        FieldPanel("resumen"), FieldRowPanel([FieldPanel("fecha"), FieldPanel("autor")]), FieldPanel("imagen"), FieldPanel("cuerpo"),
-        MultiFieldPanel([FieldPanel("categorias", widget=forms.CheckboxSelectMultiple), FieldPanel("tags"), FieldPanel("relacionados"), FieldPanel("copia_de")], "Organización"),
+        FieldPanel("resumen"), FieldPanel("imagen"), FieldRowPanel([FieldPanel("autor"), FieldPanel("fecha")]), FieldPanel("cuerpo"),
     ]
+    organizacion_panels = [
+        FieldPanel("lineas", widget=forms.CheckboxSelectMultiple), FieldPanel("categorias", widget=forms.CheckboxSelectMultiple),
+        FieldPanel("tags"), FieldPanel("relacionados"), FieldPanel("copia_de"),
+        MultiFieldPanel([FieldPanel("origen"), FieldPanel("fuentes"), FieldPanel("palabras_clave")], "Origen del artículo (uso interno)"),
+    ]
+    seo_panels_articulo = [
+        MultiFieldPanel([FieldPanel("seo_title"), FieldPanel("search_description")], "Resultado en buscadores",
+                        help_text="Título: hasta 60 caracteres. Descripción: hasta 160. Vacíos: se usan el título y el resumen del artículo."),
+        FieldPanel("slug"), FieldPanel("imagen_og"), FieldRowPanel([FieldPanel("indexar"), FieldPanel("canonical")]),
+        HelpPanel(template="editorial/panel_google.html", heading="Así podría verse en Google"),
+    ]
+    publicacion_panels = [EstadoArticuloPanel(heading="Estado")]
     promote_panels = []
-    edit_handler = TabbedInterface([ObjectList(content_panels, heading="Contenido"),
-                                    ObjectList(SeoMixin.seo_panels[:1] + [FieldPanel("slug"), FieldRowPanel([FieldPanel("indexar"), FieldPanel("canonical")]), FieldPanel("imagen_og")], heading="SEO")])
+    edit_handler = TabbedInterface([ObjectList(content_panels, heading="Artículo"), ObjectList(organizacion_panels, heading="Organización"),
+                                    ObjectList(seo_panels_articulo, heading="SEO"), ObjectList(publicacion_panels, heading="Publicación")])
+    base_form_class = ArticuloForm
     parent_page_types = ["contenidos.BlogIndexPage"]
     search_fields = Page.search_fields + [index.SearchField("resumen"), index.SearchField("cuerpo")]
     preview_modes = [("", "Artículo")]
@@ -237,10 +330,19 @@ class ArticuloPage(SeoMixin, Page):
         verbose_name = "artículo"
         verbose_name_plural = "artículos"
 
+    @classmethod
+    def can_create_at(cls, parent):
+        """Una sola dirección por artículo: se crean en el blog general del sitio, nunca dentro de un listado de línea."""
+        return super().can_create_at(parent) and getattr(parent.specific, "linea_id", None) is None
+
     @property
     def ruta(self):
+        """/blog/<slug>/ (o la ruta elegida en la configuración del blog del sitio)."""
+        from editorial.models import ruta_blog
         padre = self.get_parent().specific
-        return f"{padre.ruta_publica}{self.slug}/"
+        sitio = sitio_de_pagina(padre)
+        base = ruta_blog(sitio) if sitio else padre.ruta_publica
+        return f"{base}{self.slug}/"
 
     def get_url_parts(self, request=None):
         site = site_de_pagina(self)
@@ -250,7 +352,15 @@ class ArticuloPage(SeoMixin, Page):
         return (site.id, sw.dominio_publico if sw else "", "/" + self.ruta)
 
     def save(self, *args, **kwargs):
+        anterior = self.ruta_publica
         self.ruta_publica = self.ruta if self.get_parent() else self.ruta_publica
+        if (self.pk and anterior and anterior != self.ruta_publica
+                and ArticuloPage.objects.filter(pk=self.pk, live=True).exists()):
+            # El artículo ya estaba aprobado con otra dirección: la anterior redirige a la nueva (301)
+            sitio = sitio_de_pagina(self)
+            if sitio is not None:
+                Redireccion.objects.filter(sitio=sitio, origen=self.ruta_publica).delete()  # volver a una dirección anterior
+                Redireccion.objects.update_or_create(sitio=sitio, origen=anterior, defaults={"destino": self.ruta_publica})
         super().save(*args, **kwargs)
 
 

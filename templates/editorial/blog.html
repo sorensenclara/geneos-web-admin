@@ -1,0 +1,197 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailadmin_tags %}
+{% block titletag %}Blog de {{ sitio.nombre }} · Blog y noticias{% endblock %}
+
+{% block extra_js %}{{ block.super }}<script src="{% static 'gwa/blog.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="newspaper" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><span>Contenidos</span>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Blog y noticias</span></nav>
+        <h1>Blog y noticias</h1>
+        <p>Gestioná los artículos, tendencias y contenidos editoriales de todas las webs.</p>
+      </div>
+    </div>
+  </div>
+
+  {# ---------- Selector de sitio ---------- #}
+  <nav class="gwa-bl-sitios" aria-label="Elegir sitio">
+    {% for p in productos %}
+    <a class="gwa-bl-sitio" href="?sitio={{ p.s.clave }}" style="--gwa-producto: {{ p.marca.color }}"{% if p.actual %} aria-current="page"{% endif %}>
+      {% if p.marca.isologo_url %}<img src="{{ p.marca.isologo_url }}" alt="" width="52" height="52">{% endif %}
+      <span><b>{{ p.s.nombre }}</b><small>{{ p.desc }}</small></span>
+      {% icon name="chevron-right" classname="gu-icon gwa-bl-chev" %}
+    </a>
+    {% endfor %}
+  </nav>
+
+  {# ---------- Encabezado del blog elegido ---------- #}
+  <div class="gwa-bl-head">
+    {% icon name="doc-full" classname="gu-icon gwa-bl-head-ico" %}
+    <div class="gwa-bl-head-txt">
+      <h2>{{ titulo_blog }}
+        <span class="gu-status-pill {% if blog_estado.0 == 'publicado' %}good{% elif blog_estado.0 == 'aprobado' %}info{% elif blog_estado.0 == 'configurado' %}warning{% else %}neutral{% endif %}"
+              title="{{ blog_estado.2 }}">{{ blog_estado.1 }}</span></h2>
+      <p>{{ descripcion_blog }}{% if config %} · Menú público: «{{ config.nombre_menu }}» en /{{ config.ruta }}/{% endif %}</p>
+      <p class="gwa-bl-detalle">{{ blog_estado.2 }}</p>
+    </div>
+    <div class="gwa-bl-head-acc">
+      {% if puede_configurar %}<a class="gu-btn gu-btn-outline" href="{% url 'blog:configurar' sitio.clave %}">{% icon name="cog" classname="gu-icon" %}Configurar blog{% if blog_estado.0 == 'desactivado' and not config %} y activar{% endif %}</a>{% endif %}
+      {% if puede_editar %}
+      <form method="post" action="{% url 'blog:nuevo' sitio.clave %}">{% csrf_token %}
+        <input type="hidden" name="linea" value="{{ linea.pk|default:'' }}">
+        <button class="gu-btn gu-btn-primary gu-btn-lg" type="submit">{% icon name="plus" classname="gu-icon" %}Nuevo artículo</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if lineas %}
+  <nav class="gwa-bl-lineas" aria-label="Línea de producto">
+    <a href="?sitio={{ sitio.clave }}"{% if not linea %} aria-current="page"{% endif %}>Todas</a>
+    {% for l in lineas %}<a href="?sitio={{ sitio.clave }}&linea={{ l.pk }}"{% if linea.pk == l.pk %} aria-current="page"{% endif %}>{{ l.nombre }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+
+  {# ---------- Tendencias e ideas ---------- #}
+  <section class="gu-card gwa-bl-panel" aria-labelledby="bl-tendencias">
+    <div class="gwa-bl-ptit">
+      {% icon name="trending-up" classname="gu-icon gwa-bl-ptit-ico" %}
+      <div>
+        <h3 id="bl-tendencias">Tendencias e ideas de esta semana <span class="gwa-bl-geo">Argentina</span></h3>
+        <p>{% if config and config.temas %}{{ config.temas }}{% else %}{{ descripcion_blog }}{% endif %}</p>
+      </div>
+      <div class="gwa-bl-ptit-acc">
+        <span class="gwa-bl-upd">Última actualización: {% if ultima_actualizacion %}{{ ultima_actualizacion|date:"d/m/Y" }}{% else %}nunca{% endif %}</span>
+        <a class="gu-btn gu-btn-ghost" href="{% url 'blog:importar' sitio.clave %}">{% icon name="file-up" classname="gu-icon" %}Importar CSV de Trends</a>
+        <form method="post" action="{% url 'blog:actualizar' sitio.clave %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}">
+          <button class="gu-btn gu-btn-outline" type="submit" data-actualizar>{% icon name="refresh-cw" classname="gu-icon" %}Actualizar</button></form>
+      </div>
+    </div>
+    <p class="gwa-bl-fuentes">
+      <span><i class="gwa-bl-dot is-v"></i>Google Trends: {% if ult_imp %}CSV importado el {{ ult_imp.creado|date:"d/m/Y" }} (consulta del {{ ult_imp.consultado|date:"d/m/Y" }}){% else %}sin datos importados{% endif %}</span>
+      <span><i class="gwa-bl-dot is-ia"></i>IA: {{ ia.modo }}{% if ia.activa %} · US$ {{ ia.gasto|floatformat:2 }} de {{ ia.limite }} este mes{% endif %}</span>
+      <a href="{{ trends_url }}" target="_blank" rel="noopener">{% icon name="link-external" classname="gu-icon" %}Investigar en Google Trends</a>
+    </p>
+
+    {% if ideas %}
+    <div class="gwa-bl-ideas" data-ideas>
+      {% for i in ideas_todas %}
+      <article class="gwa-bl-idea is-{{ i.tipo }}"{% if forloop.counter > 4 %} hidden data-extra{% endif %}>
+        <div class="gwa-bl-idea-img">
+          {% if i.verificada %}<span class="gwa-bl-badge is-v">Tendencia verificada{% icon name="trending-up" classname="gu-icon" %}</span>
+          {% elif i.tipo == 'ia' %}<span class="gwa-bl-badge is-ia">Idea de IA{% icon name="sparkles" classname="gu-icon" %}</span>
+          {% else %}<span class="gwa-bl-badge is-int">Idea editorial{% icon name="lightbulb" classname="gu-icon" %}</span>{% endif %}
+          {% if i.linea.clave == 'cereales' %}{% icon name="f-wheat" classname="gu-icon gwa-bl-idea-motivo" %}{% elif i.linea.clave == 'vid' %}{% icon name="f-grape" classname="gu-icon gwa-bl-idea-motivo" %}{% elif i.verificada %}{% icon name="trending-up" classname="gu-icon gwa-bl-idea-motivo" %}{% else %}{% icon name="lightbulb" classname="gu-icon gwa-bl-idea-motivo" %}{% endif %}
+          {% if i.estado == 'guardada' %}<span class="gwa-bl-guardada" title="Guardada">{% icon name="bookmark" classname="gu-icon" %}</span>{% endif %}
+        </div>
+        <div class="gwa-bl-idea-txt">
+          {% if lineas %}<span class="gwa-bl-linea">{{ i.linea.nombre|default:"General" }}</span>{% endif %}
+          <h4>{{ i.titulo }}</h4>
+          <p>{{ i.descripcion }}</p>
+          <p class="gwa-bl-idea-fuente"><span>Fuente: {{ i.fuente }}</span><time datetime="{{ i.consultado|date:'Y-m-d' }}">{{ i.consultado|date:"d/m/Y" }}</time></p>
+        </div>
+        <div class="gwa-bl-idea-acc">
+          {% if i.fuente_url %}<a class="gu-btn gu-btn-outline gu-btn-sm" href="{{ i.fuente_url }}" target="_blank" rel="noopener">Ver fuente</a>
+          {% else %}<a class="gu-btn gu-btn-outline gu-btn-sm" href="{% url 'blog:idea' i.pk %}">Ver detalles</a>{% endif %}
+          <form method="post" action="{% url 'blog:idea_accion' i.pk 'borrador' %}">{% csrf_token %}<button class="gu-btn gu-btn-primary gu-btn-sm" type="submit">Crear borrador</button></form>
+        </div>
+        <div class="gwa-bl-idea-mas">
+          {% if i.estado != 'guardada' %}<form method="post" action="{% url 'blog:idea_accion' i.pk 'guardar' %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}"><button class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" type="submit" aria-label="Guardar «{{ i.titulo }}»" title="Guardar">{% icon name="bookmark" classname="gu-icon" %}</button></form>{% endif %}
+          <form method="post" action="{% url 'blog:idea_accion' i.pk 'descartar' %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}"><button class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" type="submit" aria-label="Descartar «{{ i.titulo }}»" title="Descartar">{% icon name="cross" classname="gu-icon" %}</button></form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% if ideas_mas %}<button type="button" class="gu-btn gu-btn-ghost gwa-bl-vermas" data-ver-mas>Ver {{ ideas_mas }} idea{{ ideas_mas|pluralize }} más</button>{% endif %}
+    {% else %}
+    <div class="gwa-bl-vacio">
+      {% icon name="trending-up" classname="gu-icon" %}
+      <b>Todavía no hay tendencias ni ideas para {{ sitio.nombre }}{% if linea %} {{ linea.nombre }}{% endif %}</b>
+      <p>Importá un CSV de Google Trends o tocá «Actualizar» para sumar ideas a partir de las funcionalidades, sectores y preguntas aprobadas.
+         Sin datos externos no se muestran tendencias verificadas.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  {# ---------- Mis artículos ---------- #}
+  <section class="gu-card gwa-bl-panel" aria-labelledby="bl-articulos">
+    <div class="gwa-bl-ptit">
+      {% icon name="doc-full" classname="gu-icon gwa-bl-ptit-ico is-neutro" %}
+      <div>
+        <h3 id="bl-articulos">Mis artículos <span class="gwa-bl-n">({{ total }})</span></h3>
+        <p>Todos los artículos del blog de {{ sitio.nombre }}{% if linea %}, línea {{ linea.nombre }}{% endif %}.</p>
+      </div>
+    </div>
+    {% if total %}
+    <form class="gwa-bl-filtros" method="get" role="search">
+      <input type="hidden" name="sitio" value="{{ sitio.clave }}">
+      {% if linea %}<input type="hidden" name="linea" value="{{ linea.pk }}">{% endif %}
+      <label class="gwa-bl-buscar">{% icon name="search" classname="gu-icon" %}<span class="w-sr-only">Buscar artículos</span>
+        <input type="search" name="q" value="{{ f.q }}" placeholder="Buscar artículos…" autocomplete="off"></label>
+      <label class="gwa-bl-filtro"><span>Categoría</span><select name="categoria" data-auto><option value="">Todas</option>
+        {% for c in categorias %}<option value="{{ c.pk }}"{% if f.categoria == c.pk|stringformat:'s' %} selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></label>
+      <label class="gwa-bl-filtro"><span>Estado editorial</span><select name="estado" data-auto><option value="">Todos</option>
+        {% for k, t in estados_editoriales %}<option value="{{ k }}"{% if f.estado == k %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+      <label class="gwa-bl-filtro"><span>En la web</span><select name="web" data-auto><option value="">Todos</option>
+        {% for k, t in estados_web %}<option value="{{ k }}"{% if f.web == k %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+      <noscript><button class="gu-btn gu-btn-outline" type="submit">Filtrar</button></noscript>
+      {% if filtros_activos %}<a class="gu-btn gu-btn-ghost" href="?sitio={{ sitio.clave }}{% if linea %}&linea={{ linea.pk }}{% endif %}">{% icon name="rotate" classname="gu-icon" %}Limpiar filtros</a>{% endif %}
+    </form>
+
+    <div class="gwa-bl-tabla-wrap">
+    <table class="gu-table gwa-bl-tabla">
+      <thead><tr><th scope="col" class="c-img">Imagen</th><th scope="col">Título</th>{% if lineas %}<th scope="col">Línea</th>{% endif %}<th scope="col">Categoría</th>
+        <th scope="col">Autor</th><th scope="col">Fecha</th><th scope="col">Estado editorial</th><th scope="col">En la web</th><th scope="col" class="c-acc">Acciones</th></tr></thead>
+      <tbody>
+      {% for r in pag %}{% with v=r.v %}
+      <tr>
+        <td class="c-img">{% if r.thumb %}<img src="{{ r.thumb }}" alt="" width="56" height="38" loading="lazy">{% else %}<span class="gwa-bl-thumb">{% icon name="image" classname="gu-icon" %}</span>{% endif %}</td>
+        <th scope="row" class="c-tit"><a href="{{ r.editar }}">{{ v.title }}</a><small>{{ r.ruta }}</small></th>
+        {% if lineas %}<td data-th="Línea">{% for l in r.lineas %}<span class="gu-chip">{{ l.nombre }}</span> {% empty %}<span class="gwa-bl-tenue">General</span>{% endfor %}</td>{% endif %}
+        <td data-th="Categoría">{% for c in r.cats %}<span class="gwa-bl-cat">{{ c.nombre }}</span> {% empty %}<span class="gwa-bl-tenue">—</span>{% endfor %}</td>
+        <td data-th="Autor">{% if r.autor %}<span class="gwa-bl-autor"><span class="gwa-bl-av">{{ r.autor.iniciales }}</span>{{ r.autor.nombre }}</span>{% else %}<span class="gwa-bl-tenue">—</span>{% endif %}</td>
+        <td data-th="Fecha">{{ v.fecha|date:"d/m/Y" }}</td>
+        <td data-th="Estado editorial"><span class="gu-status-pill {% if r.ec == 'aprobado' %}good{% elif r.ec == 'revision' %}info{% elif r.ec == 'cambios' %}warning{% else %}neutral{% endif %}">{{ r.et }}</span></td>
+        <td data-th="En la web"><span class="gu-status-pill {% if r.wc == 'web' %}good{% elif r.wc == 'falta' %}warning{% else %}neutral{% endif %}">{{ r.wt }}</span></td>
+        <td class="c-acc">
+          <span class="gu-btn-dropdown">
+            <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon" data-gu-dropdown="bl-mas-{{ r.a.pk }}" aria-expanded="false" aria-haspopup="true" aria-label="Acciones de «{{ v.title }}»">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
+            <span class="gu-btn-dropdown-menu" id="bl-mas-{{ r.a.pk }}" hidden>
+              <a class="gu-btn-dropdown-item" href="{{ r.editar }}">{% icon name="edit" classname="gu-icon" %}Editar</a>
+              <a class="gu-btn-dropdown-item" href="{{ r.previa }}" target="_blank" rel="noopener">{% icon name="view" classname="gu-icon" %}Vista previa</a>
+              <a class="gu-btn-dropdown-item" href="{{ r.duplicar }}">{% icon name="copy" classname="gu-icon" %}Duplicar</a>
+              <a class="gu-btn-dropdown-item" href="{{ r.historial }}">{% icon name="history" classname="gu-icon" %}Historial</a>
+            </span>
+          </span>
+        </td>
+      </tr>
+      {% endwith %}{% empty %}
+      <tr><td colspan="9" class="gwa-bl-sinres">Ningún artículo coincide con la búsqueda o los filtros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <div class="gwa-bl-pie">
+      <span>Mostrando {{ pag|length }} de {{ pag.paginator.count }} artículo{{ pag.paginator.count|pluralize }}</span>
+      {% if pag.paginator.num_pages > 1 %}
+      <nav class="gwa-bl-paginas" aria-label="Páginas">
+        {% for n in pag.paginator.page_range %}<a href="?{% for k, val in request.GET.items %}{% if k != 'p' %}{{ k }}={{ val|urlencode }}&{% endif %}{% endfor %}p={{ n }}"{% if n == pag.number %} aria-current="page"{% endif %}>{{ n }}</a>{% endfor %}
+      </nav>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="gwa-bl-vacio">
+      {% icon name="doc-full" classname="gu-icon" %}
+      <b>El blog de {{ sitio.nombre }} todavía no tiene artículos</b>
+      <p>{% if blog_estado.0 == 'desactivado' or blog_estado.0 == 'configurado' %}Podés escribir borradores antes de activar el blog: nada se publica hasta que lo apruebes.{% else %}Creá el primero o partí de una tendencia de arriba.{% endif %}</p>
+      {% if puede_editar %}<form method="post" action="{% url 'blog:nuevo' sitio.clave %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}">
+        <button class="gu-btn gu-btn-primary" type="submit">{% icon name="plus" classname="gu-icon" %}Crear el primer artículo</button></form>{% endif %}
+    </div>
+    {% endif %}
+  </section>
+  <p class="gwa-pr-ayuda">«Estado editorial» es lo aprobado dentro del administrador. «En la web» compara con la última publicación del sitio:
+    lo aprobado se ve después de «Publicar en la web» desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>, y solo si el blog del sitio está activo y aprobado.</p>
+</div>
+{% endblock %}

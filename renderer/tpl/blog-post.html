@@ -1,28 +1,43 @@
 {% extends "base.html" %}
 {% import "partials/product.html" as pp with context %}
-{# Artículo de blog (generado por el administrador). PG.post = {title, summary, date, author, image, body_html, related, ...} #}
+{# Artículo del blog (administrador → Blog y noticias). PG.post = {title, summary, date, author, image, body_html, related, …} #}
 {% set A = PG.post %}
 {% block schema %}{{ jsonld(A.schema) }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">
+  <link rel="stylesheet" href="{{ prefix }}assets/css/blog.css?v={{ V["blog.css"] }}">
+  <meta property="article:published_time" content="{{ A.date }}">
+  <meta property="article:modified_time" content="{{ A.modified }}">
+  {% if A.category %}<meta property="article:section" content="{{ A.category }}">{% endif %}{% endblock %}
 {% block body_class %}page-blog-post{% endblock %}
 {% block content %}
 <div class="pp pp-theme-{{ P.key }} pp-blog">
-  <article class="pp-section pp-white">
-    <div class="pp-container pp-article">
-      <p class="pp-blog-meta"><a href="{{ page_url('/' ~ A.index_path) }}">{{ A.index_title }}</a> · <time datetime="{{ A.date }}">{{ A.date_label }}</time>{% if A.author %} · {{ A.author }}{% endif %}</p>
+  <article class="pp-section pp-white bl-articulo">
+    <header class="pp-container bl-art-head">
+      <a class="bl-volver" href="{{ page_url('/' ~ A.index_path) }}">← Volver {{ "a" if A.index_title == "Noticias" else "al" }} {{ A.index_title|lower }}</a>
+      {% if A.categories or A.line_label %}<p class="bl-cat">{{ A.categories|join(" · ") }}{% if A.categories and A.line_label %} · {% endif %}{{ A.line_label }}</p>{% endif %}
       <h1>{{ A.title }}</h1>
       {% if A.summary %}<p class="pp-article-lead">{{ A.summary }}</p>{% endif %}
-      {% if A.image %}<img class="pp-article-img" src="{{ prefix }}assets/{{ A.image.src }}" alt="{{ A.image.alt }}" width="{{ A.image.w }}" height="{{ A.image.h }}">{% endif %}
-      <div class="pp-article-body">{{ A.body_html|replace("__ASSETS__/", prefix ~ "assets/")|safe }}</div>
-      {% if A.categories or A.tags %}<p class="pp-blog-tags">{% for c in A.categories %}<span>{{ c }}</span>{% endfor %}{% for t in A.tags %}<span>#{{ t }}</span>{% endfor %}</p>{% endif %}
+      {% if A.author or A.show_date %}
+      <p class="bl-firma">{% if A.author %}<span class="bl-av" aria-hidden="true">{% set w = A.author.split() %}{{ ((w[0][0] ~ w[-1][0]) if w|length > 1 else A.author[:2])|upper }}</span><span><b>{{ A.author }}</b>{% if A.author_role %} · {{ A.author_role }}{% endif %}</span>{% endif %}
+        {% if A.show_date %}<span>{% if A.author %}· {% endif %}<time datetime="{{ A.date }}">{{ A.date_label }}</time></span>{% endif %}</p>
+      {% endif %}
+    </header>
+    {% if A.image %}<div class="bl-hero"><img src="{{ prefix }}assets/{{ A.image.src }}" alt="{{ A.image.alt }}" width="{{ A.image.w }}" height="{{ A.image.h }}" fetchpriority="high" decoding="async"></div>{% endif %}
+    <div class="pp-container">
+      <div class="pp-article-body bl-cuerpo">{{ A.body_html|replace("__ASSETS__/", prefix ~ "assets/")|safe }}</div>
+      {% if A.tags %}<p class="pp-blog-tags bl-tags">{% for t in A.tags %}<span>#{{ t }}</span>{% endfor %}</p>{% endif %}
     </div>
   </article>
   {% if A.related %}
   <section class="pp-section pp-soft">
     <div class="pp-container">
       <h2 class="pp-blog-related-title">Artículos relacionados</h2>
-      <ul class="pp-blog-grid">
-        {% for r in A.related %}<li><a class="pp-blog-card" href="{{ page_url('/' ~ r.path) }}"><span class="pp-blog-meta">{{ r.date_label }}</span><h3>{{ r.title }}</h3><p>{{ r.summary }}</p></a></li>{% endfor %}
+      <ul class="pp-blog-grid bl-grid">
+        {% for r in A.related %}<li><a class="pp-blog-card" href="{{ page_url('/' ~ r.path) }}">
+          {% if r.image %}<img src="{{ prefix }}assets/{{ r.image.src }}" alt="{{ r.image.alt }}" width="{{ r.image.w }}" height="{{ r.image.h }}" loading="lazy" decoding="async">{% else %}<span class="bl-sin-img" aria-hidden="true"></span>{% endif %}
+          {% if r.category %}<span class="bl-cat">{{ r.category }}</span>{% endif %}
+          <h3>{{ r.title }}</h3><p>{{ r.summary }}</p>
+          {% if A.show_date %}<span class="pp-blog-meta"><time datetime="{{ r.date }}">{{ r.date_label }}</time></span>{% endif %}</a></li>{% endfor %}
       </ul>
     </div>
   </section>

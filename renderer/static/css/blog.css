@@ -1,0 +1,77 @@
+/* Blog y noticias: plantilla común a GENEOS, GERP, GEAGRO y GEMA. Los colores salen del tema de cada producto (--pp-accent, --pp-heading…). */
+.bl-pagina { font-size: .5em; color: var(--pp-muted); font-weight: 600; }
+.bl-herramientas { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; justify-content: space-between; margin-top: 6px; }
+.bl-buscar { display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 320px; justify-content: flex-end; }
+.bl-buscar select, .bl-buscar input { font: 400 1rem var(--font); padding: .65em 1em; border: 1px solid var(--pp-border); border-radius: 999px; background: #fff; color: var(--pp-heading); }
+.bl-buscar-q { flex: 1 1 220px; max-width: 360px; }
+.bl-buscar-q input { width: 100%; }
+.bl-cat { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--pp-accent); }
+.bl-destacado { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: center; margin: 0 0 40px; color: inherit; }
+.bl-destacado img, .bl-destacado .bl-sin-img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-md); }
+.bl-destacado-txt { display: grid; gap: 10px; }
+.bl-destacado h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.2; color: var(--pp-heading); }
+.bl-destacado p { color: var(--pp-muted); font-size: 1.08rem; line-height: 1.55; }
+.bl-destacado:hover h2 { color: var(--pp-accent); }
+.bl-sin-img { display: block; width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--pp-soft, #f2f5f3), color-mix(in srgb, var(--pp-accent) 28%, #fff)); }
+.bl-grid .pp-blog-card .bl-cat { padding-inline: 20px; }
+.bl-resumen { color: var(--pp-muted); margin: 0 0 18px; }
+/* Artículo: ancho de lectura cómodo y jerarquía clara */
+.bl-art-head { max-width: 760px; display: grid; gap: 14px; }
+.bl-art-head h1 { font-size: clamp(2rem, 4.4vw, 2.9rem); line-height: 1.15; color: var(--pp-heading); }
+.bl-volver { color: var(--pp-accent); font-weight: 600; justify-self: start; }
+.bl-firma { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--pp-muted); font-size: .95rem; padding: 12px 0; border-top: 1px solid var(--pp-border); border-bottom: 1px solid var(--pp-border); }
+.bl-firma b { color: var(--pp-heading); }
+.bl-av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .8rem; color: var(--pp-accent); background: color-mix(in srgb, var(--pp-accent) 14%, #fff); }
+.bl-hero { max-width: 1040px; margin: 28px auto; padding-inline: 20px; }
+.bl-hero img { width: 100%; height: auto; max-height: 560px; object-fit: cover; border-radius: var(--radius-md); }
+.bl-cuerpo { max-width: 760px; font-size: 1.12rem; line-height: 1.75; }
+.bl-cuerpo > * + h2 { margin-top: 18px; }
+.bl-cuerpo blockquote p { font-size: 1.3rem; line-height: 1.45; }
+.bl-cuerpo blockquote footer { font-size: .92rem; color: var(--pp-muted); margin-top: 6px; }
+.bl-cuerpo .pp-btn { justify-self: start; }
+.bl-tags { max-width: 760px; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; color: var(--pp-muted); }
+@media (max-width: 760px) {
+  .bl-destacado { grid-template-columns: 1fr; gap: 16px; }
+  .bl-buscar { justify-content: stretch; }
+  .bl-buscar select, .bl-buscar-q { flex: 1 1 100%; max-width: none; }
+  .bl-hero { padding-inline: 0; margin: 20px 0; }
+  .bl-hero img { border-radius: 0; }
+  .bl-cuerpo { font-size: 1.05rem; }
+}
+/* Ajustes sobre los estilos generales del producto */
+.pp-blog .pp-blog-card h2, .pp-blog .pp-blog-card h3 { font-size: 1.2rem; line-height: 1.3; }
+.bl-art-head, .bl-cuerpo, .bl-tags { margin-inline: auto; }
+.bl-cuerpo ul li { list-style: disc; }
+.bl-cuerpo ol li { list-style: decimal; }
+.bl-cuerpo a.pp-btn { color: #fff; text-decoration: none; }
+
+/* ---------- Web de GENEOS (plantillas tpl/geneos/): mismas piezas con los colores institucionales ---------- */
+.gw-blog { --pp-accent: #128237; --pp-heading: #0f1512; --pp-muted: #55605a; --pp-border: #e1e6e3; --pp-soft: #f2f6f3; --radius-md: 16px; --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06); --shadow-md: 0 8px 24px rgba(0,0,0,.1); }
+.gw-blog .bl-encabezado { display: grid; gap: 14px; max-width: 900px; }
+.gw-blog .bl-encabezado h1 { font-size: clamp(2rem, 4vw, 2.9rem); }
+.gw-blog .bl-buscar { justify-content: flex-start; }
+.gw-blog .pp-blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; list-style: none; padding: 0; margin: 0; }
+.gw-blog .pp-blog-card { display: grid; gap: 8px; height: 100%; background: #fff; border: 1px solid var(--pp-border); border-radius: var(--radius-md); overflow: hidden;
+  color: inherit; padding-bottom: 20px; box-shadow: var(--shadow-sm); text-decoration: none; }
+.gw-blog .pp-blog-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.gw-blog .pp-blog-card > :not(img):not(.bl-sin-img) { padding-inline: 20px; }
+.gw-blog .pp-blog-card h2, .gw-blog .pp-blog-card h3 { color: var(--pp-heading); }
+.gw-blog .pp-blog-card p, .gw-blog .pp-blog-meta, .gw-blog .pp-article-lead { color: var(--pp-muted); }
+.gw-blog .pp-blog-pages { display: flex; gap: 8px; justify-content: center; margin-top: 32px; }
+.gw-blog .pp-blog-pages a { min-width: 40px; text-align: center; padding: 8px; border-radius: 10px; border: 1px solid var(--pp-border); }
+.gw-blog .pp-blog-pages a[aria-current="page"] { background: var(--pp-accent); color: #fff; border-color: var(--pp-accent); }
+.gw-blog .pp-article-lead { font-size: 1.2rem; }
+.gw-blog .pp-article-body { display: grid; gap: 16px; }
+.gw-blog .pp-article-body figure img { width: 100%; height: auto; border-radius: var(--radius-sm); }
+.gw-blog .pp-article-body blockquote { margin: 0; border-left: 4px solid var(--pp-accent); padding: 4px 0 4px 18px; }
+.gw-blog .pp-article-body .pp-callout { background: var(--pp-soft); border-radius: var(--radius-sm); padding: 18px 20px; }
+.gw-blog .pp-article-body table { border-collapse: collapse; width: 100%; }
+.gw-blog .pp-article-body th, .gw-blog .pp-article-body td { border-bottom: 1px solid var(--pp-border); padding: 10px 12px; text-align: left; }
+.gw-blog .pp-article-body .pp-table-wrap { overflow-x: auto; }
+.gw-blog .pp-article-body .pp-video { position: relative; aspect-ratio: 16 / 9; }
+.gw-blog .pp-article-body .pp-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.gw-blog .bl-relacionados { background: var(--pp-soft); }
+.gw-blog a.bl-destacado, .gw-blog a.pp-blog-card { text-decoration: none; color: inherit; }
+.gw-blog .bl-destacado h2 { color: var(--pp-heading); }
+.gw-blog .bl-art-head, .gw-blog .bl-cuerpo, .gw-blog .bl-tags { max-width: 760px; }

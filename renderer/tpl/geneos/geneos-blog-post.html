@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{# Noticia de GENEOS (administrador → Blog y noticias). #}
+{% set A = page.post %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/blog.css') }}">
+  <meta property="article:published_time" content="{{ A.date }}"><meta property="article:modified_time" content="{{ A.modified }}">{% endblock %}
+{% block schema %}{{ jsonld(A.schema) }}{% endblock %}
+{% block body_class %}page-blog-post{% endblock %}
+{% block content %}
+<div class="gw-blog pp-blog">
+  <article class="section bl-articulo">
+    <header class="container bl-art-head">
+      <a class="bl-volver" href="{{ url('/' ~ A.index_path) }}">← Volver a {{ A.index_title|lower }}</a>
+      {% if A.categories %}<p class="bl-cat">{{ A.categories|join(" · ") }}</p>{% endif %}
+      <h1>{{ A.title }}</h1>
+      {% if A.summary %}<p class="pp-article-lead">{{ A.summary }}</p>{% endif %}
+      {% if A.author or A.show_date %}<p class="bl-firma">{% if A.author %}{% set w = A.author.split() %}<span class="bl-av" aria-hidden="true">{{ ((w[0][0] ~ w[-1][0]) if w|length > 1 else A.author[:2])|upper }}</span><span><b>{{ A.author }}</b>{% if A.author_role %} · {{ A.author_role }}{% endif %}</span>{% endif %}
+        {% if A.show_date %}<span>{% if A.author %}· {% endif %}<time datetime="{{ A.date }}">{{ A.date_label }}</time></span>{% endif %}</p>{% endif %}
+    </header>
+    {% if A.image %}<div class="bl-hero"><img src="{{ asset('img/' ~ A.image.src) }}" alt="{{ A.image.alt }}" width="{{ A.image.w }}" height="{{ A.image.h }}" fetchpriority="high"></div>{% endif %}
+    <div class="container"><div class="pp-article-body bl-cuerpo">{{ A.body_html|replace("__ASSETS__/", asset("img/"))|replace('href="__RAIZ__/', 'href="' ~ url("/"))|safe }}</div>
+      {% if A.tags %}<p class="bl-tags">{% for t in A.tags %}<span>#{{ t }}</span>{% endfor %}</p>{% endif %}</div>
+  </article>
+  {% if A.related %}
+  <section class="section bl-relacionados"><div class="container">
+    <h2 class="pp-blog-related-title">Más noticias</h2>
+    <ul class="pp-blog-grid bl-grid">{% for r in A.related %}<li><a class="pp-blog-card" href="{{ url('/' ~ r.path) }}">
+      {% if r.image %}<img src="{{ asset('img/' ~ r.image.src) }}" alt="{{ r.image.alt }}" width="{{ r.image.w }}" height="{{ r.image.h }}" loading="lazy">{% else %}<span class="bl-sin-img" aria-hidden="true"></span>{% endif %}
+      {% if r.category %}<span class="bl-cat">{{ r.category }}</span>{% endif %}<h3>{{ r.title }}</h3><p>{{ r.summary }}</p></a></li>{% endfor %}</ul>
+  </div></section>
+  {% endif %}
+</div>
+{% endblock %}
+{% block tambien %}{% endblock %}

@@ -6,7 +6,10 @@ from wagtail.snippets.views.snippets import CreateView as SnippetCreateView, Sni
 from sitios.columnas import columna_sitio
 from sitios.permisos import ProtegerObjetos, SitioPermissionPolicy
 
-from .models import IdentidadSitio, CategoriaBlog, Funcionalidad, Plan, PreguntaFrecuente, Recurso, Redireccion, Sector, Testimonio
+from django.urls import path
+from wagtail.admin.viewsets.base import ViewSet
+
+from .models import AutorBlog, IdentidadSitio, CategoriaBlog, Funcionalidad, Plan, PreguntaFrecuente, Recurso, Redireccion, Sector, Testimonio
 
 
 class PorSitio(ProtegerObjetos, SnippetViewSet):
@@ -47,10 +50,11 @@ class PlanViewSet(PorSitio):
 
 class CrearConProducto(SnippetCreateView):
     """«Añadir funcionalidad» desde la pestaña de un producto: el formulario llega con ese producto elegido."""
+    usa_sitio_del_blog = False
 
     def get_initial_form_instance(self):
         obj = super().get_initial_form_instance()
-        clave = self.request.GET.get("sitio")
+        clave = self.request.GET.get("sitio") or (self.request.session.get("gwa_blog_sitio") if self.usa_sitio_del_blog else "")
         if clave:
             from sitios.models import SitioWeb
             sitio = SitioWeb.objects.filter(clave=clave).first()
@@ -122,11 +126,52 @@ class RecursoViewSet(PorSitio):
     list_display = ["titulo", columna_sitio(), "tipo", "visible"]
 
 
-class CategoriaViewSet(PorSitio):
+class BlogViewSet(ViewSet):
+    """«Contenidos → Blog y noticias»: selector de sitio, tendencias e ideas, y artículos (editorial/vistas.py)."""
+    name = "blog"
+    url_prefix = "blog"
+    icon = "doc-full"
+    menu_label = "Blog y noticias"
+
+    def get_urlpatterns(self):
+        from editorial import vistas
+        return [
+            path("", vistas.blog, name="index"),
+            path("<slug:clave>/actualizar/", vistas.actualizar, name="actualizar"),
+            path("<slug:clave>/importar/", vistas.importar, name="importar"),
+            path("<slug:clave>/nuevo/", vistas.nuevo, name="nuevo"),
+            path("<slug:clave>/configurar/", vistas.configurar, name="configurar"),
+            path("idea/<int:pk>/", vistas.idea_detalle, name="idea"),
+            path("idea/<int:pk>/<slug:accion>/", vistas.idea_accion, name="idea_accion"),
+        ]
+
+
+class CrearConSitioDelBlog(CrearConProducto):
+    usa_sitio_del_blog = True
+
+
+class PorSitioDelBlog(PorSitio):
+    """Categorías y Autores usan el sitio elegido en «Blog y noticias» (o el de «Trabajar en»)."""
+    add_view_class = CrearConSitioDelBlog
+
+    def get_queryset(self, request):
+        qs = self.permission_policy.instances_user_has_any_permission_for(request.user, ["view", "change"])
+        activo = request.session.get("gwa_blog_sitio") or request.session.get("gwa_sitio")
+        return qs.filter(sitio__clave=activo) if activo else qs
+
+
+class CategoriaViewSet(PorSitioDelBlog):
     model = CategoriaBlog
-    icon = "folder-open-inverse"
-    menu_label = "Categorías del blog"
+    icon = "tag"
+    menu_label = "Categorías"
     list_display = ["nombre", columna_sitio(), "linea"]
+
+
+class AutorViewSet(PorSitioDelBlog):
+    model = AutorBlog
+    icon = "user"
+    menu_label = "Autores"
+    list_display = ["nombre", columna_sitio(), "cargo", "activo"]
 
 
 class RedireccionViewSet(PorSitio):
@@ -148,7 +193,7 @@ class ContenidosGroup(SnippetViewSetGroup):
     menu_label = "Contenidos"
     menu_icon = "folder-inverse"
     menu_order = 220
-    items = (IdentidadViewSet, FAQViewSet, TestimonioViewSet, RecursoViewSet, CategoriaViewSet, RedireccionViewSet)
+    items = (BlogViewSet, CategoriaViewSet, AutorViewSet, IdentidadViewSet, FAQViewSet, TestimonioViewSet, RecursoViewSet, RedireccionViewSet)
 
 
 register_snippet(ComercialGroup)

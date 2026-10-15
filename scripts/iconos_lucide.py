@@ -46,7 +46,8 @@ WAGTAIL = {
 
 # Íconos propios del sistema de diseño (no existen en Wagtail)
 PROPIOS = ["megaphone", "network", "inbox", "panel-left", "chevron-down", "chevron-right", "user-round", "log-out",
-           "circle-alert", "pencil-line", "save", "send", "package", "circle-minus", "type", "list-filter", "table-2", "list"]
+           "circle-alert", "pencil-line", "save", "send", "package", "circle-minus", "type", "list-filter", "table-2", "list",
+           "trending-up", "lightbulb", "newspaper", "refresh-cw", "file-plus", "bookmark", "sparkles", "file-up"]
 
 
 def iconos_funcionalidad():

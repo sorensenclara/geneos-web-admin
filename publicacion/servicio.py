@@ -16,7 +16,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from contenidos.models import (ArticuloPage, BlogIndexPage, CategoriaBlog, Funcionalidad, IdentidadSitio, PaginaWeb, Plan, PreguntaFrecuente, Recurso,
+from contenidos.models import (ArticuloPage, AutorBlog, BlogIndexPage, CategoriaBlog, Funcionalidad, IdentidadSitio, PaginaWeb, Plan, PreguntaFrecuente, Recurso,
                                Redireccion, Sector, Testimonio, sitio_de_pagina)
 from sitios.models import SitioWeb
 
@@ -78,7 +78,8 @@ def vista_previa_objeto(request, obj, modo=""):
     sitio = sitio_de(obj)
     if sitio is None:
         return HttpResponse("No se pudo identificar el sitio de este contenido.", status=400)
-    if sitio.motor != "comercial":
+    if sitio.motor != "comercial" and not (isinstance(obj, (ArticuloPage, BlogIndexPage)) or obj.__class__.__name__ == "ConfigBlog"):
+        # Las páginas institucionales de GENEOS salen de su build.py: el administrador solo suma las Noticias
         return HttpResponse(render_to_string("publicacion/previa_institucional.html", {"obj": obj, "sitio": sitio}))
     _limpiar_previas()
     token = uuid.uuid4().hex[:16]
@@ -170,7 +171,9 @@ def estado_sitio(sitio):
             borradores += 1
         if p.workflow_in_progress:
             revision += 1
-    for model, tipo in ((Plan, "Plan"), (Funcionalidad, "Funcionalidad"), (Sector, "Sector"), (PreguntaFrecuente, "Pregunta frecuente"), (Testimonio, "Testimonio"), (IdentidadSitio, "Logos y favicon")):
+    from editorial.models import ConfigBlog
+    for model, tipo in ((Plan, "Plan"), (Funcionalidad, "Funcionalidad"), (Sector, "Sector"), (PreguntaFrecuente, "Pregunta frecuente"), (Testimonio, "Testimonio"), (IdentidadSitio, "Logos y favicon"),
+                        (ConfigBlog, "Configuración del blog")):
         for o in model.objects.filter(sitio=sitio):
             if o.live and o.last_published_at and o.last_published_at > desde:
                 pendientes.append((tipo, str(o), o.last_published_at, _url_snippet(o)))
@@ -178,14 +181,15 @@ def estado_sitio(sitio):
                 borradores += 1
             if o.workflow_in_progress:
                 revision += 1
-    for model, tipo in ((Redireccion, "Redirección"), (CategoriaBlog, "Categoría"), (Recurso, "Recurso")):
+    for model, tipo in ((Redireccion, "Redirección"), (CategoriaBlog, "Categoría"), (AutorBlog, "Autor"), (Recurso, "Recurso")):
         for o in model.objects.filter(sitio=sitio, actualizado__gt=desde):
             pendientes.append((tipo, str(o), o.actualizado, _url_snippet(o)))
     if sitio.actualizado > desde:
         pendientes.append(("Configuración", "Datos de contacto y opciones del sitio", sitio.actualizado, _url_snippet(sitio)))
     pendientes.sort(key=lambda x: x[2], reverse=True)
     error = ultimo if ultimo and ultimo.estado == "fallo" and (not ultimo_ok or ultimo.iniciado > ultimo_ok.iniciado) else None
-    if sitio.motor != "comercial":
+    from .motor import conectado
+    if not conectado(sitio):
         situacion = "no_conectado"
     elif error:
         situacion = "error"
