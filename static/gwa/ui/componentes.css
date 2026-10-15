@@ -179,6 +179,7 @@
 .gu-table th { text-align: left; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--text-secondary); font-size: 12.5px; padding: 10px 14px; background: var(--surface-2); white-space: nowrap; }
 .gu-table th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
 .gu-table th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.gu-table tbody th { background: none; border-radius: 0; }
 .gu-table td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
 .gu-table tr:first-child td { border-top: none; }
 

@@ -123,13 +123,21 @@ def _valores_form(post, p):
 
 
 def precios(request):
-    """Actualización trimestral: todos los precios en una sola pantalla (fuente única de cada importe)."""
+    """«Oferta comercial → Planes y precios»: todos los planes en una sola pantalla, agrupados por producto.
+    Es la vista de listado del snippet Plan (contenidos/wagtail_hooks.py): cada cambio se guarda como revisión
+    del plan, con el mismo historial, permisos y aprobación de Wagtail. Fuente única de cada importe."""
     from django.core.exceptions import ValidationError
     from contenidos.models import MONEDAS
-    ids = sitios_permitidos(request.user, 1)
-    planes = Plan.objects.select_related("sitio").order_by("sitio__orden", "orden")
-    if ids is not None:
-        planes = planes.filter(sitio_id__in=ids)
+    from sitios.permisos import SitioPermissionPolicy
+    lista = reverse("wagtailsnippets_contenidos_plan:list")
+    politica = SitioPermissionPolicy(Plan)  # la misma del snippet: sitio y línea de cada usuario
+    if not politica.user_has_any_permission(request.user, ["view", "change"]):
+        raise PermissionDenied
+    planes = (politica.instances_user_has_any_permission_for(request.user, ["view", "change"])
+              .select_related("sitio", "latest_revision__user").order_by("sitio__orden", "orden"))
+    activo = request.session.get("gwa_sitio")
+    if activo:
+        planes = planes.filter(sitio__clave=activo)
     if request.method == "POST":
         accion = request.POST.get("accion")
         cambiados, sin_permiso = [], []
@@ -164,12 +172,22 @@ def precios(request):
             messages.info(request, "No hubo cambios de precio.")
         for s in sin_permiso:
             messages.warning(request, f"{s}: quedó como borrador porque no tenés permiso para aprobar en ese sitio.")
-        return redirect("gwa_precios")
+        return redirect(lista)
     filas = []
     for p in planes:
         borrador = p.get_latest_revision_as_object() if p.has_unpublished_changes else None
-        filas.append({"p": p, "b": borrador, "v": borrador or p})
-    return render(request, "publicacion/precios.html", {"filas": filas, "monedas": MONEDAS, "page_title": "Actualizar precios"})
+        filas.append({"p": p, "b": borrador, "v": borrador or p,
+                      "previa": reverse("wagtailsnippets_contenidos_plan:revisions_view", args=[p.pk, p.latest_revision_id]) if p.latest_revision_id else ""})
+    return render(request, "publicacion/precios.html", {
+        "filas": filas, "monedas": MONEDAS, "page_title": "Planes y precios", "activo": activo,
+        "puede_agregar": politica.user_has_permission(request.user, "add")})
+
+
+def precios_anterior(request):
+    """URL anterior de «Actualizar precios» (/admin/precios/): ahora es «Oferta comercial → Planes y precios»."""
+    if request.method == "POST":
+        return precios(request)
+    return redirect("wagtailsnippets_contenidos_plan:list", permanent=True)
 
 
 @require_POST

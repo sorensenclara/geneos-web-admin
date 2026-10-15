@@ -36,6 +36,14 @@ class PlanViewSet(PorSitio):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("latest_revision__user", "sitio")
 
+    @property
+    def index_view(self):
+        """El listado de planes es la pantalla de precios agrupada por producto (publicacion.views.precios):
+        edición directa de abono, implementación y vigencia, con revisiones, permisos y aprobación de Wagtail.
+        Las demás vistas del plan (edición completa, vista previa, historial…) son las de Wagtail."""
+        from publicacion.views import precios
+        return precios
+
 
 class FuncionalidadViewSet(PorSitio):
     model = Funcionalidad

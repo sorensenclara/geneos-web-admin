@@ -27,7 +27,7 @@ Si GEAGRO no está en la ruta de siempre, copiá `.env.example` como `.env` y co
 1. **Editar una página.** Páginas → GERP · Inicio → cambiá el «Título principal» (un renglón por línea; `**así**` va resaltado)
    → *Guardar borrador*. Con el ícono de vista previa (la pantallita, arriba a la derecha) ves la página real con el cambio al costado del formulario, mientras escribís.
    Desde el botón ▲ junto a *Guardar borrador* → *Publicar* lo aprobás.
-2. **Actualizar un precio.** Menú *Actualizar precios* → cambiá el abono → *Guardar y aprobar*.
+2. **Actualizar un precio.** *Oferta comercial → Planes y precios* → cambiá el abono → *Guardar y aprobar*.
    El precio cambia en la tarjeta, la landing, el comparador, los datos estructurados y en las preguntas frecuentes que lo mencionan.
 3. **Previsualizar y publicar.** *Estado de las webs* → el sitio muestra «cambios aprobados sin publicar» →
    *Vista previa de la web completa* → *Publicar en la web* → *Ver la web publicada (local)*.
@@ -120,9 +120,15 @@ El panel sigue la estructura de GELECTRIC (`geletric-django/core`), en tema oscu
 
 ## Precios: una sola fuente
 
-Cada plan (*Oferta comercial → Planes y precios*, o todos juntos en *Actualizar precios*) tiene como campos independientes:
-abono mensual, implementación, moneda, «más IVA», leyenda de vigencia y un aviso de vencimiento que no se publica.
-Una leyenda vacía no muestra ni la nota ni el (*). La lista de planes y «Actualizar precios» muestran la fecha de la última modificación y quién la hizo, con acceso al historial de cada plan; esos datos son internos y no se publican.
+*Oferta comercial → Planes y precios* es la única pantalla de precios (la antigua «Actualizar precios», `/admin/precios/`, redirige acá).
+Muestra los planes agrupados por producto, con su isologo y color, y permite editar directamente abono, implementación y vigencia;
+la leyenda comercial, la moneda y el IVA están en el desplegable de cada producto. «Guardar borradores» y «Guardar y aprobar» crean
+revisiones de cada plan con el historial, los permisos y la aprobación de Wagtail. El menú ⋯ de cada fila abre la edición completa
+(pestañas Precio y vigencia, Presentación, Landing, Identidad y configuración), la vista previa y el historial.
+
+Cada plan tiene como campos independientes:
+abono mensual, implementación, moneda, «más IVA», leyenda de vigencia y la fecha de vigencia (interna: el inicio avisa cuando se acerca; no se publica).
+Una leyenda vacía no muestra ni la nota ni el (*). «Planes y precios» muestra la fecha de la última modificación y quién la hizo, con acceso al historial de cada plan; esos datos son internos y no se publican.
 
 Importes de origen (octubre 2026), copiados de las páginas publicadas:
 

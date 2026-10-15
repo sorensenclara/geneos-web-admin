@@ -23,7 +23,7 @@ def urls():
         path("web/<slug:clave>/vista-previa/", views.previa_sitio, name="gwa_previa_sitio"),
         path("web/<slug:clave>/volver/", views.volver, name="gwa_volver"),
         path("web/publicacion/<int:pk>/", views.despliegue_detalle, name="gwa_despliegue"),
-        path("precios/", views.precios, name="gwa_precios"),
+        path("precios/", views.precios_anterior, name="gwa_precios"),
         path("sitio-activo/", views.elegir_sitio, name="gwa_elegir_sitio"),
         path("buscar/", views.buscar, name="gwa_buscar"),
     ]
@@ -32,11 +32,6 @@ def urls():
 @hooks.register("register_admin_menu_item")
 def menu_estado():
     return MenuItem("Estado de las webs", reverse("gwa_estado"), icon_name="desktop", order=100)
-
-
-@hooks.register("register_admin_menu_item")
-def menu_precios():
-    return MenuItem("Actualizar precios", reverse("gwa_precios"), icon_name="tag", order=110)
 
 
 @hooks.register("insert_global_admin_css")

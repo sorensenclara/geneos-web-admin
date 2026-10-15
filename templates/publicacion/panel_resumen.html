@@ -10,7 +10,7 @@
   {% if vencen %}
   <div class="gwa-aviso warn"><strong>Revisión de precios:</strong>
     {% for p in vencen %}{{ p }} (vigente hasta {{ p.vigente_hasta|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}{% endfor %}.
-    <a href="{% url 'gwa_precios' %}">Actualizar precios</a></div>
+    <a href="{% url 'wagtailsnippets_contenidos_plan:list' %}">Revisar en Planes y precios</a></div>
   {% endif %}
   {% if pedidos %}<div class="gwa-aviso ok"><strong>{{ pedidos }} pedido{{ pedidos|pluralize }} de demo nuevo{{ pedidos|pluralize }}.</strong> <a href="{% url 'wagtailsnippets_formularios_solicituddemo:list' %}">Ver pedidos</a></div>{% endif %}
   <h2 class="w-h3">Estado de las webs</h2>

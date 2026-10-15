@@ -23,6 +23,7 @@ from sitios.models import LineaProducto, SitioWeb
 from sitios.permisos import SitioPermissionPolicy, puede
 
 VAR = Path(tempfile.mkdtemp(prefix="gwa-test-"))
+PLANES = "/admin/snippets/contenidos/plan/"  # «Oferta comercial → Planes y precios»
 
 
 @override_settings(GWA_VAR_DIR=VAR, GWA_FORM_SEGUNDOS_MINIMOS=0, MEDIA_ROOT=str(VAR / "media"))
@@ -52,7 +53,7 @@ class Circuito(TestCase):
     # ---------------------------------------------------------------------------------------------- Interfaz (GENEOS UI)
     def test_esqueleto_sidebar_topbar_y_logos(self):
         self.client.force_login(self.clara)
-        html = self.client.get("/admin/precios/").content.decode()
+        html = self.client.get(PLANES).content.decode()
         self.assertIn('id="gu-sidebar"', html)
         self.assertIn('id="gu-menu-btn"', html)  # hamburguesa en el topbar, fuera del sidebar
         self.assertLess(html.index('id="gu-sidebar"'), html.index('class="gu-topbar"'))
@@ -66,6 +67,37 @@ class Circuito(TestCase):
             self.assertIn(f"gwa/marca/{clave}-isologo.svg", html)
         self.assertNotIn("Notificaciones", html)
 
+    def test_planes_y_precios_unificado(self):
+        self.client.force_login(self.clara)
+        lite = Plan.objects.get(sitio=self.gerp, clave="lite")
+        # La URL anterior lleva a la nueva ubicación y sigue aceptando el formulario
+        r = self.client.get("/admin/precios/")
+        self.assertEqual((r.status_code, r["Location"]), (301, PLANES))
+        self.client.post("/admin/precios/", self._form_precios(lite, precio="90.000", accion="borrador"))
+        lite.refresh_from_db()
+        self.assertEqual(lite.get_latest_revision_as_object().precio, "90.000")
+        html = self.client.get(PLANES).content.decode()
+        for k in ("gerp", "geagro", "gema"):
+            self.assertIn(f'data-sitio="{k}"', html)
+        for campo in ("precio", "implementacion", "vigente_hasta", "leyenda_vigencia", "moneda", "mas_iva"):
+            self.assertIn(f'name="{campo}_{lite.pk}"', html)
+        self.assertIn(f"/admin/snippets/contenidos/plan/edit/{lite.pk}/", html)            # Edición completa
+        self.assertIn(f"/admin/snippets/contenidos/plan/history/{lite.pk}/revisions/", html)  # Vista previa
+        self.assertIn(f"/admin/snippets/contenidos/plan/history/{lite.pk}/", html)          # Ver historial
+        self.assertIn('value="borrador"', html)
+        self.assertIn('value="aprobar"', html)
+        # Las demás vistas del plan siguen siendo las de Wagtail
+        edicion = self.client.get(f"/admin/snippets/contenidos/plan/edit/{lite.pk}/").content.decode()
+        for pestaña in ("Precio y vigencia", "Presentación", "Landing", "Identidad y configuración"):
+            self.assertIn(pestaña, edicion)
+        previa = self.client.get(f"/admin/snippets/contenidos/plan/history/{lite.pk}/revisions/{lite.latest_revision_id}/view/")
+        self.assertEqual(previa.status_code, 200)
+        # Sin acceso a planes no hay pantalla
+        nadie = User.objects.create_user("sin_acceso", password="x")
+        nadie.user_permissions.add(*__import__("django.contrib.auth.models", fromlist=["Permission"]).Permission.objects.filter(codename="access_admin"))
+        self.client.force_login(nadie)
+        self.assertIn(self.client.get(PLANES).status_code, (302, 403))
+
     def test_colores_e_isologos_oficiales(self):
         from django.conf import settings
         esperados = {"gerp": "#1b4b8c", "geagro": "#0e8337", "gema": "#ec6c05"}
@@ -78,7 +110,8 @@ class Circuito(TestCase):
     def test_menu_respeta_permisos(self):
         self.client.force_login(self.editor_gema)
         html = self.client.get("/admin/").content.decode()
-        self.assertIn("Actualizar precios", html)
+        self.assertIn("Planes y precios", html)
+        self.assertNotIn("Actualizar precios", html)  # se unificó con «Oferta comercial → Planes y precios»
         self.assertNotIn("Accesos por sitio", html)
         self.assertNotIn(">Usuarios<", html)
 
@@ -91,7 +124,7 @@ class Circuito(TestCase):
         self.client.force_login(self.clara)
         datos = self.client.get("/admin/buscar/?q=precios&formato=json").json()
         secciones = [it["titulo"] for g in datos["grupos"] if g["titulo"] == "Secciones" for it in g["items"]]
-        self.assertIn("Actualizar precios", secciones)
+        self.assertIn("Planes y precios", secciones)
         self.assertEqual(self.client.get("/admin/buscar/?q=plan").status_code, 200)
 
     def test_iconos_lineales(self):
@@ -145,7 +178,7 @@ class Circuito(TestCase):
         r = self.client.post("/admin/snippets/contenidos/preguntafrecuente/add/", {"sitio": self.gerp.pk, "pregunta": "¿Intruso?",
                                                                                   "respuesta": "{}", "orden": 1, "visible": "on"})
         self.assertEqual(PreguntaFrecuente.objects.count(), n)
-        precios = self.client.get("/admin/precios/").content.decode()
+        precios = self.client.get(PLANES).content.decode()
         self.assertIn("GEMA", precios)
         self.assertNotIn("GERP Lite", precios)
 
@@ -161,13 +194,13 @@ class Circuito(TestCase):
         lite = Plan.objects.get(sitio=self.geagro, clave="lite")
         self.client.force_login(self.clara)
         # Borrador: no cambia lo aprobado
-        self.client.post("/admin/precios/", self._form_precios(lite, precio="99.000", accion="borrador"))
+        self.client.post(PLANES, self._form_precios(lite, precio="99.000", accion="borrador"))
         lite.refresh_from_db()
         self.assertEqual(lite.precio, "89.250")
         self.assertTrue(lite.has_unpublished_changes)
         self.assertEqual(estado_sitio(self.geagro)["situacion"], "al_dia")
         # Aprobado: queda pendiente de publicar
-        self.client.post("/admin/precios/", self._form_precios(lite, precio="99.000", accion="aprobar"))
+        self.client.post(PLANES, self._form_precios(lite, precio="99.000", accion="aprobar"))
         lite.refresh_from_db()
         self.assertEqual(lite.precio, "99.000")
         self.assertEqual(estado_sitio(self.geagro)["situacion"], "pendiente")
@@ -200,7 +233,7 @@ class Circuito(TestCase):
     def test_precio_unico_en_tarjetas_landing_faq_y_datos(self):
         core = Plan.objects.get(sitio=self.gerp, clave="core")
         self.client.force_login(self.clara)
-        self.client.post("/admin/precios/", self._form_precios(core, precio="199.000", implementacion="999.000", accion="aprobar"))
+        self.client.post(PLANES, self._form_precios(core, precio="199.000", implementacion="999.000", accion="aprobar"))
         home, landing, lite = self._web(self.gerp), self._web(self.gerp, "core/"), self._web(self.gerp, "lite/")
         self.assertIn("$199.000", home)                       # tarjeta
         self.assertIn('"price": 199000', home)               # datos estructurados
@@ -218,7 +251,7 @@ class Circuito(TestCase):
         self.assertNotIn("dólares", html)
         self.assertIn("(*) Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.", html)
         self.client.force_login(self.clara)
-        self.client.post("/admin/precios/", self._form_precios(plan, precio="95", moneda="USD", mas_iva=False, leyenda_vigencia="", accion="aprobar"))
+        self.client.post(PLANES, self._form_precios(plan, precio="95", moneda="USD", mas_iva=False, leyenda_vigencia="", accion="aprobar"))
         html = self._web(self.gema)
         self.assertIn("el abono es de US$95 por mes", html)
         self.assertIn('"priceCurrency": "USD"', html)
@@ -257,11 +290,11 @@ class Circuito(TestCase):
     def test_ultima_modificacion_interna(self):
         plan = Plan.objects.get(sitio=self.gema)
         self.client.force_login(self.clara)
-        self.client.post("/admin/precios/", self._form_precios(plan, precio="91.000", accion="aprobar"))
+        self.client.post(PLANES, self._form_precios(plan, precio="91.000", accion="aprobar"))
         plan.refresh_from_db()
         self.assertEqual(plan.modificado_por, "clara")
         self.assertIsNotNone(plan.ultima_modificacion)
-        pantalla = self.client.get("/admin/precios/").content.decode()
+        pantalla = self.client.get(PLANES).content.decode()
         self.assertIn("historial", pantalla)
         html = self._web(self.gema)
         self.assertNotIn("clara", html)

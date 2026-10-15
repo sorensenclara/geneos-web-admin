@@ -1,20 +1,27 @@
 {% extends "wagtailadmin/base.html" %}
 {% load static wagtailadmin_tags %}
-{% block titletag %}Actualizar precios{% endblock %}
+{% block titletag %}Planes y precios{% endblock %}
 {% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'gwa/precios.css' %}">{% endblock %}
 {% block extra_js %}{{ block.super }}<script src="{% static 'gwa/precios.js' %}" defer></script>{% endblock %}
 {% block content %}
 <div class="gwa-pagina gwa-pr">
   <div class="gu-page-head">
     <div class="gu-page-title">{% icon name="tag" classname="gu-icon" %}
-      <div><h1>Actualizar precios</h1><p>Administrá los importes de todos tus productos.</p></div>
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><span>Oferta comercial</span>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Planes y precios</span></nav>
+        <h1>Planes y precios</h1>
+        <p>Editá los importes y la vigencia de todos los planes. «Guardar borradores» no cambia nada aprobado; «Guardar y aprobar» los deja listos para publicar.</p>
+      </div>
     </div>
-    <div class="gu-info">{% icon name="info-circle" classname="gu-icon" %}
-      <p>Cada importe se carga una sola vez y la web lo usa en las tarjetas, las landings, el comparador, los buscadores y las preguntas
-         frecuentes que lo mencionan con <code>[precio:clave]</code>. «Guardar borradores» no cambia nada aprobado;
-         «Guardar y aprobar» deja los precios listos para publicar desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
+    <div class="gwa-pr-cabecera">
+      {% if puede_agregar %}<a class="gu-btn gu-btn-outline" href="{% url 'wagtailsnippets_contenidos_plan:add' %}">{% icon name="plus" classname="gu-icon" %}Añadir plan</a>{% endif %}
+      <div class="gu-info">{% icon name="info-circle" classname="gu-icon" %}
+        <p>Cada importe se carga una sola vez: la web lo usa en las tarjetas, las landings, el comparador, los buscadores y las preguntas
+           frecuentes que lo mencionan con <code>[precio:clave]</code>. Después de aprobar, publicá desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
+      </div>
     </div>
   </div>
+  {% if activo %}<p class="gwa-aviso warn">Estás viendo solo {{ activo|upper }} (elegido en «Trabajar en» del inicio). <a href="{% url 'wagtailadmin_home' %}">Cambiar</a></p>{% endif %}
 
   <form method="post" id="gwa-precios" novalidate>{% csrf_token %}
     {% regroup filas by p.sitio as grupos %}
@@ -31,31 +38,19 @@
           <p class="gwa-pr-meta">{{ n }} plan{{ n|pluralize:"es" }}<span aria-hidden="true"> · </span><span data-resumen-moneda>Moneda: {{ g.list.0.v.moneda }}</span><span data-resumen-iva>{% if g.list.0.v.mas_iva %}<span aria-hidden="true"> · </span>+ IVA{% endif %}</span></p>
         </div>
 
-        {# Vigencia compartida: se muestra una vez cuando todos los planes tienen la misma; se puede editar por plan abajo #}
-        <div class="gwa-pr-vig" data-comun>
-          <label class="gwa-pr-campo gwa-pr-campo--ancho">
-            <span>Leyenda de vigencia{% if n > 1 %} <small data-alcance>(para todos los planes)</small>{% endif %}</span>
-            <input type="text" data-comun-campo="leyenda_vigencia" placeholder="Sin leyenda" id="comun-leyenda-{{ s.clave }}">
-          </label>
-          <label class="gwa-pr-campo">
-            <span>Aviso de vencimiento</span>
-            <input type="date" data-comun-campo="vigente_hasta" id="comun-hasta-{{ s.clave }}">
-          </label>
-        </div>
-
         <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon gwa-pr-plegar" aria-expanded="true" aria-controls="cuerpo-{{ s.clave }}" aria-label="Plegar {{ s.nombre }}" data-plegar>
           {% icon name="arrow-up" classname="gu-icon" %}</button>
       </header>
 
       <div class="gwa-pr-cuerpo" id="cuerpo-{{ s.clave }}">
         <table class="gu-table gwa-pr-tabla">
-          <thead><tr><th scope="col">Plan</th><th scope="col">Clave</th><th scope="col">Abono mensual</th><th scope="col">Implementación</th>
+          <thead><tr><th scope="col">Plan</th><th scope="col">Abono mensual</th><th scope="col">Implementación</th>
+            <th scope="col"><span class="gwa-pr-th-ayuda">Vigencia hasta<span class="gwa-pr-tip" tabindex="0" aria-describedby="tip-vig-{{ s.clave }}">{% icon name="info-circle" classname="gu-icon" %}<span role="tooltip" id="tip-vig-{{ s.clave }}">Fecha hasta la que valen los precios. No se publica: el inicio avisa cuando se acerca. La leyenda que ve el público se edita abajo.</span></span></span></th>
             <th scope="col">Estado</th><th scope="col">Última modificación</th><th scope="col"><span class="w-sr-only">Acciones</span></th></tr></thead>
           <tbody>
           {% for f in g.list %}
           <tr data-plan="{{ f.p.pk }}" data-nombre="{{ f.p }}">
-            <th scope="row" class="gwa-pr-nombre">{{ f.p.nombre }}{% if not f.p.visible %}<small>oculto en la web</small>{% endif %}</th>
-            <td class="gwa-pr-clave"><span class="gu-chip" title="Clave del plan">{{ f.p.clave }}</span></td>
+            <th scope="row" class="gwa-pr-nombre">{{ f.p.nombre }}<span class="gu-chip" title="Clave del plan">{{ f.p.clave }}</span>{% if not f.p.visible %}<small>oculto en la web</small>{% endif %}</th>
             <td class="gwa-pr-importe" data-th="Abono mensual">
               <span class="gwa-pr-monto"><b data-simbolo>{{ f.v.simbolo }}</b>
                 <input type="text" name="precio_{{ f.p.pk }}" id="precio_{{ f.p.pk }}" value="{{ f.v.precio }}" inputmode="decimal" autocomplete="off" required
@@ -67,6 +62,9 @@
                 <input type="text" name="implementacion_{{ f.p.pk }}" id="implementacion_{{ f.p.pk }}" value="{{ f.v.implementacion }}" inputmode="decimal" autocomplete="off"
                        pattern="\d{1,3}(\.\d{3})*(,\d{1,2})?" aria-label="Implementación de {{ f.p }}, pago único" aria-describedby="ayuda-importe">
                 <i data-iva {% if not f.v.mas_iva %}hidden{% endif %}>+ IVA</i></span>
+            </td>
+            <td class="gwa-pr-fecha" data-th="Vigencia hasta">
+              <input type="date" name="vigente_hasta_{{ f.p.pk }}" id="vigente_hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" aria-label="Vigencia de los precios de {{ f.p }}">
             </td>
             <td class="gwa-pr-estado">
               {% if f.b %}<span class="gu-status-pill warning" title="Aprobado actualmente: {{ f.p.simbolo }}{{ f.p.precio }}{% if f.p.mas_iva %} + IVA{% endif %}">Borrador</span>
@@ -80,11 +78,12 @@
               <small>{{ f.p.modificado_por }}</small>
             </td>
             <td class="gwa-pr-acciones">
-              <a class="gu-btn gu-btn-outline gu-btn-sm" href="{% url 'wagtailsnippets_contenidos_plan:history' f.p.pk %}">{% icon name="history" classname="gu-icon" %}Ver historial</a>
               <span class="gu-btn-dropdown">
-                <button type="button" class="gu-btn gu-btn-ghost gu-btn-sm gu-btn-icon" data-gu-dropdown="mas-{{ f.p.pk }}" aria-expanded="false" aria-label="Más acciones de {{ f.p }}">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
+                <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon" data-gu-dropdown="mas-{{ f.p.pk }}" aria-expanded="false" aria-haspopup="true" aria-label="Acciones de {{ f.p }}">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
                 <span class="gu-btn-dropdown-menu" id="mas-{{ f.p.pk }}" hidden>
-                  <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">{% icon name="edit" classname="gu-icon" %}Editar el plan completo</a>
+                  <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">{% icon name="edit" classname="gu-icon" %}Edición completa</a>
+                  {% if f.previa %}<a class="gu-btn-dropdown-item" href="{{ f.previa }}" target="_blank" rel="noopener">{% icon name="view" classname="gu-icon" %}Vista previa</a>{% endif %}
+                  <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_plan:history' f.p.pk %}">{% icon name="history" classname="gu-icon" %}Ver historial</a>
                 </span>
               </span>
             </td>
@@ -93,19 +92,22 @@
           </tbody>
         </table>
 
-        <details class="gwa-pr-ajustes{% if n == 1 %} gwa-pr-ajustes--uno{% endif %}" data-porplan>
-          <summary>{% icon name="arrow-right" classname="gu-icon" %}{% if n > 1 %}Vigencia, moneda e IVA por plan{% else %}Moneda e IVA{% endif %}</summary>
+        <details class="gwa-pr-ajustes" data-porplan>
+          <summary>{% icon name="arrow-right" classname="gu-icon" %}Leyenda comercial, moneda e IVA</summary>
+          {% if n > 1 %}
+          <label class="gwa-pr-campo gwa-pr-comun" data-comun>
+            <span>Leyenda de vigencia <small data-alcance>(la misma para los {{ n }} planes)</small></span>
+            <input type="text" data-comun-campo="leyenda_vigencia" placeholder="Sin leyenda" id="comun-leyenda-{{ s.clave }}">
+          </label>
+          {% endif %}
           <table class="gu-table gu-table-responsive">
-            <thead><tr><th scope="col">Plan</th><th scope="col" class="gwa-pr-vigcol">Leyenda de vigencia</th><th scope="col" class="gwa-pr-vigcol">Aviso de vencimiento</th>
-              <th scope="col">Moneda</th><th scope="col">IVA</th></tr></thead>
+            <thead><tr><th scope="col">Plan</th><th scope="col">Leyenda de vigencia{% if n > 1 %} (por plan){% endif %}</th><th scope="col">Moneda</th><th scope="col">IVA</th></tr></thead>
             <tbody>
             {% for f in g.list %}
             <tr data-ajuste="{{ f.p.pk }}">
               <th scope="row" data-th="">{{ f.p.nombre }}</th>
-              <td class="gwa-pr-vigcol" data-th="Leyenda de vigencia">
+              <td data-th="Leyenda de vigencia">
                 <input type="text" name="leyenda_vigencia_{{ f.p.pk }}" id="leyenda_vigencia_{{ f.p.pk }}" value="{{ f.v.leyenda_vigencia }}" placeholder="Sin leyenda" data-vig="leyenda_vigencia" aria-label="Leyenda de vigencia de {{ f.p }}"></td>
-              <td class="gwa-pr-vigcol" data-th="Aviso de vencimiento">
-                <input type="date" name="vigente_hasta_{{ f.p.pk }}" id="vigente_hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" data-vig="vigente_hasta" aria-label="Aviso de vencimiento de {{ f.p }}"></td>
               <td data-th="Moneda">
                 <select name="moneda_{{ f.p.pk }}" id="moneda_{{ f.p.pk }}" data-moneda data-plan-ref="{{ f.p.pk }}" aria-label="Moneda de {{ f.p }}">
                   {% for c, nombre in monedas %}<option value="{{ c }}"{% if c == f.v.moneda %} selected{% endif %}>{{ nombre }}</option>{% endfor %}
@@ -115,13 +117,13 @@
             {% endfor %}
             </tbody>
           </table>
-          <p class="gwa-pr-ayuda">El aviso de vencimiento es interno: solo te avisa en el inicio. Una leyenda vacía no muestra la nota ni el (*).</p>
+          <p class="gwa-pr-ayuda">La leyenda se muestra debajo de los planes con (*); vacía, no se muestra la nota ni el (*).</p>
         </details>
       </div>
     </section>
     {% endwith %}{% endwith %}
     {% empty %}
-    <p>No hay planes en tus sitios.</p>
+    <p class="gwa-aviso">No hay planes para mostrar.{% if puede_agregar %} <a href="{% url 'wagtailsnippets_contenidos_plan:add' %}">Añadir un plan</a>{% endif %}</p>
     {% endfor %}
 
     <p class="gwa-pr-ayuda" id="ayuda-importe">Importes sin símbolo y con punto de miles, por ejemplo 178.500.</p>

@@ -287,8 +287,8 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
     implementacion = models.CharField("Implementación (pago único)", max_length=20, blank=True, validators=[validar_importe])
     leyenda_vigencia = models.CharField("Leyenda de vigencia", max_length=200, blank=True,
         help_text="Texto que se muestra debajo de los planes, con (*). Vacío: no se muestra ninguna leyenda.")
-    vigente_hasta = models.DateField("Aviso de vencimiento", null=True, blank=True,
-                                     help_text="Opcional. No se publica: te avisamos en el inicio del administrador cuando se acerque la fecha.")
+    vigente_hasta = models.DateField("Vigencia hasta", null=True, blank=True,
+                                     help_text="Fecha hasta la que valen los precios. No se publica: el inicio del administrador avisa cuando se acerca.")
     visible = models.BooleanField("Visible en la web", default=True)
     destacado = models.BooleanField("Destacado", default=False)
     orden = models.PositiveSmallIntegerField("Orden", default=0)
@@ -321,28 +321,34 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
         label="Grupo de funcionalidades"))], verbose_name="Funcionalidades de la landing", blank=True, use_json_field=True)
     nota_funciones = models.CharField("Nota debajo de las funcionalidades", max_length=200, blank=True)
 
+    # Pestañas de la edición completa (la edición rápida de todos los planes es «Oferta comercial → Planes y precios»)
     panels_precio = [
         HelpPanel("<p>Cambiá el precio, guardá el borrador y mirá la vista previa. Al aprobarlo queda listo para «Publicar en la web». "
-                  "Para actualizar todos los planes juntos usá <b>Actualizar precios</b> en el menú.</p>"),
-        FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]),
-        FieldRowPanel([FieldPanel("nombre"), FieldPanel("etiqueta"), FieldPanel("clave")]),
+                  "Para editar todos los planes juntos usá <b>Oferta comercial → Planes y precios</b>.</p>"),
         MultiFieldPanel([FieldRowPanel([FieldPanel("precio"), FieldPanel("implementacion")]),
-                         FieldRowPanel([FieldPanel("moneda"), FieldPanel("mas_iva")]),
-                         FieldRowPanel([FieldPanel("leyenda_vigencia"), FieldPanel("vigente_hasta")])], "Precio (fuente única)"),
-        FieldRowPanel([FieldPanel("visible"), FieldPanel("destacado"), FieldPanel("orden")]),
+                         FieldRowPanel([FieldPanel("moneda"), FieldPanel("mas_iva")])], "Precios (fuente única)"),
+        MultiFieldPanel([FieldPanel("vigente_hasta"), FieldPanel("leyenda_vigencia")], "Vigencia"),
+    ]
+    panels_presentacion = [
+        FieldRowPanel([FieldPanel("nombre"), FieldPanel("etiqueta")]),
         FieldPanel("publico_corto"), FieldPanel("publico"), FieldPanel("caracteristicas"),
         FieldRowPanel([FieldPanel("cta_texto"), FieldPanel("cta_enlace")]),
+        FieldPanel("destacado"),
     ]
     panels_landing = [
         HelpPanel("<p>Solo para los sitios con una landing por plan (GERP).</p>"),
         FieldPanel("ruta"), FieldPanel("titulo_landing"), FieldPanel("titulo_seo"), FieldPanel("descripcion_seo"),
         FieldPanel("modulos"), FieldPanel("funciones"), FieldPanel("nota_funciones"),
     ]
-    panels_identidad = [FieldRowPanel([FieldPanel("color"), FieldPanel("color_acento")]), FieldRowPanel([FieldPanel("color_hover"), FieldPanel("color_suave")]),
-                        FieldRowPanel([FieldPanel("icono_img"), FieldPanel("logo_blanco_img")]),
-                        MultiFieldPanel([FieldPanel("icono"), FieldPanel("logo_blanco")], "Rutas actuales (se usan si no elegís una imagen)", classname="collapsed")]
-    edit_handler = TabbedInterface([ObjectList(panels_precio, heading="Precio y presentación"), ObjectList(panels_landing, heading="Landing"),
-                                    ObjectList(panels_identidad, heading="Identidad")])
+    panels_identidad = [
+        MultiFieldPanel([FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldRowPanel([FieldPanel("clave"), FieldPanel("orden")]),
+                         FieldPanel("visible")], "Configuración"),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("color"), FieldPanel("color_acento")]), FieldRowPanel([FieldPanel("color_hover"), FieldPanel("color_suave")]),
+                         FieldRowPanel([FieldPanel("icono_img"), FieldPanel("logo_blanco_img")])], "Identidad visual"),
+        MultiFieldPanel([FieldPanel("icono"), FieldPanel("logo_blanco")], "Rutas actuales (se usan si no elegís una imagen)", classname="collapsed"),
+    ]
+    edit_handler = TabbedInterface([ObjectList(panels_precio, heading="Precio y vigencia"), ObjectList(panels_presentacion, heading="Presentación"),
+                                    ObjectList(panels_landing, heading="Landing"), ObjectList(panels_identidad, heading="Identidad y configuración")])
     preview_modes = [("inicio", "Inicio del sitio"), ("landing", "Landing del plan")]
 
     class Meta:

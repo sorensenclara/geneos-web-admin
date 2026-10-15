@@ -10,7 +10,7 @@
 .gwa-pr-sitio { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
   margin: 0 0 var(--pr-gap); overflow: hidden; container-type: inline-size; container-name: producto; }
 .gwa-pr-sitio::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--gwa-producto); }
-.gwa-pr-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) auto; gap: 14px 22px; align-items: end; padding: 18px 20px 16px 24px; }
+.gwa-pr-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 22px; align-items: center; padding: 18px 20px 16px 24px; }
 .gwa-pr-id { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; align-self: center; }
 .gwa-pr-id h2 { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.1; color: var(--text); font-family: var(--font-display); }
 .gwa-pr-lema { margin: 2px 0 0; font-size: .85rem; color: var(--text-muted); }
@@ -19,7 +19,6 @@
 .gwa-pr-plegar .gu-icon { transition: transform .15s ease; }
 .gwa-pr-plegar[aria-expanded="false"] .gu-icon { transform: rotate(180deg); }
 
-.gwa-pr-vig { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 12px; }
 .gwa-pr-campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .gwa-pr-campo > span { font-size: .82rem; font-weight: 600; color: var(--text-secondary); }
 .gwa-pr-campo small { font-weight: 400; color: var(--text-muted); }
@@ -63,9 +62,6 @@
 .gwa-pr-ajustes[open] > summary .gu-icon { transform: rotate(90deg); }
 .gwa-pr-ajustes .gu-table { margin-top: 8px; }
 .gwa-pr-ajustes .gu-table tbody th { text-align: left; font-weight: 600; color: var(--text); white-space: nowrap; }
-.gwa-pr-ajustes .gu-table td:nth-child(3) { width: 180px; }
-.gwa-pr-ajustes .gu-table td:nth-child(4) { width: 200px; }
-.gwa-pr-ajustes--uno .gwa-pr-vigcol { display: none; }
 .gwa-pr-check { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: .92rem; color: var(--text); }
 .gwa-pr-check input { width: 18px; height: 18px; accent-color: var(--brand-green); }
 .gwa-pr-ayuda { font-size: .82rem; color: var(--text-muted); margin: 8px 0 0; }
@@ -88,10 +84,6 @@
 .gwa-pr-dialogo .gwa-pr-barra-acciones { justify-content: flex-end; margin-top: 18px; }
 
 /* ---------- Anchos medianos: la vigencia baja debajo del nombre ---------- */
-@container producto (max-width: 1080px) {
-  .gwa-pr-head { grid-template-columns: minmax(0, 1fr) auto; }
-  .gwa-pr-vig { grid-column: 1 / -1; grid-row: 2; }
-}
 
 /* ---------- Sección angosta: cada plan es una tarjeta ---------- */
 @container producto (max-width: 900px) {
@@ -100,8 +92,7 @@
   .gwa-pr-tabla tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; padding: 14px; margin-bottom: 10px;
     border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
   .gwa-pr-tabla tbody tr > * { border: 0 !important; padding: 0 !important; width: auto; }
-  .gwa-pr-tabla th[scope="row"] { grid-column: 1; align-self: center; }
-  .gwa-pr-clave { grid-column: 2; justify-self: end; align-self: center; }
+  .gwa-pr-tabla th[scope="row"] { grid-column: 1 / -1; align-self: center; }
   .gwa-pr-importe::before { content: attr(data-th); display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
   .gwa-pr-monto input[type="text"] { max-width: none; }
   .gwa-pr-estado { grid-column: 1 / -1; white-space: normal; }
@@ -112,7 +103,6 @@
   .gwa-pr-tabla tbody tr { grid-template-columns: minmax(0, 1fr) auto; }
   .gwa-pr-importe { grid-column: 1 / -1; }
   .gwa-pr-mod, .gwa-pr-acciones { grid-column: 1 / -1; text-align: left; }
-  .gwa-pr-vig { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 860px) {
@@ -123,3 +113,31 @@
   .gwa-pr-barra-acciones { width: 100%; flex-wrap: nowrap; gap: 8px; }
   .gwa-pr-barra-acciones .gu-btn { flex: 1 1 0; padding: 0 10px; font-size: 13.5px; }
 }
+
+/* ---------- Planes y precios (pantalla unificada) ---------- */
+.gwa-migas { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--text-muted); margin: 0 0 2px; }
+.gwa-migas .gu-icon { width: 13px; height: 13px; }
+.gwa-migas [aria-current] { color: var(--text-secondary); }
+.gwa-pr-cabecera { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; max-width: 560px; }
+.gwa-pr-nombre .gu-chip { margin-left: 8px; vertical-align: 2px; font-weight: 400; }
+.gwa-pr-fecha { width: 170px; }
+.gwa-pr-fecha input[type="date"] { min-width: 150px; }
+.gwa-pr-th-ayuda { display: inline-flex; align-items: center; gap: 5px; }
+.gwa-pr-tip { position: relative; display: inline-flex; color: var(--text-muted); cursor: help; border-radius: 50%; }
+.gwa-pr-tip .gu-icon { width: 15px; height: 15px; }
+.gwa-pr-tip [role="tooltip"] { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 240px; padding: 9px 11px;
+  background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  font-size: .8rem; font-weight: 400; line-height: 1.4; color: var(--text); white-space: normal; text-transform: none; z-index: 20;
+  opacity: 0; visibility: hidden; transition: opacity .12s ease; }
+.gwa-pr-tip:hover [role="tooltip"], .gwa-pr-tip:focus [role="tooltip"] { opacity: 1; visibility: visible; }
+.gwa-pr-tip:focus-visible { outline: 2px solid var(--brand-green-ink); outline-offset: 2px; }
+.gwa-pr-comun { margin: 10px 0 4px; max-width: 640px; }
+.gwa-pr-acciones { width: 52px; }
+.gwa-pr-ajustes .gu-table td:nth-child(3) { width: 210px; }
+.gwa-pr-ajustes .gu-table td:nth-child(4) { width: 130px; }
+@container producto (max-width: 900px) {
+  .gwa-pr-fecha { grid-column: 1 / -1; width: auto; }
+  .gwa-pr-fecha::before { content: attr(data-th); display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+  .gwa-pr-fecha input[type="date"] { max-width: 220px; }
+}
+@media (max-width: 860px) { .gwa-pr-cabecera { align-items: stretch; max-width: none; } }

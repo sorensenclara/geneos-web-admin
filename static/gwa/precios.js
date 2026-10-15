@@ -8,29 +8,27 @@
   const campos = [...form.querySelectorAll("input[name], select[name]")].filter((el) => el.name !== "csrfmiddlewaretoken");
   campos.forEach((el) => (el.dataset.original = valor(el)));
 
-  // Vigencia: si todos los planes del producto comparten leyenda y aviso, se editan una sola vez en el encabezado.
-  // Si cada plan tiene la suya, el campo común queda desactivado y se editan en «Vigencia, moneda e IVA por plan».
+  // Leyenda de vigencia: si todos los planes del producto comparten la misma, se edita una sola vez.
+  // Si cada plan tiene la suya, el campo común queda desactivado y se edita por plan (el desplegable se abre solo).
   form.querySelectorAll("[data-vigencia]").forEach((seccion) => {
     const comun = seccion.querySelector("[data-comun]");
     const porPlan = seccion.querySelector("[data-porplan]");
-    const grupo = (k) => [...seccion.querySelectorAll(`[data-vig="${k}"]`)];
-    const iguales = () => ["leyenda_vigencia", "vigente_hasta"].every((k) => new Set(grupo(k).map((e) => e.value)).size === 1);
+    if (!comun || !porPlan) return;
+    const campo = comun.querySelector("[data-comun-campo]");
+    const grupo = () => [...seccion.querySelectorAll('[data-vig="leyenda_vigencia"]')];
+    const iguales = () => new Set(grupo().map((e) => e.value)).size === 1;
     const alc = comun.querySelector("[data-alcance]");
     if (alc) alc.dataset.original = alc.textContent;
     function reflejar() {
       const sigue = iguales();
-      comun.querySelectorAll("[data-comun-campo]").forEach((c) => {
-        c.disabled = !sigue;
-        c.placeholder = sigue ? "Sin leyenda" : "Varía por plan: editala abajo";
-        c.value = sigue ? grupo(c.dataset.comunCampo)[0].value : "";
-      });
+      campo.disabled = !sigue;
+      campo.placeholder = sigue ? "Sin leyenda" : "Distinta en cada plan: editala abajo";
+      campo.value = sigue ? grupo()[0].value : "";
       if (alc) alc.textContent = sigue ? alc.dataset.original : "(distinta en cada plan)";
       return sigue;
     }
-    comun.querySelectorAll("[data-comun-campo]").forEach((c) => {
-      c.addEventListener("input", () => { grupo(c.dataset.comunCampo).forEach((e) => { e.value = c.value; }); actualizar(); });
-    });
-    porPlan.addEventListener("input", reflejar);
+    campo.addEventListener("input", () => { grupo().forEach((e) => { e.value = campo.value; }); actualizar(); });
+    porPlan.querySelector("table").addEventListener("input", reflejar);
     if (!reflejar()) porPlan.open = true;
   });
 
