@@ -86,7 +86,7 @@
 
 {% set sector_items = [] %}
 {% for x in D.sectors %}{% set _ = sector_items.append({"icon": x.icon, "title": x.title, "text": x.text}) %}{% endfor %}
-{% if show("sectores") %}{{ pp.modules({"id": "sectores", "soft": true, "cols": 4, "eyebrow": "Sectores", "title": "Pensado para tu sector", "items": sector_items}) }}{% endif %}
+{% if show("sectores") and sector_items %}{{ pp.modules({"id": "sectores", "soft": true, "cols": 4, "eyebrow": "Sectores", "title": "Pensado para tu sector", "items": sector_items}) }}{% endif %}
 
 {{ sx.plans(D) }}
 

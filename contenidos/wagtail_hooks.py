@@ -78,10 +78,18 @@ class FuncionalidadViewSet(PorSitio):
 
 
 class SectorViewSet(PorSitio):
+    """«Oferta comercial → Sectores»: destinatarios comerciales de cada producto (contenido web e información interna)."""
     model = Sector
     icon = "group"
     menu_label = "Sectores"
+    add_view_class = CrearConProducto
     list_display = ["titulo", columna_sitio(), "orden"]
+
+    @property
+    def index_view(self):
+        """Listado de todos los productos con estado editorial y presencia en la web (publicacion/sectores.py)."""
+        from publicacion.sectores import sectores
+        return sectores
 
 
 class ComercialGroup(SnippetViewSetGroup):

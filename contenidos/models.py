@@ -537,12 +537,78 @@ class Testimonio(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, C
                 and bool(self.autorizado_por.strip()) and self.autorizado_el is not None and self.visible)
 
 
-class Sector(ContenidoSitio):
-    titulo = models.CharField("Sector", max_length=60)
-    texto = models.CharField("Texto", max_length=200)
-    icono = models.CharField("Ícono (archivo)", max_length=200)
-    orden = models.PositiveSmallIntegerField(default=0)
-    panels = [FieldPanel("sitio"), FieldPanel("titulo"), FieldPanel("texto"), FieldPanel("icono"), FieldPanel("orden")]
+class SectorForm(FormPorSitio):
+    """Las funcionalidades que se pueden vincular son las del mismo producto."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        campo = self.fields.get("funcionalidades")
+        if campo is not None:
+            sitio_id = self.instance.sitio_id or (self.data.get("sitio") if self.is_bound else None) or self.initial.get("sitio")
+            campo.queryset = campo.queryset.filter(sitio_id=sitio_id) if sitio_id else campo.queryset.none()
+
+    def clean(self):
+        datos = super().clean()
+        sitio = datos.get("sitio") or getattr(self.instance, "sitio", None)
+        for f in datos.get("funcionalidades") or []:
+            if sitio is not None and f.sitio_id != sitio.pk:
+                self.add_error("funcionalidades", f"«{f}» es de otro producto.")
+        if datos.get("visible") and datos.get("mostrar_tarjeta") and sitio is not None:
+            from .sectores import SECCION_WEB
+            if sitio.clave in SECCION_WEB:
+                for campo in ("titulo", "texto"):
+                    if not (datos.get(campo) or "").strip():
+                        self.add_error(campo, "Hace falta para mostrar la tarjeta en la web.")
+        return datos
+
+
+class Sector(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, PreviewableMixin, ClusterableModel, ContenidoSitio):
+    """Destinatario comercial de un producto. Lo de «Contenido web» edita las tarjetas que la web ya tiene (GERP, GEMA);
+    la «Información interna» y las funcionalidades vinculadas no se publican nunca."""
+    # Contenido web
+    nombre = models.CharField("Nombre comercial", max_length=80, default="", help_text="Cómo lo llamamos internamente. Ej.: Talleres de matafuegos.")
+    titulo = models.CharField("Título", max_length=60, blank=True, help_text="Título de la tarjeta en la web.")
+    texto = models.CharField("Descripción breve", max_length=200, blank=True, help_text="Texto de la tarjeta en la web.")
+    descripcion = models.TextField("Descripción ampliada", blank=True, help_text="Opcional. Por ahora no se muestra en la web.")
+    icono = models.CharField("Ícono de la web", max_length=200, blank=True,
+                             help_text="El que usa la web hoy: archivo (img/sectores/…) o Bootstrap Icon (bi-…).")
+    imagen = models.ForeignKey("wagtailimages.Image", verbose_name="Imagen", null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name="+", help_text="Opcional. Por ahora no se muestra en la web.")
+    enlace = models.CharField("Enlace o destino", max_length=200, blank=True, help_text="Opcional. Por ahora las tarjetas no llevan enlace.")
+    orden = models.PositiveSmallIntegerField("Orden", default=0)
+    mostrar_tarjeta = models.BooleanField("Mostrar como tarjeta de sector en la web", default=True,
+                                          help_text="Solo si la web del producto tiene sección de sectores (GERP y GEMA). No crea secciones nuevas.")
+    # Información interna (no se exporta)
+    descripcion_interna = models.TextField("Descripción interna", blank=True)
+    necesidades = models.TextField("Necesidades y problemas del sector", blank=True)
+    funcionalidades = ParentalManyToManyField("Funcionalidad", verbose_name="Funcionalidades relevantes", blank=True, related_name="sectores",
+                                              help_text="De «Oferta comercial → Funcionalidades» del mismo producto. Relación interna: no se publica.")
+    observaciones = models.TextField("Observaciones comerciales", blank=True)
+    responsable = models.CharField("Responsable o referente", max_length=120, blank=True)
+    # Configuración
+    visible = models.BooleanField("Visible en la web", default=True, help_text="Desmarcalo para ocultarlo sin borrarlo.")
+    base_form_class = SectorForm
+
+    edit_handler = TabbedInterface([
+        ObjectList([
+            HelpPanel("<p>Estos campos editan las tarjetas de sectores que la web del producto ya tiene. "
+                      "En GERP: «Pensado para tu sector»; en GEMA: «¿Para quién es GEMA?». La web de GEAGRO no tiene esa sección.</p>"),
+            FieldRowPanel([FieldPanel("nombre"), FieldPanel("titulo")]), FieldPanel("texto"), FieldPanel("descripcion"),
+            FieldRowPanel([FieldPanel("icono"), FieldPanel("imagen")]), FieldPanel("enlace"),
+            FieldRowPanel([FieldPanel("orden"), FieldPanel("mostrar_tarjeta")]),
+        ], heading="Contenido web"),
+        ObjectList([
+            HelpPanel("<p><b>Privado:</b> nada de esta pestaña se exporta a las webs.</p>"),
+            FieldPanel("descripcion_interna"), FieldPanel("necesidades"),
+            FieldPanel("funcionalidades", widget=forms.CheckboxSelectMultiple),
+            FieldPanel("observaciones"), FieldPanel("responsable"),
+        ], heading="Información interna"),
+        ObjectList([
+            FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldPanel("visible"),
+            HelpPanel("<p>El estado editorial (borrador, aprobado) y el historial de cambios están arriba, en la barra de la ficha. "
+                      "Lo aprobado se ve en la web después de «Publicar en la web».</p>"),
+        ], heading="Configuración"),
+    ])
 
     class Meta:
         ordering = ["sitio", "orden"]
@@ -550,7 +616,11 @@ class Sector(ContenidoSitio):
         verbose_name_plural = "sectores"
 
     def __str__(self):
-        return self.titulo
+        return self.nombre or self.titulo
+
+    def serve_preview(self, request, mode_name):
+        from publicacion.servicio import vista_previa_objeto
+        return vista_previa_objeto(request, self, mode_name)
 
 
 class Redireccion(ContenidoSitio):

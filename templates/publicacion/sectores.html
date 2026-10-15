@@ -1,0 +1,102 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailadmin_tags %}
+{% block titletag %}Sectores{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'gwa/funcionalidades.css' %}"><link rel="stylesheet" href="{% static 'gwa/sectores.css' %}">{% endblock %}
+{% block extra_js %}{{ block.super }}<script src="{% static 'gwa/sectores.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-fx gwa-sc" data-sectores>
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="group" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><span>Oferta comercial</span>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Sectores</span></nav>
+        <h1>Sectores</h1>
+        <p>Los públicos y actividades a los que se dirige cada producto: lo que muestra la web y la información interna.</p>
+      </div>
+    </div>
+    <div class="gwa-pr-cabecera">
+      {% if puede_agregar %}<a class="gu-btn gu-btn-primary" href="{% url 'wagtailsnippets_contenidos_sector:add' %}" data-anadir>{% icon name="plus" classname="gu-icon" %}Añadir sector</a>{% endif %}
+      <div class="gu-info">{% icon name="info-circle" classname="gu-icon" %}
+        <p>Los sectores editan las tarjetas que la web ya tiene: «Pensado para tu sector» en GERP y «¿Para quién es GEMA?» en GEMA.
+           GEAGRO no tiene esa sección: sus sectores quedan como información interna. Nada de lo interno se publica.</p>
+      </div>
+    </div>
+  </div>
+
+  {# Productos: también filtran la tabla #}
+  <div class="gwa-fx-productos gwa-sc-productos" role="group" aria-label="Filtrar por producto">
+    {% for p in productos %}
+    <button type="button" class="gwa-fx-producto" style="--gwa-producto: {{ p.marca.color }}" data-filtro-producto="{{ p.sitio.clave }}" aria-pressed="{% if activo == p.sitio.clave %}true{% else %}false{% endif %}"
+            title="{{ p.seccion }}">
+      {% if p.marca.isologo_url %}<img src="{{ p.marca.isologo_url }}" alt="" width="36" height="36">{% endif %}
+      <span><b>{{ p.sitio.nombre }}</b><small>{{ p.n }} sector{{ p.n|pluralize:"es" }}{% if not p.con_seccion %} · solo interno{% endif %}</small></span>
+    </button>
+    {% endfor %}
+  </div>
+  <p class="gwa-sc-seccion" data-seccion-texto hidden></p>
+  {% for p in productos %}<template data-seccion="{{ p.sitio.clave }}">{{ p.seccion }}</template>{% endfor %}
+
+  <div class="gwa-fx-filtros" role="search">
+    <label class="gwa-fx-buscar">{% icon name="search" classname="gu-icon" %}<span class="w-sr-only">Buscar sectores</span>
+      <input type="search" placeholder="Buscar sectores…" data-filtro="q" autocomplete="off"></label>
+    <label class="gwa-fx-filtro"><span>Producto</span>
+      <select data-filtro="producto"><option value="">Todos</option>{% for p in productos %}<option value="{{ p.sitio.clave }}"{% if activo == p.sitio.clave %} selected{% endif %}>{{ p.sitio.nombre }}</option>{% endfor %}</select></label>
+    <label class="gwa-fx-filtro"><span>Línea</span>
+      <select data-filtro="linea"><option value="">Todas</option><option value="-">Sin línea</option>{% for l in lineas %}<option value="{{ l.pk }}">{{ l.sitio.nombre }} · {{ l.nombre }}</option>{% endfor %}</select></label>
+    <label class="gwa-fx-filtro"><span>Estado</span>
+      <select data-filtro="estado"><option value="">Todos</option><option value="borrador">Borrador</option><option value="aprobado">Aprobado</option>
+        <option value="revision">En revisión</option><option value="sin_aprobar">Sin aprobar</option></select></label>
+    <label class="gwa-fx-filtro"><span>En la web</span>
+      <select data-filtro="web"><option value="">Todos</option><option value="en_web">En la web</option><option value="falta">Aprobado, falta publicar</option>
+        <option value="oculto">Oculto</option><option value="no_publicado">No publicado</option><option value="interno">Solo interno</option></select></label>
+    <button type="button" class="gu-btn gu-btn-ghost" data-limpiar>{% icon name="rotate" classname="gu-icon" %}Limpiar filtros</button>
+    <p class="gwa-fx-cuenta" aria-live="polite" data-cuenta>{{ filas|length }} sectores</p>
+  </div>
+
+  <div class="gwa-fx-tabla-wrap gwa-sc-wrap">
+  <table class="gu-table gwa-sc-tabla">
+    <thead><tr><th scope="col">Sector</th><th scope="col">Producto</th><th scope="col">Línea</th><th scope="col">Estado editorial</th>
+      <th scope="col">En la web</th><th scope="col" class="gwa-sc-c-orden">Orden</th><th scope="col"><span class="w-sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+    {% for r in filas %}{% with f=r.f v=r.v %}
+    <tr data-sector data-producto="{{ f.sitio.clave }}" data-linea="{{ v.linea_id|default:'-' }}" data-estado="{{ r.estado }}" data-web="{{ r.web }}"
+        data-nombre="{{ v.nombre }} {{ v.titulo }}" style="--gwa-producto: {{ r.marca.color }}">
+      <th scope="row" class="gwa-sc-nombre">
+        <span class="gwa-sc-nombre-in">{% icon name="group" classname="gu-icon gwa-sc-icono" %}
+          <span><b>{{ v.nombre|default:v.titulo }}</b>
+            {% if v.titulo and v.titulo != v.nombre %}<small>En la web: «{{ v.titulo }}»</small>{% elif v.texto %}<small>{{ v.texto|truncatechars:70 }}</small>{% endif %}
+            {% if r.funcs %}<small class="gwa-sc-funcs">{% icon name="package" classname="gu-icon" %}{{ r.funcs }} funcionalidad{{ r.funcs|pluralize:"es" }} vinculada{{ r.funcs|pluralize }} (interno)</small>{% endif %}
+          </span></span>
+      </th>
+      <td data-th="Producto"><span class="gu-producto">{% if r.marca.isologo_url %}<img src="{{ r.marca.isologo_url }}" alt="" width="22" height="22">{% endif %}{{ f.sitio.nombre }}</span></td>
+      <td data-th="Línea">{% if v.linea %}<span class="gu-chip">{{ v.linea.nombre }}</span>{% else %}<span class="gwa-sc-vacio" aria-label="Sin línea">—</span>{% endif %}</td>
+      <td data-th="Estado editorial">
+        <span class="gu-status-pill {% if r.estado == 'aprobado' %}good{% elif r.estado == 'borrador' %}warning{% elif r.estado == 'revision' %}info{% else %}neutral{% endif %}">{{ r.estado_texto }}</span>
+        {% if f.locked %}<span class="gu-status-pill neutral">{% icon name="lock" classname="gu-icon" %}Bloqueado</span>{% endif %}
+      </td>
+      <td data-th="En la web">
+        <span class="gu-status-pill {% if r.web == 'en_web' %}good{% elif r.web == 'falta' %}warning{% else %}neutral{% endif %}">
+          {% if r.web == 'en_web' %}{% icon name="view" classname="gu-icon" %}{% elif r.web == 'interno' %}{% icon name="lock" classname="gu-icon" %}{% else %}{% icon name="no-view" classname="gu-icon" %}{% endif %}{{ r.web_texto }}</span>
+      </td>
+      <td data-th="Orden" class="gwa-sc-c-orden">{{ v.orden }}</td>
+      <td class="gwa-fx-c-acc">
+        <span class="gu-btn-dropdown">
+          <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon" data-gu-dropdown="sc-mas-{{ f.pk }}" aria-expanded="false" aria-haspopup="true" aria-label="Acciones de «{{ v.nombre }}»">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
+          <span class="gu-btn-dropdown-menu" id="sc-mas-{{ f.pk }}" hidden>
+            <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_sector:edit' f.pk %}">{% icon name="edit" classname="gu-icon" %}{% if r.editable %}Editar sector{% else %}Ver sector{% endif %}</a>
+            <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_sector:history' f.pk %}">{% icon name="history" classname="gu-icon" %}Ver historial</a>
+            {% if r.previa %}<a class="gu-btn-dropdown-item" href="{{ r.previa }}" target="_blank" rel="noopener">{% icon name="view" classname="gu-icon" %}Vista previa</a>{% endif %}
+          </span>
+        </span>
+      </td>
+    </tr>
+    {% endwith %}{% empty %}
+    <tr><td colspan="7">Todavía no hay sectores.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="gwa-fx-sin-resultados" data-sin-resultados hidden>Ningún sector coincide con los filtros.</p>
+  <p class="gwa-pr-ayuda">«En la web» compara con la última publicación de cada producto. Lo aprobado se ve después de «Publicar en la web» desde
+    <a href="{% url 'gwa_estado' %}">Estado de las webs</a>. La información interna y las funcionalidades vinculadas no se publican.</p>
+</div>
+{% endblock %}

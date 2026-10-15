@@ -328,9 +328,8 @@ def datos_gerp(fuente, faqs_por_ruta):
         for f in funcs:
             valores = {v.plan.clave: valor_funcionalidad(v) for v in f.valores.all() if v.plan.clave in claves}
             base["features"].append({"group": f.grupo, "label": f.etiqueta, "summary": f.resumen, "values": {k: valores.get(k) for k in claves}})
-    sectores = fuente.snippets(Sector)
-    if sectores:
-        base["sectors"] = [{"icon": s.icono, "title": s.titulo, "text": s.texto} for s in sorted(sectores, key=lambda s: s.orden)]
+    if Sector.objects.filter(sitio=fuente.sitio).exists() or fuente.snippets(Sector):
+        base["sectors"] = sectores_web(fuente)
     base["testimonials"] = [{"company": t.empresa, "publish": True, "text": t.texto} for t in fuente.snippets(Testimonio) if t.publicable]
     reds = fuente.snippets(Redireccion)
     if reds:
@@ -431,6 +430,13 @@ def datos_identidad(fuente, files):
     return res
 
 
+def sectores_web(fuente):
+    """Tarjetas de sectores que la web ya tiene (GERP y GEMA): solo título, texto e ícono de los sectores aprobados,
+    visibles y marcados como tarjeta. La información interna y las funcionalidades vinculadas nunca se exportan."""
+    sectores = [s for s in fuente.snippets(Sector) if s.visible and s.mostrar_tarjeta and s.titulo]
+    return [{"icon": s.icono, "title": s.titulo, "text": s.texto} for s in sorted(sectores, key=lambda s: s.orden)]
+
+
 def datos_sitio(sitio, overrides=None):
     """Devuelve {"contacto.json": ..., "<clave>.json": ..., ["gerp.json": ...]} y la lista de archivos a copiar."""
     fuente = Fuente(sitio, overrides)
@@ -442,6 +448,8 @@ def datos_sitio(sitio, overrides=None):
         pd["plans"] = [{"name": p.nombre, "price": p.precio, "num": p.precio_num, "impl": p.implementacion, "hidden": not p.visible,
                         "currency": p.simbolo, "currency_code": p.moneda, "iva": p.mas_iva, "validity": p.leyenda_vigencia}
                        for p in fuente.snippets(Plan)]
+    if sitio.clave == "gema" and (Sector.objects.filter(sitio=sitio).exists() or fuente.snippets(Sector)):
+        pd["sectors"] = sectores_web(fuente)  # «¿Para quién es GEMA?»
     pd["blog"] = datos_blog(fuente, files)
     pd["identity"] = datos_identidad(fuente, files)
     if sitio.usa_formularios:

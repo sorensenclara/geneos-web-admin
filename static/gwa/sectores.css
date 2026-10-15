@@ -1,0 +1,37 @@
+/* «Sectores»: usa las pestañas de producto, filtros y tabla de Funcionalidades (funcionalidades.css). */
+.gwa-sc-productos .gwa-fx-producto { border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }
+.gwa-sc-productos .gwa-fx-producto[aria-pressed="true"] { background: var(--surface); }
+.gwa-sc-productos .gwa-fx-producto[aria-pressed="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: var(--gwa-producto); }
+.gwa-sc-seccion { margin: 6px 0 14px; padding: 10px 14px; border-left: 3px solid var(--border-strong); background: var(--surface); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-secondary); font-size: .9rem; }
+.gwa-sc-tabla { font-size: .93rem; }
+.gwa-sc-tabla td, .gwa-sc-tabla tbody th { border-top: 1px solid var(--border); padding: 10px; vertical-align: middle; }
+.gwa-sc-tabla tbody tr:first-child td, .gwa-sc-tabla tbody tr:first-child th { border-top: 0; }
+.gwa-sc-tabla tbody tr:hover { background: color-mix(in srgb, var(--surface-3) 50%, transparent); }
+.gwa-sc-nombre { white-space: normal !important; text-transform: none; letter-spacing: 0; min-width: 220px; }
+.gwa-sc-nombre-in { display: flex; gap: 12px; align-items: center; }
+.gwa-sc-icono { width: 38px; height: 38px; padding: 9px; flex: none; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--gwa-producto) 55%, var(--border));
+  color: color-mix(in srgb, var(--gwa-producto) 55%, #fff); background: color-mix(in srgb, var(--gwa-producto) 12%, transparent); }
+.gwa-sc-nombre b { display: block; font-size: 1rem; color: var(--text); }
+.gwa-sc-nombre small { display: block; font-weight: 400; color: var(--text-muted); font-size: .82rem; }
+.gwa-sc-funcs { display: inline-flex !important; align-items: center; gap: 5px; margin-top: 2px; color: var(--text-secondary) !important; }
+.gwa-sc-funcs .gu-icon { width: 13px; height: 13px; }
+.gwa-sc-tabla .gu-status-pill .gu-icon { width: 13px; height: 13px; }
+.gwa-sc-vacio { color: var(--text-muted); }
+.gwa-sc-c-orden { text-align: center; width: 70px; font-variant-numeric: tabular-nums; }
+.gwa-sc-wrap { container-name: sectores; }
+
+@container sectores (max-width: 820px) {
+  .gwa-sc-tabla, .gwa-sc-tabla tbody { display: block; }
+  .gwa-sc-tabla thead { position: absolute; left: -9999px; }
+  .gwa-sc-tabla tbody tr { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; padding: 12px; margin: 0 0 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+  .gwa-sc-tabla tbody tr[hidden] { display: none; }
+  .gwa-sc-tabla tbody tr > * { border: 0 !important; padding: 0 !important; min-width: 0; text-align: left; width: auto; }
+  .gwa-sc-nombre { grid-column: 1 / -1; padding-right: 40px !important; }
+  .gwa-sc-tabla td[data-th]::before { content: attr(data-th); display: block; font-size: .72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+  .gwa-sc-tabla .gwa-fx-c-acc { position: absolute; top: 8px; right: 8px; }
+}
+@media (max-width: 860px) {
+  .gwa-sc-productos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

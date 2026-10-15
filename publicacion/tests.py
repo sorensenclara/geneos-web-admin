@@ -25,6 +25,7 @@ from sitios.permisos import SitioPermissionPolicy, puede
 VAR = Path(tempfile.mkdtemp(prefix="gwa-test-"))
 PLANES = "/admin/snippets/contenidos/plan/"  # «Oferta comercial → Planes y precios»
 FUNCS = "/admin/snippets/contenidos/funcionalidad/"  # «Oferta comercial → Funcionalidades»
+SECTORES = "/admin/snippets/contenidos/sector/"  # «Oferta comercial → Sectores»
 
 
 @override_settings(GWA_VAR_DIR=VAR, GWA_FORM_SEGUNDOS_MINIMOS=0, MEDIA_ROOT=str(VAR / "media"))
@@ -400,6 +401,79 @@ class Circuito(TestCase):
         cereal.refresh_from_db()
         self.assertEqual(cereal.grupo, "basic")  # sin permiso para aprobar: quedó como borrador
         self.assertTrue(cereal.has_unpublished_changes)
+
+    # ---------------------------------------------------------------------------------------------- Sectores
+    def _publicar_cambio(self, obj, **campos):
+        for k, v in campos.items():
+            setattr(obj, k, v)
+        obj.save_revision(user=self.clara).publish(user=self.clara)
+
+    def test_sectores_pantalla_y_datos_iniciales(self):
+        from contenidos.models import Sector
+        self.client.force_login(self.clara)
+        self.assertEqual(list(Sector.objects.filter(sitio=self.gerp).values_list("titulo", flat=True)),
+                         ["Mayoristas", "Retail y minoristas", "Manufactureros", "Laboratorios"])
+        gema = Sector.objects.filter(sitio=self.gema)
+        self.assertEqual(gema.first().nombre, "Talleres de matafuegos")
+        self.assertTrue(all(s.live for s in gema))
+        geagro = Sector.objects.filter(sitio=self.geagro).select_related("linea")
+        self.assertEqual({(s.nombre, s.linea.clave) for s in geagro}, {("Agrario", "cereales"), ("Viñedos", "vid")})
+        self.assertTrue(all(not s.live and s.texto == "" for s in geagro))  # borrador, sin textos inventados
+        html = self.client.get(SECTORES).content.decode()
+        for clave in ("gerp", "geagro", "gema"):
+            self.assertIn(f"gwa/marca/{clave}-isologo.svg", html)
+        self.assertIn("Solo interno", html)
+        self.assertIn("Borrador", html)
+        s = Sector.objects.get(sitio=self.gerp, titulo="Laboratorios")
+        self.assertIn(f"{SECTORES}edit/{s.pk}/", html)
+        edicion = self.client.get(f"{SECTORES}edit/{s.pk}/").content.decode()
+        for pestaña in ("Contenido web", "Información interna", "Configuración"):
+            self.assertIn(pestaña, edicion)
+
+    def test_sectores_interno_no_se_publica_y_tarjetas(self):
+        from contenidos.models import Funcionalidad, Sector
+        lab = Sector.objects.get(sitio=self.gerp, titulo="Laboratorios")
+        lab.funcionalidades.add(Funcionalidad.objects.filter(sitio=self.gerp).first())
+        self._publicar_cambio(lab, descripcion_interna="NOTA-PRIVADA-1", necesidades="NOTA-PRIVADA-2",
+                              observaciones="NOTA-PRIVADA-3", responsable="NOTA-PRIVADA-4", descripcion="NOTA-PRIVADA-5")
+        home = self._web(self.gerp)
+        self.assertIn("Laboratorios", home)
+        for f in [home] + [p.read_text(errors="ignore") for p in (despliegue.raiz(self.gerp) / "actual").rglob("*") if p.is_file() and p.suffix in (".html", ".json", ".js")]:
+            self.assertNotIn("NOTA-PRIVADA", f)
+        # Borrador: la web no cambia
+        lab.texto = "Texto en borrador"
+        lab.save_revision(user=self.clara)
+        self.assertNotIn("Texto en borrador", self._web(self.gerp))
+        # Sin tarjeta u oculto: no se publica, sin borrar el sector
+        self._publicar_cambio(Sector.objects.get(pk=lab.pk), mostrar_tarjeta=False)
+        self.assertNotIn("Laboratorios</", self._web(self.gerp))
+        # GEMA: la sección «¿Para quién es GEMA?» sale de los sectores
+        talleres = Sector.objects.get(sitio=self.gema, nombre="Talleres de matafuegos")
+        self._publicar_cambio(talleres, texto="Talleres de recarga de matafuegos (texto de prueba).")
+        self.assertIn("(texto de prueba)", self._web(self.gema))
+        for s in Sector.objects.filter(sitio=self.gema):
+            self._publicar_cambio(s, visible=False)
+        self.assertNotIn("¿Para quién es GEMA?", self._web(self.gema))  # sin tarjetas no queda una sección vacía
+        # GEAGRO: su web no tiene sección de sectores; aprobar uno no agrega nada
+        agrario = Sector.objects.get(sitio=self.geagro, nombre="Agrario")
+        self._publicar_cambio(agrario, visible=True, mostrar_tarjeta=True, titulo="Agrario", texto="Prueba GEAGRO interna")
+        self.assertNotIn("Prueba GEAGRO interna", self._web(self.geagro))
+
+    def test_sectores_funcionalidades_del_mismo_producto(self):
+        from contenidos.models import Funcionalidad, Sector
+        lab = Sector.objects.get(sitio=self.gerp, titulo="Laboratorios")
+        otra = Funcionalidad.objects.create(sitio=self.gema, etiqueta="Prueba GEMA", orden=1)
+        from wagtail.admin.panels import get_edit_handler
+        Form = get_edit_handler(Sector).get_form_class()
+        form = Form(instance=lab, for_user=self.clara)
+        self.assertNotIn(otra, form.fields["funcionalidades"].queryset)
+        self.assertEqual(set(form.fields["funcionalidades"].queryset.values_list("sitio__clave", flat=True)), {"gerp"})
+        # Un editor de GEMA solo ve sectores de GEMA
+        self.client.force_login(self.editor_gema)
+        html = self.client.get(SECTORES).content.decode()
+        self.assertIn("Talleres de matafuegos", html)
+        self.assertNotIn("Laboratorios", html)
+        self.assertEqual(self.client.get(f"{SECTORES}edit/{lab.pk}/").status_code, 302)
 
     def test_ultima_modificacion_interna(self):
         plan = Plan.objects.get(sitio=self.gema)

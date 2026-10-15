@@ -110,17 +110,17 @@
               {"label": "Consultanos por WhatsApp", "href": DEMO_WA, "style": "ghost-light", "icon": "bi-whatsapp", "external": true}],
 }) }}
 
-{# 7. Para quién es GEMA #}
+{# 7. Para quién es GEMA — tarjetas de «Oferta comercial → Sectores» (administrador) #}
+{% set para_quien = [] %}
+{% for x in (DATA.get("sectors") or []) %}{% set _ = para_quien.append({"icon": x.icon, "color": O if loop.index0 % 2 == 0 else B, "title": x.title, "text": x.text}) %}{% endfor %}
+{% if para_quien %}
 {{ pp.modules({
   "id": "para-quien", "eyebrow": "Para quién es", "title": "¿Para quién es GEMA?",
   "lead": "Si tu taller lleva el control de vencimientos a mano, en planillas de cálculo o en papel, GEMA te ayuda a no perder ningún vencimiento, tener el historial completo de cada matafuego y ahorrar tiempo administrativo.",
   "note": "¿Necesitás un sistema de gestión más amplio para tu empresa? Conocé también <a href=\"" ~ url('/software-de-gestion-completo/') ~ "\">GERP, nuestro ERP basado en Odoo</a>.",
-  "items": [
-    {"icon": "bi-wrench-adjustable", "color": O, "title": "Talleres de recarga", "text": "Talleres de recarga y mantenimiento de matafuegos que necesitan controlar vencimientos y servicios."},
-    {"icon": "bi-buildings", "color": B, "title": "Empresas de servicios", "text": "Empresas de seguridad contra incendios que atienden a comercios, industrias, consorcios e instituciones."},
-    {"icon": "bi-shop", "color": O, "title": "Distribuidores", "text": "Distribuidores de matafuegos que quieren seguir los equipos de sus clientes y avisarles a tiempo."},
-  ],
+  "items": para_quien,
 }) }}
+{% endif %}
 
 {# 8. GENEOS #}
 {{ pp.about({

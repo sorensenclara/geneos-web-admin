@@ -157,6 +157,7 @@ class Command(BaseCommand):
             sitios = self.sitios()
             self.gerp(sitios["gerp"])  # primero los planes: las preguntas frecuentes los referencian
             self.planes_simples(sitios)
+            self.sectores(sitios)
             self.paginas(sitios, base)
             self.colecciones_y_grupos(sitios)
             self.flujo()
@@ -333,9 +334,22 @@ class Command(BaseCommand):
         WorkflowPage.objects.update_or_create(page=Page.get_first_root_node(), defaults={"workflow": wf})
         for s in SitioWeb.objects.all():
             IdentidadSitio.objects.get_or_create(sitio=s)
-        for model in (Plan, Funcionalidad, PreguntaFrecuente, Testimonio, IdentidadSitio):
+        for model in (Plan, Funcionalidad, Sector, PreguntaFrecuente, Testimonio, IdentidadSitio):
             WorkflowContentType.objects.update_or_create(content_type=ContentType.objects.get_for_model(model), defaults={"workflow": wf})
         self.log("  Flujo de aprobación asignado a páginas, planes, funcionalidades, preguntas frecuentes y testimonios")
+
+    def sectores(self, sitios):
+        """GEMA: las tarjetas que su web publica hoy. GEAGRO: dos sectores en borrador, sin textos comerciales (contenidos/sectores.py)."""
+        from contenidos.sectores import GEAGRO, GEMA
+        if not Sector.objects.filter(sitio=sitios["gema"]).exists():
+            for i, x in enumerate(GEMA, 1):
+                Sector.objects.create(sitio=sitios["gema"], orden=i, **x)
+        if not Sector.objects.filter(sitio=sitios["geagro"]).exists():
+            for i, x in enumerate(GEAGRO, 1):
+                x = dict(x)
+                linea = LineaProducto.objects.filter(sitio=sitios["geagro"], clave=x.pop("linea")).first()
+                Sector.objects.create(sitio=sitios["geagro"], linea=linea, orden=i, live=False, has_unpublished_changes=True,
+                                      mostrar_tarjeta=False, visible=False, **x)
 
     def gerp(self, s):
         if Plan.objects.filter(sitio=s).exists():
@@ -366,7 +380,7 @@ class Command(BaseCommand):
             func.valores = valores
             func.save()
         for i, x in enumerate(d["sectors"], 1):
-            Sector.objects.create(sitio=s, titulo=x["title"], texto=x["text"], icono=x["icon"], orden=i)
+            Sector.objects.create(sitio=s, nombre=x["title"], titulo=x["title"], texto=x["text"], icono=x["icon"], orden=i)
         for t in d["testimonials"]:
             tt = Testimonio(sitio=s, empresa=t["company"], texto=t.get("text") or "", estado="pendiente", nota=(t.get("pending") or "")[:200], live=False)
             tt.save()

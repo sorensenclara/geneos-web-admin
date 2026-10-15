@@ -174,6 +174,27 @@ isologo y la cantidad cargada, y dos vistas de los mismos datos:
 Comparador de GERP: los valores «A confirmar» quedan en el administrador, pero en la web la celda queda vacía,
 y las filas se muestran siempre, aunque todas sus celdas estén vacías (hoy: «Facturación electrónica ARCA (AFIP)»).
 
+## Sectores
+
+*Oferta comercial → Sectores* administra los destinatarios comerciales de cada producto. No agrega secciones nuevas a las webs:
+edita las tarjetas que ya existen y guarda información interna.
+
+| Producto | En la web hoy | Qué se edita desde Sectores |
+|---|---|---|
+| GERP | Tarjetas «Pensado para tu sector» de la home | Los 4 sectores (Mayoristas, Retail y minoristas, Manufactureros, Laboratorios), como estaban |
+| GEMA | Tarjetas «¿Para quién es GEMA?» de la home (antes fijas en la plantilla) | Talleres de recarga (nombre interno «Talleres de matafuegos»), Empresas de servicios y Distribuidores, con el mismo texto |
+| GEAGRO | No tiene sección de sectores (el público se menciona en la portada de Cereales y Vid y en la pregunta «¿Para quién está pensado?») | Agrario (Cereales) y Viñedos (Vid) en borrador, sin textos comerciales: solo información interna |
+
+- Cada sector tiene tres pestañas: **Contenido web** (nombre comercial, título y descripción breve de la tarjeta, descripción ampliada,
+  ícono o imagen, enlace, orden y «Mostrar como tarjeta»), **Información interna** (descripción interna, necesidades, funcionalidades
+  relevantes del mismo producto, observaciones y responsable) y **Configuración** (producto, línea y visibilidad).
+- A la web solo llegan título, descripción breve e ícono de los sectores aprobados, visibles y marcados como tarjeta, y solo en
+  GERP y GEMA. Descripción ampliada, imagen y enlace todavía no se muestran. La información interna y las funcionalidades vinculadas no se exportan nunca.
+- Sin tarjetas visibles, la sección no se muestra (no queda vacía). Borrador, aprobado y «En la web» (comparado con la última
+  publicación) se ven en el listado.
+- Los textos generales de esas secciones (por ejemplo «Pensado para tu sector» o la introducción de «¿Para quién es GEMA?»)
+  siguen en las plantillas.
+
 ## Validaciones comerciales pendientes
 
 - Valores «A confirmar» del comparador de GERP (cada valor tiene su fuente y un campo «Validado por»).
