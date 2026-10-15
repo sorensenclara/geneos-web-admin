@@ -1,0 +1,236 @@
+/* GENEOS UI · componentes portados de GELECTRIC (core/static/core/css/dashboard.css).
+   Misma estructura, medidas y comportamiento; prefijo gu- para no chocar con las clases de Wagtail
+   (.sidebar, .content, .button, .icon, .avatar ya existen en Wagtail) y colores del tema oscuro (tokens.css).
+   Se dejó afuera lo propio de GELECTRIC: selector azul/verde, barra de energía, gráficos y asociados. */
+
+.gu-icon { width: 18px; height: 18px; flex-shrink: 0; margin: 0; vertical-align: middle; }
+
+/* ---------- Esqueleto: sidebar + columna principal (topbar arriba, contenido abajo) ---------- */
+.gu-app { display: flex; min-height: 100vh; width: 100%; background: var(--bg); }
+.gu-main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.gu-sidebar { width: var(--gu-sidebar-w-open); flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border);
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
+  transition: width .2s ease, transform .25s ease; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.gu-brand { display: flex; align-items: center; padding: 18px 20px 16px; background: var(--sidebar-brand-bg); flex-shrink: 0; min-height: 76px; }
+.gu-brand:focus-visible { outline: 2px solid var(--brand-green); outline-offset: -2px; }
+.gu-brand-logo { width: 100%; max-width: 168px; height: auto; display: block; }
+.gu-brand-logo-icon { display: none; width: 30px; max-width: 30px; margin: 0 auto; }
+
+.gu-sidebar-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px 14px; gap: 18px; }
+.gu-nav { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.gu-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); color: var(--sidebar-text);
+  background: none; border: none; cursor: pointer; text-align: left; font-size: 14px; font-family: var(--font-body); line-height: 1.3;
+  position: relative; width: 100%; text-decoration: none; }
+.gu-nav-item .gu-icon { color: var(--sidebar-text-muted); }
+.gu-nav-item:hover { background: rgba(255, 255, 255, .05); color: #fff; }
+.gu-nav-item:hover .gu-icon { color: var(--sidebar-text); }
+.gu-nav-item.active { background: var(--sidebar-bg-active); color: var(--sidebar-text-active); font-weight: 600; }
+.gu-nav-item.active .gu-icon { color: var(--brand-green-ink); }
+.gu-nav-item.active::before { content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-green); }
+.gu-nav-item:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 1px; }
+.gu-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gu-nav-chevron { width: 16px; height: 16px; color: var(--sidebar-text-muted); transition: transform .15s ease; }
+.gu-nav-item[aria-expanded="true"] .gu-nav-chevron { transform: rotate(90deg); }
+/* Grupo con una opción activa adentro: el padre se marca sin el fondo completo */
+.gu-nav-item.has-active { color: var(--sidebar-text-active); }
+.gu-nav-item.has-active .gu-icon:first-child { color: var(--brand-green-ink); }
+
+/* Submenús (GELECTRIC no los tiene: mismo lenguaje que los ítems, con una guía vertical) */
+.gu-subnav { list-style: none; margin: 2px 0 6px 19px; padding: 0 0 0 12px; border-left: 1px solid var(--sidebar-border); display: flex; flex-direction: column; gap: 1px; }
+.gu-subnav[hidden] { display: none; }
+.gu-subnav .gu-nav-item { font-size: 13.5px; padding: 7px 10px; color: var(--sidebar-text-muted); }
+.gu-subnav .gu-nav-item:hover { color: #fff; }
+.gu-subnav .gu-nav-item.active { color: var(--sidebar-text-active); }
+.gu-subnav .gu-nav-item.active::before { left: -13px; }
+
+.gu-sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.gu-sidebar-divider { height: 1px; background: var(--sidebar-border); margin: 2px 0; }
+.gu-sidebar-meta { display: flex; flex-direction: column; gap: 1px; font-size: 11px; line-height: 1.35; color: var(--sidebar-text-muted); padding: 0 10px; }
+.gu-sidebar-meta b { color: var(--sidebar-text); font-weight: 600; letter-spacing: .03em; }
+
+/* Globito con el nombre de cada ícono (sidebar contraído). Vive fuera del sidebar porque el sidebar
+   necesita overflow-y:auto y eso recorta cualquier cosa que salga por su borde (igual que GELECTRIC). */
+.gu-icon-tooltip { position: fixed; transform: translateY(-50%); background: var(--surface-3); color: var(--text); border: 1px solid var(--border-strong);
+  font-size: 13px; font-weight: 600; white-space: nowrap; padding: 7px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s ease; z-index: 1000; font-family: var(--font-body); }
+.gu-icon-tooltip.visible { opacity: 1; visibility: visible; }
+
+/* ---------- Topbar ---------- */
+.gu-topbar { position: sticky; top: 0; z-index: 110; display: flex; align-items: center; gap: 14px; padding: 12px 24px; min-height: var(--gu-topbar-h);
+  background: var(--sidebar-bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.gu-menu-btn { display: flex; background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 36px; height: 36px;
+  align-items: center; justify-content: center; color: var(--text-secondary); cursor: pointer; flex-shrink: 0; padding: 0; }
+.gu-menu-btn:hover { background: var(--surface); color: var(--text); }
+.gu-menu-btn[aria-pressed="true"], .gu-menu-btn[aria-expanded="true"] { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.gu-menu-btn:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 2px; }
+.gu-search-wrap { position: relative; flex: 1; max-width: 460px; margin: 0; }
+.gu-search { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; color: var(--text-muted); }
+.gu-search:focus-within { border-color: var(--brand-green); background: var(--surface); }
+.gu-search input, .gu-search input[type="search"] { border: 0 !important; background: none !important; outline: none !important; box-shadow: none !important;
+  font-size: 14px; color: var(--text); width: 100%; font-family: var(--font-body); padding: 0; height: auto; min-height: 0; border-radius: 0; -webkit-appearance: none; appearance: none; }
+.gu-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.gu-search input::placeholder { color: var(--text-muted); }
+.gu-search kbd { font-size: 11px; color: var(--text-muted); border: 1px solid var(--border-strong); border-radius: 5px; padding: 2px 6px; font-family: var(--font-body); background: none; }
+.gu-search-results { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow); z-index: 40; max-height: 360px; overflow-y: auto; padding: 6px; }
+.gu-search-results[hidden] { display: none; }
+.gu-search-group { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); padding: 8px 10px 4px; margin: 0; }
+.gu-search-result { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text); font-size: 14px; text-decoration: none; }
+.gu-search-result:hover, .gu-search-result.is-current { background: var(--surface-2); color: var(--text); }
+.gu-search-result .gu-icon { color: var(--text-muted); }
+.gu-search-result img { width: 20px; height: 20px; flex-shrink: 0; }
+.gu-search-result-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gu-search-result-text b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gu-search-result-text small { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gu-search-empty { margin: 0; padding: 9px 10px; font-size: 13px; color: var(--text-muted); }
+.gu-search-all { display: block; padding: 9px 10px; margin-top: 4px; border-top: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--brand-green-ink); text-decoration: none; }
+
+.gu-topbar-spacer { flex: 1; }
+.gu-user-chip { display: flex; align-items: center; gap: 9px; padding: 5px 12px 5px 5px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); text-decoration: none; }
+.gu-user-chip:hover { border-color: var(--border-strong); background: var(--surface-3); color: var(--text); }
+.gu-user-chip:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 2px; }
+.gu-avatar { width: 30px; height: 30px; border-radius: 999px; background: var(--brand-green); color: #fff; font-family: var(--font-display); font-weight: 700;
+  font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.gu-user-chip .gu-who { display: flex; flex-direction: column; line-height: 1.2; }
+.gu-user-chip .gu-who b { font-size: 13px; font-weight: 600; }
+.gu-user-chip .gu-who span { font-size: 11px; color: var(--text-muted); }
+.gu-logout-form { display: contents; margin: 0; }
+
+/* ---------- Encabezado de página y tarjetas ---------- */
+.gu-page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin: 0 0 20px; }
+.gu-page-title { display: flex; gap: 14px; align-items: flex-start; }
+.gu-page-title > .gu-icon { width: 30px; height: 30px; color: var(--text-secondary); margin-top: 4px; }
+.gu-page-head h1 { font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; color: var(--text); }
+.gu-page-head p { margin: 4px 0 0; color: var(--text-secondary); font-size: 15px; max-width: 60ch; }
+.gu-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.gu-card-pad { padding: 16px 18px; }
+.gu-info { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 14px; font-size: 13.5px; color: var(--text-secondary); max-width: 640px; }
+.gu-info > .gu-icon { color: var(--text-secondary); margin-top: 1px; }
+.gu-info p { margin: 0; }
+.gu-info a { color: var(--brand-green-ink); font-weight: 600; }
+
+/* ---------- Sistema de botones (Button System de GELECTRIC) ----------
+   Una base .gu-btn con lo común + variantes que solo cambian el color. Tamaños: .gu-btn-sm (28px),
+   estándar (32px), .gu-btn-lg (40px). .gu-btn-icon es el botón cuadrado de solo ícono. */
+.gu-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; padding: 0 16px; border-radius: var(--radius-btn);
+  border: 1px solid transparent; font-family: var(--font-body); font-size: 13.5px; font-weight: 600; line-height: 1; cursor: pointer; white-space: nowrap;
+  text-decoration: none; transition: background-color .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease; vertical-align: middle; }
+.gu-btn .gu-icon { width: 16px; height: 16px; }
+.gu-btn:focus-visible { outline: 2px solid var(--brand-green-ink); outline-offset: 2px; }
+.gu-btn:disabled, .gu-btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; pointer-events: none; }
+.gu-btn-sm { height: 28px; padding: 0 12px; font-size: 12.5px; gap: 6px; }
+.gu-btn-sm .gu-icon { width: 14px; height: 14px; }
+.gu-btn-lg { height: 40px; padding: 0 20px; font-size: 14.5px; gap: 8px; }
+.gu-btn-lg .gu-icon { width: 18px; height: 18px; }
+.gu-btn-block { width: 100%; }
+.gu-btn-icon { width: 32px; padding: 0; gap: 0; position: relative; }
+.gu-btn-icon.gu-btn-sm { width: 28px; }
+.gu-btn-icon.gu-btn-lg { width: 40px; }
+.gu-btn-primary { background: var(--brand-green); border-color: var(--brand-green); color: #fff; }
+.gu-btn-primary:hover { background: var(--brand-green-hover); border-color: var(--brand-green-hover); color: #fff; }
+.gu-btn-primary:active { background: var(--brand-green-active); border-color: var(--brand-green-active); }
+.gu-btn-secondary { background: none; border-color: var(--brand-green); color: var(--brand-green-ink); }
+.gu-btn-secondary:hover { background: var(--brand-accent-bg); color: var(--brand-green-ink); }
+.gu-btn-tertiary { background: none; border-color: transparent; color: var(--brand-green-ink); }
+.gu-btn-tertiary:hover { background: var(--brand-accent-bg); color: var(--brand-green-ink); }
+.gu-btn-ghost { background: none; border-color: transparent; color: var(--text-secondary); }
+.gu-btn-ghost:hover { background: var(--surface-2); border-color: var(--border); color: var(--text); }
+.gu-btn-outline { background: none; border-color: var(--border-strong); color: var(--text); }
+.gu-btn-outline:hover { background: var(--surface-3); color: var(--text); }
+.gu-btn-danger { background: none; border-color: var(--status-critical); color: var(--status-critical); }
+.gu-btn-danger:hover { background: color-mix(in srgb, var(--status-critical) 14%, transparent); }
+
+/* ---------- Botón con menú desplegable (initBtnDropdowns) ---------- */
+.gu-btn-dropdown { position: relative; display: inline-flex; }
+.gu-btn-dropdown-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 200px; background: var(--surface-3); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 6px; z-index: 30; display: flex; flex-direction: column; gap: 2px; }
+.gu-btn-dropdown-menu[hidden] { display: none; }
+.gu-btn-dropdown-item { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none; border-radius: var(--radius-sm);
+  padding: 8px 10px; font-family: var(--font-body); font-size: 13.5px; color: var(--text); text-align: left; cursor: pointer; text-decoration: none; }
+.gu-btn-dropdown-item:hover { background: var(--surface-2); color: var(--text); }
+.gu-btn-dropdown-item .gu-icon { width: 15px; height: 15px; color: var(--text-muted); }
+
+/* ---------- Estados ---------- */
+.gu-status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: var(--surface-3); color: var(--text-secondary); white-space: nowrap; }
+.gu-status-pill.good { background: color-mix(in srgb, var(--status-good) 16%, transparent); color: var(--status-good); }
+.gu-status-pill.warning { background: color-mix(in srgb, var(--status-warning) 16%, transparent); color: var(--status-warning); }
+.gu-status-pill.critical { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+.gu-status-pill.info { background: color-mix(in srgb, var(--status-info) 16%, transparent); color: var(--status-info); }
+.gu-status-pill.neutral { background: var(--surface-3); color: var(--text-muted); }
+.gu-chip { display: inline-flex; align-items: center; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--surface-3);
+  border: 1px solid var(--border); color: var(--text-secondary); font-family: var(--font-body); }
+
+.gu-alert { display: flex; gap: 9px; align-items: flex-start; border-radius: var(--radius-sm); padding: 11px 13px; margin: 0 0 14px; font-size: 13.5px; }
+.gu-alert .gu-icon { width: 16px; height: 16px; margin-top: 2px; }
+.gu-alert p { margin: 0; }
+.gu-alert.critical { background: color-mix(in srgb, var(--status-critical) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--status-critical) 35%, var(--border)); color: var(--status-critical); }
+.gu-alert.warning { background: color-mix(in srgb, var(--status-warning) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--status-warning) 35%, var(--border)); color: var(--status-warning); }
+.gu-alert.good { background: color-mix(in srgb, var(--status-good) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--status-good) 35%, var(--border)); color: var(--status-good); }
+
+/* ---------- Tabla (ficha-table de GELECTRIC) + versión responsive ----------
+   En pantallas chicas el thead se oculta y cada fila pasa a ser un bloque, con el nombre de la columna
+   arriba de cada valor (data-th). Sin scroll horizontal. */
+.gu-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gu-table th { text-align: left; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--text-secondary); font-size: 12.5px; padding: 10px 14px; background: var(--surface-2); white-space: nowrap; }
+.gu-table th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.gu-table th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.gu-table td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
+.gu-table tr:first-child td { border-top: none; }
+
+@media (max-width: 860px) {
+  .gu-table-responsive, .gu-table-responsive thead, .gu-table-responsive tbody, .gu-table-responsive th, .gu-table-responsive td, .gu-table-responsive tr { display: block; width: 100%; }
+  .gu-table-responsive thead tr { position: absolute; top: -9999px; left: -9999px; }
+  .gu-table-responsive tbody tr { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 14px; margin-bottom: 10px; background: var(--surface-2); }
+  .gu-table-responsive td { padding: 9px 0; border-top: 1px solid var(--border); text-align: left !important; }
+  .gu-table-responsive td:first-child { border-top: none; }
+  .gu-table-responsive td::before { content: attr(data-th); display: block; font-weight: 600; font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
+  .gu-table-responsive td[data-th=""]::before { display: none; }
+}
+
+/* ---------- Sidebar contraído (escritorio): solo íconos + isologo ----------
+   La hamburguesa del topbar lo fija expandido (.pinned) y el estado se guarda entre pantallas. */
+@media (min-width: 861px) {
+  .gu-sidebar { width: var(--gu-sidebar-w); }
+  .gu-sidebar.pinned { width: var(--gu-sidebar-w-open); }
+  .gu-brand { justify-content: center; padding: 18px 10px 16px; }
+  .gu-sidebar.pinned .gu-brand { justify-content: flex-start; padding: 18px 20px 16px; }
+  .gu-brand-logo-full { display: none; }
+  .gu-brand-logo-icon { display: block; }
+  .gu-sidebar.pinned .gu-brand-logo-full { display: block; }
+  .gu-sidebar.pinned .gu-brand-logo-icon { display: none; }
+
+  .gu-sidebar:not(.pinned) .gu-nav-item { justify-content: center; padding: 10px 0; }
+  .gu-sidebar:not(.pinned) .gu-nav-label, .gu-sidebar:not(.pinned) .gu-nav-chevron { display: none; }
+  .gu-sidebar:not(.pinned) .gu-subnav { display: none; }
+  .gu-sidebar:not(.pinned) .gu-nav-item.has-active { background: var(--sidebar-bg-active); }
+  .gu-sidebar:not(.pinned) .gu-nav-item.has-active::before { content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-green); }
+  .gu-sidebar:not(.pinned) .gu-sidebar-meta { display: none; }
+}
+
+/* ---------- Tablet y celular: el sidebar es un cajón que abre la hamburguesa ---------- */
+@media (max-width: 860px) {
+  .gu-sidebar { position: fixed; left: 0; top: 0; z-index: 120; transform: translateX(-100%); visibility: hidden; transition: transform .25s ease, visibility 0s linear .25s; }
+  .gu-sidebar.open { transform: translateX(0); visibility: visible; box-shadow: 20px 0 60px rgba(0, 0, 0, .5); transition: transform .25s ease; }
+  .gu-search kbd { display: none; }
+  .gu-user-chip { padding: 3px; }
+  .gu-user-chip .gu-who, .gu-logout-label { display: none; }
+  .gu-topbar { padding: 10px 14px; gap: 8px; }
+  .gu-search-wrap { max-width: none; }
+  .gu-topbar-spacer { display: none; }
+  .gu-page-head h1 { font-size: 23px; }
+}
+.gu-scrim { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 115; }
+.gu-scrim.open { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gu-sidebar, .gu-nav-chevron { transition: none; }
+}
+
+/* Producto identificado con su isologo oficial (listados, buscador, inicio) */
+.gu-producto { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.gu-producto img { width: 22px; height: 22px; flex: none; display: block; }

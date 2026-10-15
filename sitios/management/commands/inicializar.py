@@ -35,14 +35,14 @@ from sitios.models import AccesoSitio, AprobacionSitio, LineaProducto, SitioWeb
 FUENTE = "gerp.ar, octubre 2026"
 
 SITIOS = [
-    dict(clave="geneos", nombre="GENEOS", motor="institucional", dominio="https://geneos.coop.ar", dominio_confirmado=True, color="#178943", orden=0,
+    dict(clave="geneos", nombre="GENEOS", motor="institucional", dominio="https://geneos.coop.ar", dominio_confirmado=True, color="#128237", orden=0,
          usa_blog=True, usa_planes=False, usa_comparador=False, usa_testimonios=False, usa_formularios=False),
-    dict(clave="gerp", nombre="GERP", dominio="https://gerp.ar", dominio_confirmado=True, color="#254d99", orden=1,
+    dict(clave="gerp", nombre="GERP", dominio="https://gerp.ar", dominio_confirmado=True, color="#1b4b8c", orden=1,
          usa_blog=False, usa_planes=True, usa_comparador=True, usa_testimonios=True),
-    dict(clave="geagro", nombre="GEAGRO", dominio="https://geagro.ar", dominio_confirmado=True, color="#22b24c", orden=2,
+    dict(clave="geagro", nombre="GEAGRO", dominio="https://geagro.ar", dominio_confirmado=True, color="#0e8337", orden=2,
          usa_blog=True, usa_planes=True),
     # gema.geneos.com.ar hoy sirve la landing comercial vieja. Queda sin confirmar hasta que Infra defina dónde vive la aplicación.
-    dict(clave="gema", nombre="GEMA", dominio="https://gema.geneos.com.ar", dominio_confirmado=False, color="#e2231a", orden=3,
+    dict(clave="gema", nombre="GEMA", dominio="https://gema.geneos.com.ar", dominio_confirmado=False, color="#ec6c05", orden=3,
          usa_blog=False, usa_planes=True),
 ]
 LINEAS = {"geagro": [dict(clave="cereales", nombre="Cereales", ruta="cereales/", color="#22b24c", orden=1),

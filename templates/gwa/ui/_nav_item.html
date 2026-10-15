@@ -1,0 +1,16 @@
+{% load wagtailadmin_tags gwa_ui %}<li>
+{% if it.children %}
+    <button type="button" class="gu-nav-item{% if it.has_active %} has-active{% endif %}" data-gu-submenu aria-expanded="{{ it.has_active|yesno:'true,false' }}" aria-controls="gu-sub-{{ it.name }}">
+        {% icon name=it.icon classname="gu-icon" %}<span class="gu-nav-label">{{ it.label }}</span>{% icon name="arrow-right" classname="gu-nav-chevron" %}
+    </button>
+    <ul class="gu-subnav" id="gu-sub-{{ it.name }}"{% if not it.has_active %} hidden{% endif %}>
+        {% for c in it.children %}
+        <li><a class="gu-nav-item{% if c.active %} active{% endif %}" href="{{ c.url|default:'#' }}"{% if c.active %} aria-current="page"{% endif %}{% if c.externo %} target="_blank" rel="noopener noreferrer"{% endif %}{{ c.attrs|gwa_attrs }}><span class="gu-nav-label">{{ c.label }}</span>{% if c.externo %}{% icon name="link-external" classname="gu-icon gu-nav-chevron" %}{% endif %}</a></li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <a class="gu-nav-item{% if it.active %} active{% endif %}" href="{{ it.url }}"{% if it.active %} aria-current="page"{% endif %}{{ it.attrs|gwa_attrs }}>
+        {% icon name=it.icon classname="gu-icon" %}<span class="gu-nav-label">{{ it.label }}</span>
+    </a>
+{% endif %}
+</li>

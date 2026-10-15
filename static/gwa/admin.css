@@ -1,47 +1,61 @@
-/* GENEOS Web Admin: tipografía y colores de GENEOS sobre el panel de Wagtail */
-:root {
-  --w-font-sans: "Titillium Web", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --w-color-primary: #121a16;
-  --w-color-primary-200: #1f2c25;
-  --w-color-secondary: #178943;
-  --w-color-secondary-600: #0b6b33;
-  --w-color-secondary-400: #1e9f4b;
-  --w-color-secondary-100: #a9d8b8;
-  --w-color-secondary-75: #cfe9d6;
-  --w-color-secondary-50: #e6f3ea;
-}
-body { font-family: var(--w-font-sans); }
+/* GENEOS Web Admin · pantallas propias (Estado de las webs, inicio, publicación).
+   Usa los tokens y componentes de GENEOS UI (static/gwa/ui). */
 
-/* Tarjetas de estado de las webs */
-.gwa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 0 0 24px; }
-.gwa-card { border: 1px solid var(--w-color-border-furniture, #e0e0e0); border-radius: 14px; padding: 16px 18px; background: var(--w-color-surface-page, #fff); display: grid; gap: 10px; align-content: start; }
-.gwa-card h3 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+/* Tarjetas de estado de cada web: isologo oficial y color del producto en el borde */
+.gwa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; margin: 0 0 24px; }
+.gwa-card { position: relative; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 16px; background: var(--surface);
+  box-shadow: var(--shadow); display: grid; gap: 10px; align-content: start; overflow: hidden; }
+.gwa-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--gwa-producto, var(--border-strong)); }
+.gwa-card h3 { margin: 0; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; color: var(--text); }
+.gwa-isologo { width: 34px; height: 34px; flex: none; display: block; }
+.gwa-isologo--lg { width: 44px; height: 44px; }
+.gwa-lema { display: block; font-size: .8rem; font-weight: 400; color: var(--text-muted); }
 .gwa-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
-.gwa-badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 600; }
-.gwa-al_dia { background: #e6f3ea; color: #0b6b33; }
-.gwa-pendiente { background: #fff4d6; color: #7a5300; }
-.gwa-error { background: #fde8e8; color: #a2231d; }
-.gwa-sin_publicar, .gwa-no_conectado { background: #eef0f3; color: #4a5361; }
-.gwa-meta { color: var(--w-color-text-meta, #5a6760); font-size: .9rem; margin: 0; }
+
+/* Estados (mismo criterio que las píldoras de GELECTRIC) */
+.gwa-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.gwa-al_dia { background: color-mix(in srgb, var(--status-good) 16%, transparent); color: var(--status-good); }
+.gwa-pendiente { background: color-mix(in srgb, var(--status-warning) 16%, transparent); color: var(--status-warning); }
+.gwa-error { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+.gwa-sin_publicar, .gwa-no_conectado { background: var(--surface-3); color: var(--text-secondary); }
+.gwa-meta { color: var(--text-muted); font-size: .9rem; margin: 0; }
 .gwa-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .gwa-acciones form { display: inline; }
 .gwa-list { margin: 0; padding-left: 1.1em; font-size: .9rem; }
-.gwa-aviso { border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; }
-.gwa-aviso.err { background: #fde8e8; color: #7d1a15; }
-.gwa-aviso.warn { background: #fff4d6; color: #5c3f00; }
-.gwa-aviso.ok { background: #e6f3ea; color: #0b4d26; }
-.gwa-tabla { width: 100%; border-collapse: collapse; font-size: .95rem; }
-.gwa-tabla th, .gwa-tabla td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--w-color-border-furniture, #e0e0e0); vertical-align: middle; }
-.gwa-tabla input[type="text"], .gwa-tabla input[type="date"] { max-width: 150px; }
+
+/* Avisos (alertas de GELECTRIC) */
+.gwa-aviso { border-radius: var(--radius-sm); padding: 12px 16px; margin: 0 0 16px; border: 1px solid var(--border); color: var(--text); }
+.gwa-aviso.err { background: color-mix(in srgb, var(--status-critical) 12%, var(--surface)); border-color: color-mix(in srgb, var(--status-critical) 35%, var(--border)); }
+.gwa-aviso.warn { background: color-mix(in srgb, var(--status-warning) 12%, var(--surface)); border-color: color-mix(in srgb, var(--status-warning) 35%, var(--border)); }
+.gwa-aviso.ok { background: color-mix(in srgb, var(--status-good) 12%, var(--surface)); border-color: color-mix(in srgb, var(--status-good) 35%, var(--border)); }
+.gwa-aviso a { color: var(--brand-green-ink); font-weight: 600; }
+
+/* Tablas (tabla de GELECTRIC; en el celular cada fila pasa a ser un bloque) */
+.gwa-tabla { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .95rem; }
+.gwa-tabla th { text-align: left; padding: 10px 12px; background: var(--surface-2); color: var(--text-secondary); font-weight: 600; font-size: .85rem; }
+.gwa-tabla th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.gwa-tabla th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.gwa-tabla td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .gwa-num { text-align: right; font-variant-numeric: tabular-nums; }
-.gwa-pre { white-space: pre-wrap; background: var(--w-color-surface-field-inactive, #f5f5f5); border-radius: 10px; padding: 12px; font-size: .85rem; max-height: 480px; overflow: auto; }
+.gwa-pre { white-space: pre-wrap; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: .85rem; max-height: 480px; overflow: auto; }
+@media (max-width: 860px) {
+  .gwa-tabla, .gwa-tabla tbody, .gwa-tabla tr, .gwa-tabla td { display: block; width: 100%; }
+  .gwa-tabla thead { position: absolute; left: -9999px; }
+  .gwa-tabla tr { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 12px; margin-bottom: 10px; background: var(--surface-2); }
+  .gwa-tabla td { padding: 6px 0; border: 0; }
+}
+
+/* Selector de sitio del inicio */
 .gwa-selector { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
-.gwa-selector button { border-radius: 999px; }
-.gwa-selector button[aria-pressed="true"] { outline: 2px solid var(--w-color-secondary); }
+.gwa-selector .button[aria-pressed="true"] { background: var(--brand-accent-bg); border-color: var(--brand-green); color: var(--text); }
 .gwa-paso { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; counter-reset: p; }
-.gwa-paso li { counter-increment: p; border: 1px solid var(--w-color-border-furniture, #e0e0e0); border-radius: 12px; padding: 10px 12px; font-size: .9rem; }
-.gwa-paso li::before { content: counter(p) ". "; font-weight: 700; color: var(--w-color-secondary); }
-.gwa-scroll { overflow-x: auto; }
-.gwa-precios input[type="text"] { min-width: 110px; }
-.gwa-precios input.gwa-leyenda { min-width: 280px; max-width: none; }
-.gwa-precios select { min-width: 80px; }
+.gwa-paso li { counter-increment: p; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius-sm); padding: 10px 12px; font-size: .9rem; color: var(--text-secondary); }
+.gwa-paso li::before { content: counter(p) ". "; font-weight: 700; color: var(--brand-green-ink); }
+
+/* Páginas propias con el encabezado de GELECTRIC */
+.gwa-pagina { padding: 28px clamp(16px, 3vw, 40px) 120px; max-width: 1360px; }
+.gwa-buscar-grupo { margin: 0 0 14px; }
+.gwa-buscar-grupo h2 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 6px; }
+.gwa-buscar-grupo ul { list-style: none; margin: 0; padding: 0; }
+.gwa-selector-producto { display: inline-flex; align-items: center; gap: 6px; }
+.gwa-selector-producto img { width: 18px; height: 18px; display: block; }

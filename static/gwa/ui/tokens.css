@@ -1,0 +1,60 @@
+/* GENEOS UI · tokens del tema oscuro de GENEOS Web Admin.
+   Mismos nombres de variables que GELECTRIC (core/static/core/css/dashboard.css), con la paleta oscura
+   de GENEOS: fondo casi negro, tarjetas apenas más claras, bordes sutiles y verde GENEOS para lo principal.
+   Los colores de cada producto salen de su isologo oficial (sitios/marca.py). */
+/* Tipografía de GENEOS (la misma que GELECTRIC), servida desde el administrador: licencia OFL en fuentes/ */
+@font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 400; font-display: swap; src: url("fuentes/titillium-web-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 600; font-display: swap; src: url("fuentes/titillium-web-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 700; font-display: swap; src: url("fuentes/titillium-web-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0b0d0c;
+  --surface: #151917;
+  --surface-2: #101311;
+  --surface-3: #1c211e;
+  --border: #252b28;
+  --border-strong: #343c38;
+  --text: #eef2ef;
+  --text-secondary: #b7c0bb;
+  --text-muted: #85908a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .35);
+
+  --sidebar-bg: #0f1211;
+  --sidebar-brand-bg: #000;
+  --sidebar-bg-active: color-mix(in srgb, var(--brand-green) 24%, #0f1211);
+  --sidebar-text: rgba(255, 255, 255, .82);
+  --sidebar-text-muted: rgba(255, 255, 255, .5);
+  --sidebar-text-active: #fff;
+  --sidebar-border: rgba(255, 255, 255, .08);
+
+  /* Verde GENEOS (isologotipo) para acciones principales y navegación activa */
+  --brand-green: #128237;
+  --brand-green-hover: #169a42;
+  --brand-green-active: #0e6a2d;
+  --brand-green-ink: #4cc276;           /* verde para texto e íconos sobre fondo oscuro */
+  --brand-accent-bg: color-mix(in srgb, var(--brand-green) 16%, var(--surface));
+  --brand-blue: #2e5faa;                /* azul del isologotipo de GENEOS */
+
+  --status-good: #3fbf6b;
+  --status-warning: #e8a33d;
+  --status-critical: #f0646a;
+  --status-neutral: #85908a;
+  --status-info: #6f9be0;
+
+  /* Productos (isologos oficiales) */
+  --gerp: #1b4b8c;
+  --geagro: #0e8337;
+  --gema: #ec6c05;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-btn: 32px;
+  --font-display: "Titillium Web", system-ui, sans-serif;
+  --font-body: "Titillium Web", system-ui, sans-serif;
+
+  --gu-sidebar-w: 80px;
+  --gu-sidebar-w-open: 252px;
+  --gu-topbar-h: 61px;
+}

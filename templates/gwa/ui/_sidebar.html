@@ -1,0 +1,22 @@
+{% load static wagtailadmin_tags gwa_ui %}{% gwa_menu as menu %}
+<aside class="gu-sidebar" id="gu-sidebar" aria-label="Menú principal">
+    <script>try{if(localStorage.getItem("gwa-sidebar-pinned")==="1"){document.currentScript.parentElement.classList.add("pinned");}}catch(e){}</script>
+    <a class="gu-brand" href="{% url 'wagtailadmin_home' %}" aria-label="GENEOS Web Admin: inicio">
+        <img class="gu-brand-logo gu-brand-logo-full" src="{% static 'gwa/marca/geneos-isologotipo-blanco.svg' %}" alt="GENEOS, cooperativa de software libre" width="168" height="64">
+        <img class="gu-brand-logo gu-brand-logo-icon" src="{% static 'gwa/marca/geneos-isologo-color.svg' %}" alt="GENEOS" width="30" height="39">
+    </a>
+    <div class="gu-sidebar-body">
+        <nav aria-label="Secciones del administrador">
+            <ul class="gu-nav">
+                {% for it in menu.principal %}{% include "gwa/ui/_nav_item.html" %}{% endfor %}
+            </ul>
+        </nav>
+        <div class="gu-sidebar-foot">
+            {% if menu.ayuda %}
+            <div class="gu-sidebar-divider"></div>
+            <ul class="gu-nav">{% with it=menu.ayuda %}{% include "gwa/ui/_nav_item.html" %}{% endwith %}</ul>
+            {% endif %}
+            <div class="gu-sidebar-meta"><b>GENEOS Web Admin</b><span>Administrador de contenidos</span></div>
+        </div>
+    </div>
+</aside>

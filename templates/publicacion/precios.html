@@ -1,34 +1,40 @@
 {% extends "wagtailadmin/base.html" %}
-{% load static %}
+{% load static wagtailadmin_tags %}
 {% block titletag %}Actualizar precios{% endblock %}
 {% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'gwa/precios.css' %}">{% endblock %}
 {% block extra_js %}{{ block.super }}<script src="{% static 'gwa/precios.js' %}" defer></script>{% endblock %}
 {% block content %}
-{% include "wagtailadmin/shared/header.html" with title="Actualizar precios" icon="tag" %}
-<div class="nice-padding gwa-pr">
-  <p class="gwa-pr-intro">Cada importe se carga una sola vez y la web lo usa en las tarjetas, las landings, el comparador, los datos para buscadores
-     y las preguntas frecuentes que lo mencionan con <code>[precio:clave]</code>. «Guardar borradores» no cambia nada aprobado;
-     «Guardar y aprobar» deja los precios listos para publicar desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
+<div class="gwa-pagina gwa-pr">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="tag" classname="gu-icon" %}
+      <div><h1>Actualizar precios</h1><p>Administrá los importes de todos tus productos.</p></div>
+    </div>
+    <div class="gu-info">{% icon name="info-circle" classname="gu-icon" %}
+      <p>Cada importe se carga una sola vez y la web lo usa en las tarjetas, las landings, el comparador, los buscadores y las preguntas
+         frecuentes que lo mencionan con <code>[precio:clave]</code>. «Guardar borradores» no cambia nada aprobado;
+         «Guardar y aprobar» deja los precios listos para publicar desde <a href="{% url 'gwa_estado' %}">Estado de las webs</a>.</p>
+    </div>
+  </div>
 
   <form method="post" id="gwa-precios" novalidate>{% csrf_token %}
     {% regroup filas by p.sitio as grupos %}
     {% for g in grupos %}
-    {% with s=g.grouper %}
-    <section class="gwa-pr-sitio" style="--gwa-sitio: {{ s.color }}" aria-labelledby="sitio-{{ s.clave }}" data-sitio="{{ s.clave }}">
-      <header class="gwa-pr-sitio-head">
-        <h2 id="sitio-{{ s.clave }}"><span class="gwa-pr-marca" aria-hidden="true"></span>{{ s.nombre }}</h2>
-        <p class="gwa-pr-cuenta">{{ g.list|length }} plan{{ g.list|length|pluralize:"es" }}</p>
-      </header>
-
-      {# Vigencia: un solo bloque cuando todos los planes del sitio comparten los datos (se edita junto o por plan) #}
-      <div class="gwa-pr-vigencia" data-vigencia>
-        <div class="gwa-pr-vig-titulo">
-          <h3>Vigencia de los precios</h3>
-          <p class="gwa-pr-ayuda">Se muestra debajo de los planes con (*). Vacía: sin leyenda. El aviso de vencimiento es interno: solo te avisa en el inicio.</p>
+    {% with s=g.grouper n=g.list|length %}{% with m=s.marca %}
+    <section class="gwa-pr-sitio" style="--gwa-producto: {{ m.color }}" aria-labelledby="sitio-{{ s.clave }}" data-sitio="{{ s.clave }}" data-vigencia>
+      <header class="gwa-pr-head">
+        <div class="gwa-pr-id">
+          {% if m.isologo_url %}<img class="gwa-isologo gwa-isologo--lg" src="{{ m.isologo_url }}" alt="" width="44" height="44">{% endif %}
+          <div>
+            <h2 id="sitio-{{ s.clave }}">{{ s.nombre }}</h2>
+            {% if m.lema %}<p class="gwa-pr-lema">{{ m.lema }}</p>{% endif %}
+          </div>
+          <p class="gwa-pr-meta">{{ n }} plan{{ n|pluralize:"es" }}<span aria-hidden="true"> · </span><span data-resumen-moneda>Moneda: {{ g.list.0.v.moneda }}</span><span data-resumen-iva>{% if g.list.0.v.mas_iva %}<span aria-hidden="true"> · </span>+ IVA{% endif %}</span></p>
         </div>
-        <div class="gwa-pr-vig-comun" data-comun hidden>
-          <label class="gwa-pr-campo gwa-pr-ancho">
-            <span>Leyenda{% if g.list|length > 1 %} <small data-alcance>(para los {{ g.list|length }} planes)</small>{% endif %}</span>
+
+        {# Vigencia compartida: se muestra una vez cuando todos los planes tienen la misma; se puede editar por plan abajo #}
+        <div class="gwa-pr-vig" data-comun>
+          <label class="gwa-pr-campo gwa-pr-campo--ancho">
+            <span>Leyenda de vigencia{% if n > 1 %} <small data-alcance>(para todos los planes)</small>{% endif %}</span>
             <input type="text" data-comun-campo="leyenda_vigencia" placeholder="Sin leyenda" id="comun-leyenda-{{ s.clave }}">
           </label>
           <label class="gwa-pr-campo">
@@ -36,76 +42,84 @@
             <input type="date" data-comun-campo="vigente_hasta" id="comun-hasta-{{ s.clave }}">
           </label>
         </div>
-        <details class="gwa-pr-porplan" data-porplan {% if g.list|length == 1 %}hidden{% endif %}>
-          <summary>Editar por plan</summary>
-          <div class="gwa-pr-porplan-filas">
-            {% for f in g.list %}
-            <div class="gwa-pr-porplan-fila">
-              <span class="gwa-pr-porplan-nombre">{{ f.p.nombre }}</span>
-              <label class="gwa-pr-campo gwa-pr-ancho"><span class="gwa-sr">Leyenda de {{ f.p }}</span>
-                <input type="text" name="leyenda_vigencia_{{ f.p.pk }}" id="leyenda_vigencia_{{ f.p.pk }}" value="{{ f.v.leyenda_vigencia }}" placeholder="Sin leyenda" data-vig="leyenda_vigencia"></label>
-              <label class="gwa-pr-campo"><span class="gwa-sr">Aviso de vencimiento de {{ f.p }}</span>
-                <input type="date" name="vigente_hasta_{{ f.p.pk }}" id="vigente_hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" data-vig="vigente_hasta"></label>
-            </div>
-            {% endfor %}
-          </div>
-        </details>
-      </div>
 
-      <div class="gwa-pr-planes">
-        {% for f in g.list %}
-        <article class="gwa-pr-plan" data-plan="{{ f.p.pk }}" data-nombre="{{ f.p }}" aria-labelledby="plan-{{ f.p.pk }}">
-          <header class="gwa-pr-plan-head">
-            <div>
-              <h3 id="plan-{{ f.p.pk }}">{{ f.p.nombre }}</h3>
-              <p class="gwa-pr-clave">clave <code>{{ f.p.clave }}</code>{% if not f.p.visible %} · <span class="gwa-pr-oculto">oculto en la web</span>{% endif %}</p>
-            </div>
-            <div class="gwa-pr-estados">
-              {% if f.b %}<span class="gwa-pr-badge gwa-pr-badge--borrador" title="Aprobado: {{ f.p.simbolo }}{{ f.p.precio }}">Borrador</span>
-              {% elif f.p.live %}<span class="gwa-pr-badge gwa-pr-badge--ok">Aprobado</span>
-              {% else %}<span class="gwa-pr-badge">Sin aprobar</span>{% endif %}
-              <span class="gwa-pr-badge gwa-pr-badge--cambio" data-cambio hidden>Sin guardar</span>
-            </div>
-          </header>
+        <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon gwa-pr-plegar" aria-expanded="true" aria-controls="cuerpo-{{ s.clave }}" aria-label="Plegar {{ s.nombre }}" data-plegar>
+          {% icon name="arrow-up" classname="gu-icon" %}</button>
+      </header>
 
-          <div class="gwa-pr-importes">
-            <label class="gwa-pr-importe">
-              <span>Abono mensual</span>
+      <div class="gwa-pr-cuerpo" id="cuerpo-{{ s.clave }}">
+        <table class="gu-table gwa-pr-tabla">
+          <thead><tr><th scope="col">Plan</th><th scope="col">Clave</th><th scope="col">Abono mensual</th><th scope="col">Implementación</th>
+            <th scope="col">Estado</th><th scope="col">Última modificación</th><th scope="col"><span class="w-sr-only">Acciones</span></th></tr></thead>
+          <tbody>
+          {% for f in g.list %}
+          <tr data-plan="{{ f.p.pk }}" data-nombre="{{ f.p }}">
+            <th scope="row" class="gwa-pr-nombre">{{ f.p.nombre }}{% if not f.p.visible %}<small>oculto en la web</small>{% endif %}</th>
+            <td class="gwa-pr-clave"><span class="gu-chip" title="Clave del plan">{{ f.p.clave }}</span></td>
+            <td class="gwa-pr-importe" data-th="Abono mensual">
               <span class="gwa-pr-monto"><b data-simbolo>{{ f.v.simbolo }}</b>
                 <input type="text" name="precio_{{ f.p.pk }}" id="precio_{{ f.p.pk }}" value="{{ f.v.precio }}" inputmode="decimal" autocomplete="off" required
-                       pattern="\d{1,3}(\.\d{3})*(,\d{1,2})?" aria-describedby="ayuda-importe">
+                       pattern="\d{1,3}(\.\d{3})*(,\d{1,2})?" aria-label="Abono mensual de {{ f.p }}" aria-describedby="ayuda-importe">
                 <i data-iva {% if not f.v.mas_iva %}hidden{% endif %}>+ IVA</i></span>
-            </label>
-            <label class="gwa-pr-importe gwa-pr-importe--sec">
-              <span>Implementación <small>pago único</small></span>
+            </td>
+            <td class="gwa-pr-importe" data-th="Implementación (pago único)">
               <span class="gwa-pr-monto"><b data-simbolo>{{ f.v.simbolo }}</b>
                 <input type="text" name="implementacion_{{ f.p.pk }}" id="implementacion_{{ f.p.pk }}" value="{{ f.v.implementacion }}" inputmode="decimal" autocomplete="off"
-                       pattern="\d{1,3}(\.\d{3})*(,\d{1,2})?" aria-describedby="ayuda-importe">
+                       pattern="\d{1,3}(\.\d{3})*(,\d{1,2})?" aria-label="Implementación de {{ f.p }}, pago único" aria-describedby="ayuda-importe">
                 <i data-iva {% if not f.v.mas_iva %}hidden{% endif %}>+ IVA</i></span>
-            </label>
-          </div>
-          {% if f.b %}<p class="gwa-pr-nota">Aprobado actualmente: {{ f.p.simbolo }}{{ f.p.precio }}{% if f.p.mas_iva %} + IVA{% endif %}{% if f.p.implementacion %} · implementación {{ f.p.simbolo }}{{ f.p.implementacion }}{% endif %}</p>{% endif %}
+            </td>
+            <td class="gwa-pr-estado">
+              {% if f.b %}<span class="gu-status-pill warning" title="Aprobado actualmente: {{ f.p.simbolo }}{{ f.p.precio }}{% if f.p.mas_iva %} + IVA{% endif %}">Borrador</span>
+              {% elif f.p.live %}<span class="gu-status-pill good">Aprobado</span>
+              {% else %}<span class="gu-status-pill neutral">Sin aprobar</span>{% endif %}
+              <span class="gu-status-pill info" data-cambio hidden>Sin guardar</span>
+              {% if f.b %}<small class="gwa-pr-aprobado">Aprobado: {{ f.p.simbolo }}{{ f.p.precio }}</small>{% endif %}
+            </td>
+            <td class="gwa-pr-mod">
+              <span>{% if f.p.ultima_modificacion %}{{ f.p.ultima_modificacion|date:"d/m/Y · H:i" }}{% else %}—{% endif %}</span>
+              <small>{{ f.p.modificado_por }}</small>
+            </td>
+            <td class="gwa-pr-acciones">
+              <a class="gu-btn gu-btn-outline gu-btn-sm" href="{% url 'wagtailsnippets_contenidos_plan:history' f.p.pk %}">{% icon name="history" classname="gu-icon" %}Ver historial</a>
+              <span class="gu-btn-dropdown">
+                <button type="button" class="gu-btn gu-btn-ghost gu-btn-sm gu-btn-icon" data-gu-dropdown="mas-{{ f.p.pk }}" aria-expanded="false" aria-label="Más acciones de {{ f.p }}">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
+                <span class="gu-btn-dropdown-menu" id="mas-{{ f.p.pk }}" hidden>
+                  <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">{% icon name="edit" classname="gu-icon" %}Editar el plan completo</a>
+                </span>
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
 
-          <details class="gwa-pr-mas">
-            <summary>Moneda, IVA e historial</summary>
-            <div class="gwa-pr-mas-grid">
-              <label class="gwa-pr-campo"><span>Moneda</span>
-                <select name="moneda_{{ f.p.pk }}" id="moneda_{{ f.p.pk }}" data-moneda>
-                  {% for c, n in monedas %}<option value="{{ c }}"{% if c == f.v.moneda %} selected{% endif %}>{{ n }}</option>{% endfor %}
-                </select></label>
-              <label class="gwa-pr-check"><input type="checkbox" name="mas_iva_{{ f.p.pk }}" id="mas_iva_{{ f.p.pk }}"{% if f.v.mas_iva %} checked{% endif %} data-mas-iva> Los importes son más IVA</label>
-              <dl class="gwa-pr-dl">
-                <div><dt>Última modificación</dt><dd>{% if f.p.ultima_modificacion %}{{ f.p.ultima_modificacion|date:"d/m/Y H:i" }}{% else %}—{% endif %}</dd></div>
-                <div><dt>Por</dt><dd>{{ f.p.modificado_por }}</dd></div>
-              </dl>
-              <p class="gwa-pr-links"><a href="{% url 'wagtailsnippets_contenidos_plan:history' f.p.pk %}">Ver historial</a> · <a href="{% url 'wagtailsnippets_contenidos_plan:edit' f.p.pk %}">Editar el plan completo</a></p>
-            </div>
-          </details>
-        </article>
-        {% endfor %}
+        <details class="gwa-pr-ajustes{% if n == 1 %} gwa-pr-ajustes--uno{% endif %}" data-porplan>
+          <summary>{% icon name="arrow-right" classname="gu-icon" %}{% if n > 1 %}Vigencia, moneda e IVA por plan{% else %}Moneda e IVA{% endif %}</summary>
+          <table class="gu-table gu-table-responsive">
+            <thead><tr><th scope="col">Plan</th><th scope="col" class="gwa-pr-vigcol">Leyenda de vigencia</th><th scope="col" class="gwa-pr-vigcol">Aviso de vencimiento</th>
+              <th scope="col">Moneda</th><th scope="col">IVA</th></tr></thead>
+            <tbody>
+            {% for f in g.list %}
+            <tr data-ajuste="{{ f.p.pk }}">
+              <th scope="row" data-th="">{{ f.p.nombre }}</th>
+              <td class="gwa-pr-vigcol" data-th="Leyenda de vigencia">
+                <input type="text" name="leyenda_vigencia_{{ f.p.pk }}" id="leyenda_vigencia_{{ f.p.pk }}" value="{{ f.v.leyenda_vigencia }}" placeholder="Sin leyenda" data-vig="leyenda_vigencia" aria-label="Leyenda de vigencia de {{ f.p }}"></td>
+              <td class="gwa-pr-vigcol" data-th="Aviso de vencimiento">
+                <input type="date" name="vigente_hasta_{{ f.p.pk }}" id="vigente_hasta_{{ f.p.pk }}" value="{{ f.v.vigente_hasta|date:'Y-m-d' }}" data-vig="vigente_hasta" aria-label="Aviso de vencimiento de {{ f.p }}"></td>
+              <td data-th="Moneda">
+                <select name="moneda_{{ f.p.pk }}" id="moneda_{{ f.p.pk }}" data-moneda data-plan-ref="{{ f.p.pk }}" aria-label="Moneda de {{ f.p }}">
+                  {% for c, nombre in monedas %}<option value="{{ c }}"{% if c == f.v.moneda %} selected{% endif %}>{{ nombre }}</option>{% endfor %}
+                </select></td>
+              <td data-th="IVA"><label class="gwa-pr-check"><input type="checkbox" name="mas_iva_{{ f.p.pk }}" id="mas_iva_{{ f.p.pk }}"{% if f.v.mas_iva %} checked{% endif %} data-mas-iva data-plan-ref="{{ f.p.pk }}"> Más IVA</label></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          <p class="gwa-pr-ayuda">El aviso de vencimiento es interno: solo te avisa en el inicio. Una leyenda vacía no muestra la nota ni el (*).</p>
+        </details>
       </div>
     </section>
-    {% endwith %}
+    {% endwith %}{% endwith %}
     {% empty %}
     <p>No hay planes en tus sitios.</p>
     {% endfor %}
@@ -113,10 +127,10 @@
     <p class="gwa-pr-ayuda" id="ayuda-importe">Importes sin símbolo y con punto de miles, por ejemplo 178.500.</p>
 
     <div class="gwa-pr-barra" role="region" aria-label="Guardar cambios">
-      <p class="gwa-pr-barra-estado" data-resumen aria-live="polite">No hay cambios sin guardar.</p>
+      <p class="gwa-pr-barra-estado">{% icon name="info-circle" classname="gu-icon" %}<span data-resumen aria-live="polite">No hay cambios sin guardar.</span></p>
       <div class="gwa-pr-barra-acciones">
-        <button type="submit" class="button button-secondary" name="accion" value="borrador" data-accion="borrador">Guardar borradores</button>
-        <button type="submit" class="button" name="accion" value="aprobar" data-accion="aprobar">Guardar y aprobar</button>
+        <button type="submit" class="gu-btn gu-btn-secondary gu-btn-lg" name="accion" value="borrador" data-accion="borrador">Guardar borradores</button>
+        <button type="submit" class="gu-btn gu-btn-primary gu-btn-lg" name="accion" value="aprobar" data-accion="aprobar">{% icon name="check" classname="gu-icon" %}Guardar y aprobar</button>
       </div>
     </div>
   </form>
@@ -128,8 +142,8 @@
       <ul data-dialogo-lista></ul>
       <p class="gwa-pr-ayuda">Quedan listos para publicar. La web no cambia hasta que toques «Publicar en la web» en Estado de las webs.</p>
       <div class="gwa-pr-barra-acciones">
-        <button class="button button-secondary" value="cancelar">Volver a revisar</button>
-        <button class="button" value="aprobar" data-confirmar>Sí, guardar y aprobar</button>
+        <button class="gu-btn gu-btn-outline gu-btn-lg" value="cancelar">Volver a revisar</button>
+        <button class="gu-btn gu-btn-primary gu-btn-lg" value="aprobar" data-confirmar>{% icon name="check" classname="gu-icon" %}Sí, guardar y aprobar</button>
       </div>
     </form>
   </dialog>

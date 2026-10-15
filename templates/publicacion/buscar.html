@@ -1,0 +1,26 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% block titletag %}Buscar{% endblock %}
+{% block content %}
+<div class="gwa-pagina">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="search" classname="gu-icon" %}
+      <div><h1>Buscar</h1>
+        <p>{% if q|length >= 2 %}{{ total }} resultado{{ total|pluralize }} para «{{ q }}»{% else %}Escribí al menos dos letras en el buscador de arriba.{% endif %}</p></div>
+    </div>
+  </div>
+  {% for g in grupos %}{% if g.items %}
+  <section class="gu-card gu-card-pad gwa-buscar-grupo" aria-labelledby="g-{{ forloop.counter }}">
+    <h2 id="g-{{ forloop.counter }}">{{ g.titulo }}</h2>
+    <ul>
+      {% for it in g.items %}
+      <li><a class="gu-search-result" href="{{ it.url }}">
+        {% if it.imagen %}<img src="{{ it.imagen }}" alt="">{% else %}{% icon name=it.icono classname="gu-icon" %}{% endif %}
+        <span class="gu-search-result-text"><b>{{ it.titulo }}</b>{% if it.detalle %}<small>{{ it.detalle }}</small>{% endif %}</span></a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}{% endfor %}
+  {% if q|length >= 2 and not total %}<p class="gu-search-empty">No hay resultados. Probá con otra palabra o buscá imágenes y documentos en sus secciones.</p>{% endif %}
+</div>
+{% endblock %}

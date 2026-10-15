@@ -1,94 +1,125 @@
-/* «Actualizar precios»: secciones por producto, tarjetas por plan y barra de guardado fija.
-   Colores del panel: variables de Wagtail (tema claro y oscuro). Color de cada producto: --gwa-sitio. */
-.gwa-pr { --pr-borde: var(--w-color-border-furniture, #e0e0e0); --pr-fondo: var(--w-color-surface-page, #fff);
-  --pr-campo: var(--w-color-surface-field, #fff); --pr-texto: var(--w-color-text-context, #262626); --pr-meta: var(--w-color-text-meta, #5c5c5c);
-  max-width: 1180px; padding-bottom: 120px; }
-.gwa-pr-intro { max-width: 78ch; color: var(--pr-meta); margin-bottom: 28px; }
-.gwa-pr code { font-size: .85em; }
-.gwa-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* «Actualizar precios»: una sección por producto (isologo y color oficiales) con la tabla de planes de GELECTRIC.
+   La tabla se acomoda al ancho de la sección (container query), así funciona igual con el sidebar
+   expandido o contraído; en anchos chicos cada plan pasa a ser una tarjeta. Sin scroll horizontal. */
+.gwa-pr { --pr-gap: 18px; }
+.gwa-pr .gu-page-head { align-items: stretch; }
+.gwa-pr input, .gwa-pr select { box-sizing: border-box; max-width: 100%; font-family: var(--font-body); }
+.gwa-pr code { font-size: .9em; background: var(--surface-3); border-radius: 5px; padding: 0 4px; color: var(--text); }
 
-.gwa-pr-sitio { border: 1px solid var(--pr-borde); border-radius: 16px; margin-bottom: 28px; overflow: hidden; background: var(--pr-fondo); }
-.gwa-pr-sitio-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 22px 14px;
-  border-top: 5px solid var(--gwa-sitio); }
-.gwa-pr-sitio-head h2 { margin: 0; font-size: 1.45rem; display: flex; align-items: center; gap: 10px; }
-.gwa-pr-marca { width: 14px; height: 14px; border-radius: 50%; background: var(--gwa-sitio); flex: none; }
-.gwa-pr-cuenta { margin: 0; color: var(--pr-meta); font-size: .9rem; }
+/* ---------- Sección de producto ---------- */
+.gwa-pr-sitio { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  margin: 0 0 var(--pr-gap); overflow: hidden; container-type: inline-size; container-name: producto; }
+.gwa-pr-sitio::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--gwa-producto); }
+.gwa-pr-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) auto; gap: 14px 22px; align-items: end; padding: 18px 20px 16px 24px; }
+.gwa-pr-id { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; align-self: center; }
+.gwa-pr-id h2 { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.1; color: var(--text); font-family: var(--font-display); }
+.gwa-pr-lema { margin: 2px 0 0; font-size: .85rem; color: var(--text-muted); }
+.gwa-pr-meta { margin: 0; font-size: .9rem; color: var(--text-secondary); flex-basis: 100%; }
+.gwa-pr-plegar { align-self: center; }
+.gwa-pr-plegar .gu-icon { transition: transform .15s ease; }
+.gwa-pr-plegar[aria-expanded="false"] .gu-icon { transform: rotate(180deg); }
 
-/* Vigencia compartida */
-.gwa-pr-vigencia { display: grid; gap: 12px; padding: 14px 22px 18px; border-top: 1px solid var(--pr-borde); border-bottom: 1px solid var(--pr-borde);
-  background: color-mix(in srgb, var(--gwa-sitio) 7%, transparent); }
-.gwa-pr-vig-titulo h3 { margin: 0 0 2px; font-size: 1rem; }
-.gwa-pr-ayuda { margin: 0; color: var(--pr-meta); font-size: .85rem; }
-.gwa-pr-vig-comun { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: end; }
-.gwa-pr-campo { display: grid; gap: 4px; min-width: 0; }
-.gwa-pr-campo > span { font-size: .82rem; font-weight: 600; color: var(--pr-texto); }
-.gwa-pr-campo small { font-weight: 400; color: var(--pr-meta); }
-.gwa-pr-campo input, .gwa-pr-campo select { width: 100%; min-width: 0; }
-.gwa-pr-porplan summary { cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--w-color-text-link-default, #007d7e); width: max-content; }
-.gwa-pr-porplan-filas { display: grid; gap: 8px; margin-top: 10px; }
-.gwa-pr-porplan-fila { display: grid; grid-template-columns: 120px minmax(0, 1fr) 200px; gap: 10px; align-items: center; }
-.gwa-pr-porplan-nombre { font-weight: 600; font-size: .9rem; }
+.gwa-pr-vig { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 12px; }
+.gwa-pr-campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.gwa-pr-campo > span { font-size: .82rem; font-weight: 600; color: var(--text-secondary); }
+.gwa-pr-campo small { font-weight: 400; color: var(--text-muted); }
+.gwa-pr input[type="text"], .gwa-pr input[type="date"], .gwa-pr select {
+  width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); font-size: .95rem; }
+.gwa-pr input:focus, .gwa-pr select:focus { outline: none; border-color: var(--brand-green); background: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-green) 25%, transparent); }
+.gwa-pr input:disabled { opacity: .65; cursor: not-allowed; }
+.gwa-pr input:user-invalid { border-color: var(--status-critical); }
 
-/* Planes */
-.gwa-pr-planes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; padding: 18px 22px 22px; }
-.gwa-pr-plan { border: 1px solid var(--pr-borde); border-radius: 12px; padding: 16px; display: grid; gap: 14px; align-content: start; min-width: 0;
-  background: var(--pr-fondo); transition: border-color .15s, box-shadow .15s; }
-.gwa-pr-plan.is-dirty { border-color: var(--w-color-warning-100, #faa500); box-shadow: 0 0 0 1px var(--w-color-warning-100, #faa500); }
-.gwa-pr-plan-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-.gwa-pr-plan-head h3 { margin: 0; font-size: 1.35rem; line-height: 1.15; color: color-mix(in srgb, var(--gwa-sitio) 55%, var(--pr-texto)); }
-.gwa-pr-clave { margin: 2px 0 0; font-size: .8rem; color: var(--pr-meta); }
-.gwa-pr-oculto { color: var(--w-color-text-error, #cd4444); }
-.gwa-pr-estados { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-.gwa-pr-badge { font-size: .72rem; font-weight: 700; letter-spacing: .02em; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
-  background: var(--w-color-surface-field-inactive, #f2f2f2); color: var(--pr-texto); }
-.gwa-pr-badge--ok { background: color-mix(in srgb, #178943 18%, transparent); color: var(--pr-texto); }
-.gwa-pr-badge--borrador, .gwa-pr-badge--cambio { background: color-mix(in srgb, #faa500 25%, transparent); color: var(--pr-texto); }
+.gwa-pr-cuerpo { padding: 0 20px 16px 24px; }
+.gwa-pr-cuerpo[hidden] { display: none; }
 
-.gwa-pr-importes { display: grid; gap: 12px; }
-.gwa-pr-importe { display: grid; gap: 4px; }
-.gwa-pr-importe > span:first-child { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--pr-meta); }
-.gwa-pr-importe small { text-transform: none; letter-spacing: 0; font-weight: 400; }
-.gwa-pr-monto { display: flex; align-items: center; gap: 8px; border: 1px solid var(--w-color-border-field-default, #929292); border-radius: 8px;
-  background: var(--pr-campo); padding: 0 12px; }
-.gwa-pr-monto:focus-within { outline: 3px solid var(--w-color-focus, #00b0b1); outline-offset: 1px; }
-.gwa-pr-monto b { font-size: 1.25rem; color: var(--pr-meta); }
-.gwa-pr-monto i { font-style: normal; font-size: .85rem; color: var(--pr-meta); white-space: nowrap; }
-.gwa-pr .gwa-pr-monto input { border: 0; background: transparent; outline: none; padding: 10px 0; min-width: 0; flex: 1; width: 100%;
-  font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pr-texto); box-shadow: none; }
-.gwa-pr-importe--sec .gwa-pr-monto input { font-size: 1.2rem; }
-.gwa-pr-monto:has(input:invalid) { border-color: var(--w-color-text-error, #cd4444); }
-.gwa-pr-nota { margin: -4px 0 0; font-size: .8rem; color: var(--pr-meta); }
+/* ---------- Tabla de planes ---------- */
+.gwa-pr-tabla { table-layout: auto; }
+.gwa-pr-tabla th[scope="row"] { text-align: left; text-transform: none; letter-spacing: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); background: none; padding-left: 14px; white-space: nowrap; }
+.gwa-pr-tabla th[scope="row"] small { display: block; font-size: .75rem; font-weight: 400; color: var(--text-muted); }
+.gwa-pr-tabla tbody tr { transition: background-color .15s ease; }
+.gwa-pr-tabla tbody tr.is-dirty { background: color-mix(in srgb, var(--status-info) 8%, transparent); }
+.gwa-pr-tabla td, .gwa-pr-tabla tbody th { border-top: 1px solid var(--border); }
+.gwa-pr-tabla tbody tr:first-child td, .gwa-pr-tabla tbody tr:first-child th { border-top: none; }
+.gwa-pr-monto { display: flex; align-items: center; gap: 7px; }
+.gwa-pr-monto b { font-weight: 600; color: var(--text-secondary); min-width: 1ch; }
+.gwa-pr-monto input[type="text"] { width: 100%; min-width: 7.5em; max-width: 11em; font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gwa-pr-monto i { font-style: normal; font-size: .8rem; color: var(--text-muted); white-space: nowrap; }
+.gwa-pr-importe { width: 20%; }
+.gwa-pr-estado { white-space: nowrap; }
+.gwa-pr-estado .gu-status-pill + .gu-status-pill { margin-left: 4px; }
+.gwa-pr-aprobado { display: block; font-size: .75rem; color: var(--text-muted); margin-top: 3px; }
+.gwa-pr-mod { font-size: .88rem; white-space: nowrap; }
+.gwa-pr-mod small { display: block; color: var(--text-muted); font-size: .8rem; }
+.gwa-pr-acciones { text-align: right; white-space: nowrap; }
+.gwa-pr-acciones .gu-btn-dropdown { margin-left: 4px; }
 
-.gwa-pr-mas { border-top: 1px solid var(--pr-borde); padding-top: 10px; }
-.gwa-pr-mas summary { cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--w-color-text-link-default, #007d7e); }
-.gwa-pr-mas-grid { display: grid; gap: 12px; margin-top: 12px; }
-.gwa-pr-check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
-.gwa-pr-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
-.gwa-pr-dl dt { font-size: .75rem; color: var(--pr-meta); }
-.gwa-pr-dl dd { margin: 0; font-size: .9rem; overflow-wrap: anywhere; }
-.gwa-pr-links { margin: 0; font-size: .88rem; }
+/* ---------- Vigencia, moneda e IVA por plan ---------- */
+.gwa-pr-ajustes { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.gwa-pr-ajustes > summary { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: .92rem; color: var(--brand-green-ink);
+  padding: 6px 10px; border-radius: var(--radius-btn); list-style: none; }
+.gwa-pr-ajustes > summary::-webkit-details-marker { display: none; }
+.gwa-pr-ajustes > summary:hover { background: var(--brand-accent-bg); }
+.gwa-pr-ajustes > summary .gu-icon { width: 16px; height: 16px; transition: transform .15s ease; }
+.gwa-pr-ajustes[open] > summary .gu-icon { transform: rotate(90deg); }
+.gwa-pr-ajustes .gu-table { margin-top: 8px; }
+.gwa-pr-ajustes .gu-table tbody th { text-align: left; font-weight: 600; color: var(--text); white-space: nowrap; }
+.gwa-pr-ajustes .gu-table td:nth-child(3) { width: 180px; }
+.gwa-pr-ajustes .gu-table td:nth-child(4) { width: 200px; }
+.gwa-pr-ajustes--uno .gwa-pr-vigcol { display: none; }
+.gwa-pr-check { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: .92rem; color: var(--text); }
+.gwa-pr-check input { width: 18px; height: 18px; accent-color: var(--brand-green); }
+.gwa-pr-ayuda { font-size: .82rem; color: var(--text-muted); margin: 8px 0 0; }
 
-/* Barra de guardado */
-.gwa-pr-barra { position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 8px; padding: 14px 18px; border: 1px solid var(--pr-borde); border-radius: 14px; background: var(--w-color-surface-header, var(--pr-fondo));
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, .18); }
-.gwa-pr-barra-estado { margin: 0; font-weight: 600; }
-.gwa-pr-barra.is-dirty .gwa-pr-barra-estado { color: var(--w-color-warning-100, #faa500); }
+/* ---------- Barra fija de guardado ---------- */
+.gwa-pr-barra { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  margin: 20px 0 0; padding: 12px 18px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(6px);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 -8px 24px rgba(0, 0, 0, .35); }
+.gwa-pr-barra.is-dirty { border-color: color-mix(in srgb, var(--status-info) 55%, var(--border)); }
+.gwa-pr-barra-estado { display: flex; align-items: center; gap: 9px; margin: 0; font-size: .92rem; color: var(--text-secondary); }
+.gwa-pr-barra.is-dirty .gwa-pr-barra-estado { color: var(--text); font-weight: 600; }
 .gwa-pr-barra-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
-.gwa-pr-dialogo { border: 1px solid var(--pr-borde); border-radius: 14px; padding: 22px; max-width: min(520px, calc(100vw - 32px));
-  background: var(--pr-fondo); color: var(--pr-texto); }
-.gwa-pr-dialogo::backdrop { background: rgba(0, 0, 0, .55); }
-.gwa-pr-dialogo h2 { margin-top: 0; }
-.gwa-pr-dialogo ul { padding-left: 1.2em; }
 
-@media (max-width: 700px) {
-  .gwa-pr-sitio-head, .gwa-pr-vigencia, .gwa-pr-planes { padding-left: 14px; padding-right: 14px; }
-  .gwa-pr-vig-comun { grid-template-columns: 1fr; }
-  .gwa-pr-porplan-fila { grid-template-columns: 1fr; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--pr-borde); }
-  .gwa-pr-barra { border-radius: 12px; padding: 12px; }
-  .gwa-pr-barra-acciones { width: 100%; } .gwa-pr-barra-acciones .button { flex: 1 1 auto; padding-inline: 12px; }
-  .gwa-pr .gwa-pr-monto input { font-size: 1.35rem; }
+/* ---------- Confirmación ---------- */
+.gwa-pr-dialogo { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 24px; max-width: min(480px, calc(100vw - 32px));
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.gwa-pr-dialogo::backdrop { background: rgba(0, 0, 0, .65); }
+.gwa-pr-dialogo h2 { margin: 0 0 8px; font-size: 1.3rem; }
+.gwa-pr-dialogo ul { margin: 8px 0; padding-left: 1.2em; }
+.gwa-pr-dialogo .gwa-pr-barra-acciones { justify-content: flex-end; margin-top: 18px; }
+
+/* ---------- Anchos medianos: la vigencia baja debajo del nombre ---------- */
+@container producto (max-width: 1080px) {
+  .gwa-pr-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .gwa-pr-vig { grid-column: 1 / -1; grid-row: 2; }
 }
-@media (prefers-reduced-motion: reduce) { .gwa-pr-plan { transition: none; } }
-.gwa-pr input, .gwa-pr select { box-sizing: border-box; max-width: 100%; }
-.gwa-pr-dialogo ul { display: grid; gap: 4px; margin: 4px 0 14px; }
+
+/* ---------- Sección angosta: cada plan es una tarjeta ---------- */
+@container producto (max-width: 900px) {
+  .gwa-pr-tabla, .gwa-pr-tabla tbody { display: block; }
+  .gwa-pr-tabla thead { position: absolute; left: -9999px; }
+  .gwa-pr-tabla tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; padding: 14px; margin-bottom: 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+  .gwa-pr-tabla tbody tr > * { border: 0 !important; padding: 0 !important; width: auto; }
+  .gwa-pr-tabla th[scope="row"] { grid-column: 1; align-self: center; }
+  .gwa-pr-clave { grid-column: 2; justify-self: end; align-self: center; }
+  .gwa-pr-importe::before { content: attr(data-th); display: block; font-size: .78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+  .gwa-pr-monto input[type="text"] { max-width: none; }
+  .gwa-pr-estado { grid-column: 1 / -1; white-space: normal; }
+  .gwa-pr-mod { grid-column: 1; align-self: center; white-space: normal; }
+  .gwa-pr-acciones { grid-column: 2; align-self: center; }
+}
+@container producto (max-width: 520px) {
+  .gwa-pr-tabla tbody tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .gwa-pr-importe { grid-column: 1 / -1; }
+  .gwa-pr-mod, .gwa-pr-acciones { grid-column: 1 / -1; text-align: left; }
+  .gwa-pr-vig { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  .gwa-pr-head { padding: 16px 14px 14px 18px; }
+  .gwa-pr-cuerpo { padding: 0 12px 12px 16px; }
+  .gwa-pr-barra { padding: 10px 12px; gap: 8px; }
+  .gwa-pr-barra-estado { font-size: .85rem; }
+  .gwa-pr-barra-acciones { width: 100%; flex-wrap: nowrap; gap: 8px; }
+  .gwa-pr-barra-acciones .gu-btn { flex: 1 1 0; padding: 0 10px; font-size: 13.5px; }
+}

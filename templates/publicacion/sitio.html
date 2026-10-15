@@ -1,7 +1,7 @@
 {% extends "wagtailadmin/base.html" %}
 {% block titletag %}{{ e.sitio.nombre }} · Estado de la web{% endblock %}
 {% block content %}
-{% include "wagtailadmin/shared/header.html" with title=e.sitio.nombre subtitle="Estado de la web" icon="upload" %}
+{% include "wagtailadmin/shared/header.html" with title=e.sitio.nombre subtitle="Estado de la web" icon="desktop" %}
 <div class="nice-padding">
   {% if e.error %}
   <div class="gwa-aviso err"><strong>La última publicación falló ({{ e.error.iniciado|date:"d/m/Y H:i" }}).</strong>

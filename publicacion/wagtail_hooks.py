@@ -25,12 +25,13 @@ def urls():
         path("web/publicacion/<int:pk>/", views.despliegue_detalle, name="gwa_despliegue"),
         path("precios/", views.precios, name="gwa_precios"),
         path("sitio-activo/", views.elegir_sitio, name="gwa_elegir_sitio"),
+        path("buscar/", views.buscar, name="gwa_buscar"),
     ]
 
 
 @hooks.register("register_admin_menu_item")
 def menu_estado():
-    return MenuItem("Estado de las webs", reverse("gwa_estado"), icon_name="upload", order=100)
+    return MenuItem("Estado de las webs", reverse("gwa_estado"), icon_name="desktop", order=100)
 
 
 @hooks.register("register_admin_menu_item")
@@ -40,8 +41,22 @@ def menu_precios():
 
 @hooks.register("insert_global_admin_css")
 def css():
-    return format_html('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap">'
-                       '<link rel="stylesheet" href="{}">', static("gwa/admin.css"))
+    """Sistema de diseño GENEOS UI (tokens oscuros + componentes de GELECTRIC) sobre todo el administrador."""
+    hojas = ["gwa/ui/tokens.css", "gwa/ui/componentes.css", "gwa/ui/wagtail.css", "gwa/admin.css"]
+    return format_html("".join('<link rel="stylesheet" href="{}">' for _ in hojas), *[static(h) for h in hojas])
+
+
+@hooks.register("insert_global_admin_js")
+def js():
+    return format_html('<script src="{}"></script>', static("gwa/ui/shell.js"))
+
+
+@hooks.register("register_icons")
+def iconos(icons):
+    """Íconos lineales de Lucide que usa el sistema de diseño además de los de Wagtail (scripts/iconos_lucide.py)."""
+    from django.conf import settings
+    carpeta = settings.BASE_DIR / "templates" / "gwa" / "iconos"
+    return icons + [f"gwa/iconos/{f.name}" for f in sorted(carpeta.glob("*.svg"))]
 
 
 def _sitios(user):

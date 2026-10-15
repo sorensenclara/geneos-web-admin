@@ -177,3 +177,62 @@ def elegir_sitio(request):
     clave = request.POST.get("sitio", "")
     request.session["gwa_sitio"] = clave if SitioWeb.objects.filter(clave=clave).exists() else ""
     return redirect(request.POST.get("volver") or reverse("wagtailadmin_home"))
+
+
+def _sin_acentos(texto):
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", texto.lower()) if unicodedata.category(c) != "Mn")
+
+
+def buscar(request):
+    """Buscador del topbar: secciones del administrador, productos, planes, páginas y preguntas frecuentes.
+    Cada grupo respeta los permisos del usuario (sitios permitidos y páginas que puede explorar)."""
+    from django.http import JsonResponse
+    from django.template import Context
+    from wagtail.permission_policies.pages import PagePermissionPolicy
+    from contenidos.models import PreguntaFrecuente
+    from .templatetags.gwa_ui import gwa_menu
+
+    q = request.GET.get("q", "").strip()
+    grupos = []
+    if len(q) >= 2:
+        nq = _sin_acentos(q)
+        ids = sitios_permitidos(request.user, 1)
+
+        secciones = []
+        for it in gwa_menu(Context({"request": request}))["principal"]:
+            for x in [it] + it.get("children", []):
+                if x["url"] and not x["url"].startswith(("#", "http")) and nq in _sin_acentos(x["label"]):
+                    padre = it["label"] if x is not it else ""
+                    secciones.append({"titulo": x["label"], "detalle": padre, "url": x["url"], "icono": x["icon"] if x is it else it["icon"]})
+        grupos.append({"titulo": "Secciones", "items": secciones[:6]})
+
+        sitios = SitioWeb.objects.all() if ids is None else SitioWeb.objects.filter(pk__in=ids)
+        productos = [{"titulo": s.nombre, "detalle": s.marca["lema"] or "Estado de la web", "url": reverse("gwa_sitio", args=[s.clave]),
+                      "imagen": s.marca["isologo_url"]} for s in sitios if nq in _sin_acentos(s.nombre)]
+        grupos.append({"titulo": "Productos", "items": productos})
+
+        planes = Plan.objects.select_related("sitio")
+        if ids is not None:
+            planes = planes.filter(sitio_id__in=ids)
+        planes = [p for p in planes if nq in _sin_acentos(f"{p.nombre} {p.clave} {p.sitio.nombre}")][:6]
+        grupos.append({"titulo": "Planes y precios", "items": [
+            {"titulo": f"{p.sitio.nombre} {p.nombre}", "detalle": f"Abono {p.simbolo}{p.precio}" + (" + IVA" if p.mas_iva else ""),
+             "url": reverse("wagtailsnippets_contenidos_plan:edit", args=[p.pk]), "imagen": p.sitio.marca["isologo_url"]} for p in planes]})
+
+        paginas = PagePermissionPolicy().explorable_instances(request.user).filter(depth__gt=1, title__icontains=q).specific()[:8]
+        grupos.append({"titulo": "Páginas", "items": [
+            {"titulo": p.title, "detalle": p.get_parent().title if p.depth > 2 else "", "url": reverse("wagtailadmin_pages:edit", args=[p.pk]), "icono": "doc-empty"}
+            for p in paginas]})
+
+        faq = PreguntaFrecuente.objects.select_related("sitio").filter(pregunta__icontains=q)
+        if ids is not None:
+            faq = faq.filter(sitio_id__in=ids)
+        grupos.append({"titulo": "Preguntas frecuentes", "items": [
+            {"titulo": f.pregunta, "detalle": f.sitio.nombre, "url": reverse("wagtailsnippets_contenidos_preguntafrecuente:edit", args=[f.pk]), "icono": "help"}
+            for f in faq[:6]]})
+
+    if request.GET.get("formato") == "json":
+        return JsonResponse({"q": q, "grupos": grupos})
+    total = sum(len(g["items"]) for g in grupos)
+    return render(request, "publicacion/buscar.html", {"q": q, "grupos": grupos, "total": total, "page_title": "Buscar"})

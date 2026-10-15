@@ -17,7 +17,8 @@ class SitioWeb(models.Model):
     dominio = models.URLField("Dominio público", blank=True, help_text="Ej.: https://gerp.ar. Puede quedar vacío si todavía no está definido.")
     dominio_confirmado = models.BooleanField("Dominio confirmado", default=False,
                                              help_text="Mientras no esté confirmado, la web se genera sin URL canónica ni sitemap.")
-    color = models.CharField("Color del sitio", max_length=7, default="#178943")
+    color = models.CharField("Color del sitio", max_length=7, default="#128237",
+                             help_text="En GENEOS, GERP, GEAGRO y GEMA el administrador usa el color de su isologo oficial.")
     motor = models.CharField("Generador", max_length=20, choices=MOTORES, default="comercial")
     orden = models.PositiveSmallIntegerField(default=0)
 
@@ -46,6 +47,12 @@ class SitioWeb(models.Model):
     publicar_al_aprobar = models.BooleanField("Actualizar la web al aprobar cada cambio", default=False,
                                               help_text="Si está apagado, los cambios aprobados se acumulan hasta que tocás «Publicar en la web».")
     actualizado = models.DateTimeField(auto_now=True)
+
+    @property
+    def marca(self):
+        """Isologo oficial, color y lema del producto (sitios/marca.py)."""
+        from .marca import marca
+        return marca(self.clave) or {"isologo_url": "", "color": self.color, "lema": ""}
 
     panels_general = [
         MultiFieldPanel([FieldPanel("nombre"), FieldPanel("clave", read_only=True), FieldRowPanel([FieldPanel("dominio"), FieldPanel("dominio_confirmado")]), FieldPanel("color")], "Sitio"),

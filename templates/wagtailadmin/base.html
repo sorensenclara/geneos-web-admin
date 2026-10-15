@@ -1,5 +1,24 @@
-{% extends "wagtailadmin/base.html" %}
-{% load static %}
-{% block branding_logo %}
-<img src="{% static 'gwa/favicon/favicon.svg' %}" alt="" width="64" height="64" style="display:block;margin:auto">
+{% extends "wagtailadmin/admin_base.html" %}
+{% load wagtailadmin_tags i18n %}
+{% comment %}
+GENEOS UI: el esqueleto del administrador sigue el de GELECTRIC (sidebar + columna con topbar y contenido).
+Reemplaza el sidebar de Wagtail por el de GENEOS UI, armado con el mismo menú y los mismos permisos.
+El contenido de cada pantalla, los mensajes y los atajos de teclado son los de Wagtail.
+{% endcomment %}
+{% block furniture %}
+<div class="gu-app">
+    <div class="gu-scrim" id="gu-scrim"></div>
+    {% include "gwa/ui/_sidebar.html" %}
+    <div class="gu-main">
+        {% include "gwa/ui/_topbar.html" %}
+        {% keyboard_shortcuts_dialog %}
+        <main class="content-wrapper w-overflow-x-hidden" id="main">
+            <div class="content">
+                {% include "gwa/ui/_mensajes.html" %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+<div class="gu-icon-tooltip" id="gu-icon-tooltip" role="tooltip" aria-hidden="true"></div>
 {% endblock %}

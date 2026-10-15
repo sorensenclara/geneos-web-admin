@@ -3,6 +3,7 @@ from wagtail.permission_policies.base import BasePermissionPolicy
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
+from .columnas import columna_sitio
 from .models import AccesoSitio, LineaProducto, SitioWeb
 from .permisos import ProtegerObjetos, accesos
 
@@ -60,7 +61,7 @@ class LineaViewSet(SnippetViewSet):
     model = LineaProducto
     icon = "list-ul"
     menu_label = "Líneas de producto"
-    list_display = ["nombre", "sitio", "ruta"]
+    list_display = ["nombre", columna_sitio(), "ruta"]
 
     @property
     def permission_policy(self):
@@ -71,7 +72,7 @@ class AccesoViewSet(SnippetViewSet):
     model = AccesoSitio
     icon = "key"
     menu_label = "Accesos por sitio"
-    list_display = ["grupo", "sitio", "linea", "rol"]
+    list_display = ["grupo", columna_sitio(), "linea", "rol"]
     list_filter = ["sitio", "rol"]
 
     @property
@@ -81,7 +82,7 @@ class AccesoViewSet(SnippetViewSet):
 
 class ConfiguracionGroup(SnippetViewSetGroup):
     menu_label = "Sitios y accesos"
-    menu_icon = "cogs"
+    menu_icon = "network"
     menu_order = 900
     items = (SitioWebViewSet, LineaViewSet, AccesoViewSet)
 

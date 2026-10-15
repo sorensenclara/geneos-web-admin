@@ -1,0 +1,1 @@
+<td{% if column.classname %} class="{{ column.classname }}"{% endif %}>{% if value %}{% with m=value.marca %}<span class="gu-producto">{% if m.isologo_url %}<img src="{{ m.isologo_url }}" alt="" width="22" height="22">{% endif %}{{ value.nombre }}</span>{% endwith %}{% endif %}</td>

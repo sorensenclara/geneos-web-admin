@@ -1,7 +1,7 @@
 {% extends "wagtailadmin/base.html" %}
 {% block titletag %}Publicación {{ d.pk }}{% endblock %}
 {% block content %}
-{% include "wagtailadmin/shared/header.html" with title=d.sitio.nombre subtitle="Detalle de la publicación" icon="upload" %}
+{% include "wagtailadmin/shared/header.html" with title=d.sitio.nombre subtitle="Detalle de la publicación" icon="desktop" %}
 <div class="nice-padding">
   <p><span class="gwa-badge {% if d.estado == 'ok' %}gwa-al_dia{% elif d.estado == 'fallo' %}gwa-error{% else %}gwa-pendiente{% endif %}">{{ d.get_estado_display }}</span>
      · {{ d.get_tipo_display }} · {{ d.iniciado|date:"d/m/Y H:i" }} · {{ d.usuario|default:"sistema" }}{% if d.version %} · versión {{ d.version }}{% endif %}</p>

@@ -97,6 +97,27 @@ es muy chico o no es SVG donde corresponde) el administrador lo avisa al guardar
 borrador → vista previa → aprobación → «Publicar en la web». Los campos vacíos mantienen los logos actuales.
 Los íconos y logos de cada plan de GERP se eligen como imagen en la pestaña «Identidad» del plan.
 
+## Diseño del administrador (GENEOS UI, tema oscuro)
+
+El panel sigue la estructura de GELECTRIC (`geletric-django/core`), en tema oscuro y con la identidad de cada producto:
+
+- **Sidebar** (`templates/gwa/ui/_sidebar.html`): arranca contraído con el isologo de GENEOS, solo íconos y el nombre en un globito.
+  La hamburguesa del topbar lo fija expandido, con el logo completo, los nombres y los submenús; el estado se recuerda entre pantallas.
+  En tablet y celular es un cajón que se abre y se cierra con la hamburguesa, tocando afuera o con Escape. Se arma con el menú de
+  Wagtail (mismos ítems, permisos y hooks); el atajo «[» también lo expande o lo contrae.
+- **Topbar** (`_topbar.html`): hamburguesa, buscador (⌘K; páginas, productos, planes, preguntas y secciones, según los permisos),
+  usuario con acceso al perfil y «Cerrar sesión».
+- **Componentes** (`static/gwa/ui/`): `tokens.css` (variables de GELECTRIC con la paleta oscura), `componentes.css` (sidebar,
+  topbar, botones, tablas responsive, desplegables y estados de GELECTRIC con prefijo `gu-`), `wagtail.css` (los botones, campos,
+  tablas y avisos de Wagtail con el mismo sistema) y `shell.js` (comportamiento del sidebar, el buscador y los desplegables).
+  El tema queda oscuro aunque una cuenta tenga elegido el claro en sus preferencias.
+- **Íconos**: todos lineales, de Lucide (licencia ISC en `docs/marca/lucide-LICENSE.txt`), con el trazo de GELECTRIC.
+  `scripts/iconos_lucide.py` genera los SVG que reemplazan los de Wagtail (`templates/wagtailadmin/icons`) y los propios (`templates/gwa/iconos`).
+- **Marca**: logos originales sin modificar en `static/gwa/marca` (GENEOS: isologotipo blanco y isologo color; GERP, GEAGRO y GEMA:
+  sus isologos de `docs/marca/favicon-originales`). Los colores de cada producto son los de su isologo y están en `sitios/marca.py`:
+  GERP `#1b4b8c`, GEAGRO `#0e8337`, GEMA `#ec6c05`; verde GENEOS `#128237` para acciones principales y navegación activa.
+- **Tipografía**: Titillium Web servida desde el administrador (`static/gwa/ui/fuentes`, licencia OFL), sin depender de Google Fonts.
+
 ## Precios: una sola fuente
 
 Cada plan (*Oferta comercial → Planes y precios*, o todos juntos en *Actualizar precios*) tiene como campos independientes:
@@ -141,7 +162,7 @@ y las filas se muestran siempre, aunque todas sus celdas estén vacías (hoy: «
 .venv/bin/python manage.py test
 ```
 
-Permisos por sitio y línea, borrador/aprobado/publicado de un precio, precio único en todos los lugares, moneda/IVA/vigencia, preguntas sin importes escritos, comparador sin «A confirmar», publicación fallida que no toca la web, vuelta atrás,
+Permisos por sitio y línea (también en el menú y el buscador), sidebar/topbar, isologos y colores oficiales, íconos lineales, borrador/aprobado/publicado de un precio, precio único en todos los lugares, moneda/IVA/vigencia, preguntas sin importes escritos, comparador sin «A confirmar», publicación fallida que no toca la web, vuelta atrás,
 testimonios no autorizados y antispam del formulario.
 
 ## Documentación previa

@@ -1,0 +1,24 @@
+{% load wagtailadmin_tags gwa_ui %}
+<header class="gu-topbar">
+    <button class="gu-menu-btn" id="gu-menu-btn" type="button" aria-controls="gu-sidebar" aria-label="Expandir el menú">{% icon name="bars" classname="gu-icon" %}</button>
+    <form class="gu-search-wrap" id="gu-search-form" role="search" action="{% url 'gwa_buscar' %}" method="get">
+        <label class="gu-search">
+            {% icon name="search" classname="gu-icon" %}
+            <span class="w-sr-only">Buscar en el administrador</span>
+            <input type="search" name="q" id="gu-search-input" placeholder="Buscar páginas, contenidos, productos…" autocomplete="off"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="gu-search-results" value="{{ request.GET.q|default:'' }}">
+            <kbd aria-hidden="true">⌘K</kbd>
+        </label>
+        <div class="gu-search-results" id="gu-search-results" role="listbox" aria-label="Resultados" hidden></div>
+    </form>
+    <div class="gu-topbar-spacer"></div>
+    <a class="gu-user-chip" href="{% url 'wagtailadmin_account' %}" title="Mi perfil">
+        <span class="gu-avatar" aria-hidden="true">{{ request.user|gwa_iniciales }}</span>
+        <span class="gu-who"><b>{{ request.user.get_full_name|default:request.user.get_username }}</b><span>{{ request.user|gwa_rol }}</span></span>
+        <span class="w-sr-only">: mi perfil</span>
+    </a>
+    <form method="post" action="{% url 'wagtailadmin_logout' %}" class="gu-logout-form">
+        {% csrf_token %}
+        <button class="gu-btn gu-btn-ghost gu-btn-lg gu-logout" type="submit" aria-label="Cerrar sesión">{% icon name="logout" classname="gu-icon" %}<span class="gu-logout-label" aria-hidden="true">Cerrar sesión</span></button>
+    </form>
+</header>

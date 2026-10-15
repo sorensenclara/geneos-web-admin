@@ -1,0 +1,169 @@
+/* GENEOS UI sobre Wagtail: el panel de Wagtail toma los tokens del tema oscuro de GENEOS y los
+   componentes de GELECTRIC (botones, campos, tablas, desplegables, estados). Solo estilos: no cambia
+   ningún comportamiento de Wagtail. El tema queda oscuro aunque la cuenta tenga elegido otro. */
+
+:root.w-theme-light, :root.w-theme-dark, :root.w-theme-system {
+  color-scheme: dark;
+  --w-font-sans: var(--font-body);
+
+  /* Paleta base de Wagtail → verde GENEOS (botones, casillas, solapas, foco) */
+  --w-color-secondary: var(--brand-green);
+  --w-color-secondary-400: var(--brand-green-hover);
+  --w-color-secondary-600: var(--brand-green-active);
+  --w-color-secondary-100: var(--brand-green-ink);
+  --w-color-secondary-75: color-mix(in srgb, var(--brand-green-ink) 70%, #fff);
+  --w-color-secondary-50: color-mix(in srgb, var(--brand-green) 18%, var(--surface));
+  --w-color-primary: var(--sidebar-bg);
+  --w-color-primary-200: var(--surface-3);
+
+  --w-color-surface-page: var(--bg);
+  --w-color-surface-field: var(--surface-2);
+  --w-color-surface-field-inactive: var(--surface-3);
+  --w-color-surface-header: var(--bg);
+  --w-color-surface-menus: var(--sidebar-bg);
+  --w-color-surface-menu-item-active: var(--sidebar-bg-active);
+  --w-color-surface-tooltip: var(--surface-3);
+  --w-color-surface-button-default: var(--brand-green);
+  --w-color-surface-button-hover: var(--brand-green-hover);
+  --w-color-surface-button-inactive: var(--border-strong);
+  --w-color-surface-button-outline-hover: var(--brand-accent-bg);
+  --w-color-surface-button-critical-hover: color-mix(in srgb, var(--status-critical) 16%, var(--surface));
+  --w-color-surface-status-label: var(--surface-3);
+  --w-color-surface-info-panel: color-mix(in srgb, var(--status-info) 12%, var(--surface));
+  --w-color-surface-dashboard-panel: var(--surface);
+
+  --w-color-text-button: #fff;
+  --w-color-text-label-menus-default: var(--sidebar-text);
+  --w-color-text-label-menus-active: var(--sidebar-text-active);
+  --w-color-text-label: var(--text-secondary);
+  --w-color-text-context: var(--text);
+  --w-color-text-meta: var(--text-muted);
+  --w-color-text-placeholder: var(--text-muted);
+  --w-color-text-link-default: var(--brand-green-ink);
+  --w-color-text-link-hover: color-mix(in srgb, var(--brand-green-ink) 75%, #fff);
+  --w-color-text-button-outline-default: var(--brand-green-ink);
+  --w-color-text-button-outline-hover: var(--brand-green-ink);
+  --w-color-text-highlight: var(--brand-green-ink);
+  --w-color-text-error: var(--status-critical);
+  --w-color-text-button-critical-outline-hover: var(--status-critical);
+  --w-color-text-status-label: var(--text-secondary);
+  --w-color-text-link-info: var(--text);
+
+  --w-color-icon-primary: var(--text-secondary);
+  --w-color-icon-primary-hover: var(--text);
+  --w-color-icon-secondary: var(--text-muted);
+  --w-color-icon-secondary-hover: var(--text);
+
+  --w-color-border-furniture: var(--border);
+  --w-color-border-furniture-more-contrast: var(--border-strong);
+  --w-color-border-button-small-outline-default: var(--border-strong);
+  --w-color-border-field-default: var(--border-strong);
+  --w-color-border-field-inactive: var(--border);
+  --w-color-border-field-hover: var(--text-muted);
+  --w-color-border-button-outline-default: var(--brand-green);
+  --w-color-border-button-outline-hover: var(--brand-green-hover);
+  --w-color-focus: var(--brand-green-ink);
+  --w-color-box-shadow-md: rgba(0, 0, 0, .5);
+}
+
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
+
+/* ---------- Esqueleto: Wagtail deja de reservar lugar para su sidebar ---------- */
+.wrapper { padding: 0 !important; height: auto; min-height: 100vh; }
+.gu-main > .content-wrapper { flex: 1; min-height: 0; height: auto; overflow-y: auto; float: none; border: 0; background: var(--bg);
+  scroll-padding-top: 5rem; }
+.gu-main > .content-wrapper > .content { min-height: 100%; }
+
+/* ---------- Encabezado de cada pantalla (barra con migas de pan) ---------- */
+.w-slim-header { background: var(--bg); border-bottom-color: var(--border); }
+.w-header__title, .w-header h1 { font-family: var(--font-display); font-weight: 700; }
+.w-breadcrumbs a, .w-breadcrumbs button { color: var(--text-secondary); }
+
+/* ---------- Botones de Wagtail con el Button System de GELECTRIC ---------- */
+.button { border-radius: var(--radius-btn); font-family: var(--font-body); font-weight: 600; letter-spacing: 0; }
+.button:focus-visible { outline: 2px solid var(--brand-green-ink); outline-offset: 2px; }
+.button.button-secondary { background: none; border-color: var(--border-strong); color: var(--text); }
+.button.button-secondary:hover { background: var(--surface-3); border-color: var(--border-strong); color: var(--text); }
+.button.no, .button.serious { border-color: var(--status-critical); }
+/* Botones unidos (acción + desplegable) conservan un solo contorno de píldora */
+.w-dropdown-button > .button:first-child { border-start-end-radius: 0; border-end-end-radius: 0; }
+.w-dropdown-button > .button + .button, .w-dropdown-button .w-dropdown__toggle { border-start-start-radius: 0; border-end-start-radius: 0; }
+
+/* ---------- Campos de formulario ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=image]):not([type=range]):not([type=color]),
+textarea, select, .tagit {
+  border-radius: var(--radius-sm); background-color: var(--surface-2); color: var(--text); font-family: var(--font-body);
+}
+input:focus, textarea:focus, select:focus { border-color: var(--brand-green); }
+.w-field__label, label { font-family: var(--font-body); }
+.w-field__help, .help { color: var(--text-muted); }
+
+/* ---------- Paneles y tarjetas ---------- */
+.w-panel__header { border-color: var(--border); }
+.w-form-width, .w-panel { --w-color-border-furniture: var(--border); }
+.panel, .w-dashboard-panel, .w-summary { border-radius: var(--radius); }
+.w-summary__list li { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+
+/* ---------- Tablas de Wagtail (listados) con el estilo de tabla de GELECTRIC ---------- */
+.listing { border-collapse: separate; border-spacing: 0; }
+.listing thead th, .listing thead td { background: var(--surface-2); color: var(--text-secondary); font-weight: 600; border-bottom: 0; }
+.listing thead th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.listing thead th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.listing tbody tr { border-color: var(--border); }
+.listing tbody td { border-bottom: 1px solid var(--border); }
+.listing tbody tr:hover > td { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.listing .title a, .listing h2 a { color: var(--text); }
+.listing .title a:hover, .listing h2 a:hover { color: var(--brand-green-ink); }
+
+/* ---------- Estados (Borrador, En vivo, Bloqueado…) como las píldoras de GELECTRIC ---------- */
+.w-status { border-radius: 999px; font-family: var(--font-body); font-weight: 600; text-transform: none; letter-spacing: 0;
+  background: var(--surface-3); color: var(--text-secondary); border: 0; padding: 3px 10px; }
+.w-status--primary { background: color-mix(in srgb, var(--status-good) 16%, transparent); color: var(--status-good); }
+.w-status--label { background: var(--surface-3); color: var(--text-secondary); }
+
+/* ---------- Menús desplegables de Wagtail ---------- */
+.w-dropdown__content, .tippy-box[data-theme="dropdown"] { background: var(--surface-3) !important; border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm) !important; box-shadow: var(--shadow); }
+.w-dropdown__content a, .w-dropdown__content button { color: var(--text); border-radius: var(--radius-sm); }
+.w-dropdown__content a:hover, .w-dropdown__content button:hover { background: var(--surface-2); color: var(--text); }
+
+/* ---------- Mensajes como las alertas de GELECTRIC ---------- */
+.messages ul li { border-radius: var(--radius-sm); font-family: var(--font-body); }
+.messages .success { background: color-mix(in srgb, var(--status-good) 18%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--status-good) 40%, var(--border)); }
+.messages .warning { background: color-mix(in srgb, var(--status-warning) 18%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--status-warning) 40%, var(--border)); }
+.messages .error { background: color-mix(in srgb, var(--status-critical) 18%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--status-critical) 40%, var(--border)); }
+.messages .info, .messages li:not([class]) { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.messages-icon { color: currentColor; }
+
+/* ---------- Diálogos ---------- */
+.w-dialog__box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+
+/* ---------- Ingreso al administrador ---------- */
+body.login { background: radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--brand-green) 18%, var(--bg)), var(--bg)); }
+body.login .content-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.gwa-login-marca { display: block; background: var(--sidebar-brand-bg); border-radius: var(--radius-sm); padding: 18px 24px; margin: 0 0 14px; }
+.gwa-login-titulo { display: block; font-size: 1.3rem; font-weight: 600; color: var(--text-secondary); }
+.gwa-login-marca img { display: block; width: 220px; max-width: 100%; height: auto; margin: 0 auto; }
+
+@media (max-width: 860px) {
+  .gu-main > .content-wrapper { scroll-padding-top: 4rem; }
+}
+
+/* ---------- Bloques de ayuda (avisos de Wagtail) con las alertas de GELECTRIC ---------- */
+.help-block { border-radius: var(--radius-sm); color: var(--text); border: 1px solid var(--border); background: var(--surface); }
+.help-block.help-info { background: color-mix(in srgb, var(--status-info) 12%, var(--surface)); border-color: color-mix(in srgb, var(--status-info) 35%, var(--border)); }
+.help-block.help-warning { background: color-mix(in srgb, var(--status-warning) 12%, var(--surface)); border-color: color-mix(in srgb, var(--status-warning) 35%, var(--border)); }
+.help-block.help-critical { background: color-mix(in srgb, var(--status-critical) 12%, var(--surface)); border-color: color-mix(in srgb, var(--status-critical) 35%, var(--border)); }
+.help-block .icon { color: currentColor; }
+.help-block a { color: var(--brand-green-ink); }
+
+/* Flecha para explorar páginas hijas: hover suave en vez del bloque verde lleno */
+.listing .children:hover, .listing tr:hover .children { background: var(--brand-accent-bg) !important; }
+.listing .children a, .listing .children:hover a { color: var(--brand-green-ink) !important; }
+.listing .children a .icon { height: 1.6rem; width: 1.6rem; }
+
+/* En el celular Wagtail deja 50px a la izquierda del encabezado para su botón de menú;
+   acá la hamburguesa está en el topbar, así que ese espacio se usa para el contenido. */
+@media (max-width: 49.9375em) {
+  .gu-main .w-pl-slim-header { padding-inline-start: 1rem; }
+}

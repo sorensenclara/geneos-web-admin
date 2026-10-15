@@ -1,6 +1,7 @@
-{% load wagtailadmin_tags %}
-<div class="gwa-card">
-  <h3><span class="gwa-dot" style="background: {{ e.sitio.color }}"></span>{{ e.sitio.nombre }}</h3>
+{% load wagtailadmin_tags %}{% with m=e.sitio.marca %}
+<div class="gwa-card" style="--gwa-producto: {{ m.color }}">
+  <h3>{% if m.isologo_url %}<img class="gwa-isologo" src="{{ m.isologo_url }}" alt="" width="34" height="34">{% else %}<span class="gwa-dot" style="background: {{ m.color }}"></span>{% endif %}
+    <span>{{ e.sitio.nombre }}{% if m.lema %}<span class="gwa-lema">{{ m.lema }}</span>{% endif %}</span></h3>
   <p>
     {% if e.situacion == "al_dia" %}<span class="gwa-badge gwa-al_dia">La web está al día</span>
     {% elif e.situacion == "pendiente" %}<span class="gwa-badge gwa-pendiente">{{ e.pendientes|length }} cambio{{ e.pendientes|length|pluralize }} aprobado{{ e.pendientes|length|pluralize }} sin publicar</span>
@@ -14,4 +15,4 @@
     {% if e.revision %} · {{ e.revision }} en revisión{% endif %}
   </p>
   <div class="gwa-acciones"><a class="button button-small button-secondary" href="{% url 'gwa_sitio' e.sitio.clave %}">Ver detalle y publicar</a></div>
-</div>
+</div>{% endwith %}

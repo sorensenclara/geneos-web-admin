@@ -49,6 +49,60 @@ class Circuito(TestCase):
         super().tearDownClass()
         shutil.rmtree(VAR, ignore_errors=True)
 
+    # ---------------------------------------------------------------------------------------------- Interfaz (GENEOS UI)
+    def test_esqueleto_sidebar_topbar_y_logos(self):
+        self.client.force_login(self.clara)
+        html = self.client.get("/admin/precios/").content.decode()
+        self.assertIn('id="gu-sidebar"', html)
+        self.assertIn('id="gu-menu-btn"', html)  # hamburguesa en el topbar, fuera del sidebar
+        self.assertLess(html.index('id="gu-sidebar"'), html.index('class="gu-topbar"'))
+        self.assertNotIn("data-wagtail-sidebar", html)  # el sidebar de Wagtail se reemplaza
+        self.assertIn("gwa/marca/geneos-isologotipo-blanco.svg", html)
+        self.assertIn("gwa/marca/geneos-isologo-color.svg", html)
+        self.assertIn('action="/admin/logout/"', html)
+        self.assertIn('href="/admin/account/"', html)
+        self.assertIn('aria-current="page"', html)
+        for clave in ("gerp", "geagro", "gema"):
+            self.assertIn(f"gwa/marca/{clave}-isologo.svg", html)
+        self.assertNotIn("Notificaciones", html)
+
+    def test_colores_e_isologos_oficiales(self):
+        from django.conf import settings
+        esperados = {"gerp": "#1b4b8c", "geagro": "#0e8337", "gema": "#ec6c05"}
+        for clave, color in esperados.items():
+            s = SitioWeb.objects.get(clave=clave)
+            self.assertEqual(s.marca["color"], color)
+            original = (settings.BASE_DIR / "docs/marca/favicon-originales" / f"{clave.upper()}-favicon.svg").read_bytes()
+            self.assertEqual((settings.BASE_DIR / "static/gwa/marca" / f"{clave}-isologo.svg").read_bytes(), original)
+
+    def test_menu_respeta_permisos(self):
+        self.client.force_login(self.editor_gema)
+        html = self.client.get("/admin/").content.decode()
+        self.assertIn("Actualizar precios", html)
+        self.assertNotIn("Accesos por sitio", html)
+        self.assertNotIn(">Usuarios<", html)
+
+    def test_buscador_respeta_permisos(self):
+        self.client.force_login(self.editor_gema)
+        datos = self.client.get("/admin/buscar/?q=ge&formato=json").json()
+        titulos = [it["titulo"] for g in datos["grupos"] for it in g["items"]]
+        self.assertTrue(any("GEMA" in t for t in titulos))
+        self.assertFalse(any(t.startswith(("GERP", "GEAGRO")) for t in titulos))
+        self.client.force_login(self.clara)
+        datos = self.client.get("/admin/buscar/?q=precios&formato=json").json()
+        secciones = [it["titulo"] for g in datos["grupos"] if g["titulo"] == "Secciones" for it in g["items"]]
+        self.assertIn("Actualizar precios", secciones)
+        self.assertEqual(self.client.get("/admin/buscar/?q=plan").status_code, 200)
+
+    def test_iconos_lineales(self):
+        from wagtail.admin.icons import get_icons
+        sprite = get_icons()
+        self.assertIn('id="icon-tag"', sprite)
+        self.assertIn("M12.586 2.586", sprite)  # trazo de Lucide «tag»
+        # Todos los íconos son lineales: cada símbolo lleva el trazo de Lucide y ninguno es relleno
+        self.assertEqual(sprite.count("<symbol"), sprite.count('stroke-width="1.8"'))
+        self.assertIn('id="icon-megaphone"', sprite)
+
     # ---------------------------------------------------------------------------------------------- Permisos
     def test_roles_por_sitio(self):
         self.assertTrue(puede(self.editor_gema, self.gema.pk))
