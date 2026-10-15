@@ -46,7 +46,16 @@ WAGTAIL = {
 
 # Íconos propios del sistema de diseño (no existen en Wagtail)
 PROPIOS = ["megaphone", "network", "inbox", "panel-left", "chevron-down", "chevron-right", "user-round", "log-out",
-           "circle-alert", "pencil-line", "save", "send"]
+           "circle-alert", "pencil-line", "save", "send", "package", "circle-minus", "type", "list-filter", "table-2", "list"]
+
+
+def iconos_funcionalidad():
+    """Íconos elegibles para una funcionalidad (contenidos/iconos_funcionalidad.py), como «f-<nombre>»."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("iconos", RAIZ / "contenidos" / "iconos_funcionalidad.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return {f"f-{n}": n for n in mod.NOMBRES}
 
 
 def simbolo(origen: Path, nombre: str) -> str:
@@ -62,12 +71,13 @@ def simbolo(origen: Path, nombre: str) -> str:
 
 def main(dir_lucide: str):
     lucide = Path(dir_lucide)
-    destinos = [(RAIZ / "templates/wagtailadmin/icons", WAGTAIL), (RAIZ / "templates/gwa/iconos", {n: n for n in PROPIOS})]
+    destinos = [(RAIZ / "templates/wagtailadmin/icons", WAGTAIL), (RAIZ / "templates/gwa/iconos", {n: n for n in PROPIOS}),
+                (RAIZ / "templates/gwa/iconos", iconos_funcionalidad())]
     for carpeta, mapa in destinos:
         carpeta.mkdir(parents=True, exist_ok=True)
         for nombre, origen in mapa.items():
             (carpeta / f"{nombre}.svg").write_text(simbolo(lucide / f"{origen}.svg", nombre))
-    print(f"{len(WAGTAIL)} íconos de Wagtail reemplazados y {len(PROPIOS)} propios.")
+    print(f"{len(WAGTAIL)} íconos de Wagtail reemplazados, {len(PROPIOS)} propios y {len(iconos_funcionalidad())} para funcionalidades.")
 
 
 if __name__ == "__main__":

@@ -23,6 +23,8 @@ from wagtail.search import index
 
 from sitios.models import LineaProducto, SitioWeb
 
+from .iconos_funcionalidad import ICONOS as ICONOS_FUNCIONALIDAD
+
 SECCIONES = [("sectores", "Sectores"), ("comparar", "Comparador de planes"), ("clientes", "Logos de clientes"),
              ("testimonios", "Testimonios"), ("faq", "Preguntas frecuentes")]
 RICH_BASICO = ["bold", "italic", "link", "ol", "ul"]
@@ -400,29 +402,45 @@ ESTADOS_VALOR = [("incluido", "Incluido ✓"), ("no_incluido", "No incluido —"
                  ("a_confirmar", "A confirmar"), ("texto", "Texto")]
 
 
-class Funcionalidad(RevisionMixin, ClusterableModel):
-    sitio = models.ForeignKey(SitioWeb, verbose_name="Sitio", on_delete=models.CASCADE)
-    linea = models.ForeignKey(LineaProducto, verbose_name="Línea", null=True, blank=True, on_delete=models.SET_NULL)
+class Funcionalidad(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, PreviewableMixin, ClusterableModel):
+    """Característica comercial de un producto y su disponibilidad en cada plan (comparador de la web).
+    Se edita en «Oferta comercial → Funcionalidades» o en su edición completa, con borrador, aprobación e historial."""
+    sitio = models.ForeignKey(SitioWeb, verbose_name="Producto", on_delete=models.CASCADE)
+    linea = models.ForeignKey(LineaProducto, verbose_name="Línea", null=True, blank=True, on_delete=models.SET_NULL,
+                              help_text="Solo GEAGRO: Cereales o Vid. Vacío: todas las líneas.")
     etiqueta = models.CharField("Funcionalidad", max_length=120)
+    descripcion = models.TextField("Descripción comercial", blank=True, help_text="Opcional. Texto breve para presentar la funcionalidad.")
+    icono = models.CharField("Ícono", max_length=40, blank=True, choices=ICONOS_FUNCIONALIDAD, help_text="Ícono lineal (Lucide).")
     grupo = models.CharField("Grupo", max_length=10, choices=[("basic", "Básica"), ("advanced", "Avanzada")], default="basic")
     resumen = models.BooleanField("Mostrar en el comparador resumido", default=True,
                                   help_text="Las que no están en el resumen aparecen con «Ver comparación completa».")
+    visible = models.BooleanField("Visible en la web", default=True, help_text="Desmarcala para ocultarla sin borrarla.")
     orden = models.PositiveSmallIntegerField("Orden", default=0)
     actualizado = models.DateTimeField(auto_now=True)
     base_form_class = FormPorSitio
 
-    panels = [FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldPanel("etiqueta"),
-              FieldRowPanel([FieldPanel("grupo"), FieldPanel("resumen"), FieldPanel("orden")]),
-              InlinePanel("valores", heading="Qué incluye cada plan", label="Plan",
-                          help_text="No asumas que un plan superior incluye todo lo del anterior: cargá cada valor con su fuente.")]
+    panels = [
+        MultiFieldPanel([FieldPanel("etiqueta"), FieldPanel("descripcion"), FieldPanel("icono")], "Funcionalidad"),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]),
+                         FieldRowPanel([FieldPanel("grupo"), FieldPanel("orden")]),
+                         FieldRowPanel([FieldPanel("resumen"), FieldPanel("visible")])], "Producto y presentación"),
+        InlinePanel("valores", heading="Disponibilidad por plan", label="Plan",
+                    help_text="No asumas que un plan superior incluye todo lo del anterior: cargá cada valor con su fuente. "
+                              "«A confirmar» queda vacío en la web."),
+    ]
+    preview_modes = [("", "Comparador en la web")]
 
     class Meta:
         ordering = ["sitio", "grupo", "orden"]
         verbose_name = "funcionalidad"
-        verbose_name_plural = "funcionalidades (comparador)"
+        verbose_name_plural = "funcionalidades"
 
     def __str__(self):
         return self.etiqueta
+
+    def serve_preview(self, request, mode_name):
+        from publicacion.servicio import vista_previa_objeto
+        return vista_previa_objeto(request, self, mode_name)
 
 
 class ValorFuncionalidad(Orderable):

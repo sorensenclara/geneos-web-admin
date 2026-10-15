@@ -24,6 +24,7 @@ from sitios.permisos import SitioPermissionPolicy, puede
 
 VAR = Path(tempfile.mkdtemp(prefix="gwa-test-"))
 PLANES = "/admin/snippets/contenidos/plan/"  # «Oferta comercial → Planes y precios»
+FUNCS = "/admin/snippets/contenidos/funcionalidad/"  # «Oferta comercial → Funcionalidades»
 
 
 @override_settings(GWA_VAR_DIR=VAR, GWA_FORM_SEGUNDOS_MINIMOS=0, MEDIA_ROOT=str(VAR / "media"))
@@ -286,6 +287,119 @@ class Circuito(TestCase):
         self.assertIn("Lotes y vencimientos</th>", home)                       # fila con datos: las celdas sin confirmar quedan vacías
         from contenidos.models import ValorFuncionalidad
         self.assertTrue(ValorFuncionalidad.objects.filter(estado="a_confirmar").exists())  # siguen pendientes en el administrador
+
+    # ---------------------------------------------------------------------------------------------- Funcionalidades
+    def _form_funcs(self, sitio, cambios=None):
+        """Formulario de la pantalla tal como se envía, con los cambios pedidos {(pk, campo): valor}."""
+        from contenidos.models import Funcionalidad
+        datos = {"sitio": sitio.clave}
+        planes = list(Plan.objects.filter(sitio=sitio))
+        for f in Funcionalidad.objects.filter(sitio=sitio):
+            f = f.get_latest_revision_as_object() if f.has_unpublished_changes else f  # la pantalla muestra los borradores
+            vals = {v.plan_id: v for v in f.valores.all()}
+            datos.update({f"grupo_{f.pk}": f.grupo, f"orden_{f.pk}": str(f.orden), f"resumen_{f.pk}__presente": "1", f"visible_{f.pk}__presente": "1"})
+            if f.resumen:
+                datos[f"resumen_{f.pk}"] = "on"
+            if f.visible:
+                datos[f"visible_{f.pk}"] = "on"
+            for p in planes:
+                v = vals.get(p.pk)
+                datos[f"valor_{f.pk}_{p.pk}"] = v.estado if v else "a_confirmar"
+                datos[f"texto_{f.pk}_{p.pk}"] = v.texto if v else ""
+        for (pk, campo), valor in (cambios or {}).items():
+            if valor is None:
+                datos.pop(f"{campo}_{pk}", None)
+            else:
+                datos[f"{campo}_{pk}"] = valor
+        return datos
+
+    def test_funcionalidades_pantalla_por_producto(self):
+        from contenidos.models import Funcionalidad
+        self.client.force_login(self.clara)
+        html = self.client.get("/admin/").content.decode()
+        self.assertIn(">Funcionalidades<", html)
+        self.assertNotIn(">Comparador<", html)
+        n = Funcionalidad.objects.filter(sitio=self.gerp).count()
+        pantalla = self.client.get(FUNCS + "?sitio=gerp").content.decode()
+        self.assertIn(f"{n} funcionalidades", pantalla)
+        self.assertEqual(pantalla.count("Sin funcionalidades"), 2)  # GEAGRO y GEMA, sin datos inventados
+        for clave in ("gerp", "geagro", "gema"):
+            self.assertIn(f"gwa/marca/{clave}-isologo.svg", pantalla)
+        for plan in ("Lite", "Core", "Plus"):
+            self.assertIn(f">{plan}<", pantalla.replace("LITE", "Lite").replace("CORE", "Core").replace("PLUS", "Plus"))
+        f = Funcionalidad.objects.filter(sitio=self.gerp).first()
+        for url in (f"{FUNCS}edit/{f.pk}/", f"{FUNCS}history/{f.pk}/"):
+            self.assertIn(url, pantalla)
+        self.assertEqual(self.client.get(f"{FUNCS}edit/{f.pk}/").status_code, 200)
+        self.assertEqual(Funcionalidad.objects.filter(sitio__clave__in=["geagro", "gema"]).count(), 0)
+        gema = self.client.get(FUNCS + "?sitio=gema").content.decode()
+        self.assertIn("Todavía no hay funcionalidades de GEMA", gema)
+        # Añadir desde la pestaña de un producto llega con ese producto elegido
+        alta = self.client.get(FUNCS + "add/?sitio=geagro").content.decode()
+        self.assertIn(f'value="{self.geagro.pk}"', alta)
+
+    def test_funcionalidades_borrador_aprobacion_y_web(self):
+        from contenidos.models import Funcionalidad
+        self.client.force_login(self.clara)
+        inv = Funcionalidad.objects.get(sitio=self.gerp, etiqueta="Inventario")
+        lite = Plan.objects.get(sitio=self.gerp, clave="lite")
+        # Borrador: no cambia lo aprobado ni la web
+        self.client.post(FUNCS, self._form_funcs(self.gerp, {(f"{inv.pk}_{lite.pk}", "valor"): "opcional", (inv.pk, "resumen"): None}) | {"accion": "borrador"})
+        inv.refresh_from_db()
+        self.assertTrue(inv.has_unpublished_changes)
+        self.assertTrue(inv.resumen)
+        self.assertEqual(inv.valores.get(plan=lite).estado, "incluido")
+        borrador = inv.get_latest_revision_as_object()
+        self.assertFalse(borrador.resumen)
+        self.assertEqual({v.plan_id: v.estado for v in borrador.valores.all()}[lite.pk], "opcional")
+        self.assertIn("Inventario", self._web(self.gerp))
+        # Aprobar (sin cambios nuevos) aprueba el borrador y queda pendiente de publicar
+        self.client.post(FUNCS, self._form_funcs(self.gerp) | {"accion": "aprobar"})
+        inv.refresh_from_db()
+        self.assertFalse(inv.has_unpublished_changes)
+        self.assertFalse(inv.resumen)
+        self.assertEqual(inv.valores.get(plan=lite).estado, "opcional")
+        self.assertEqual(estado_sitio(self.gerp)["situacion"], "pendiente")
+        import re
+        home = self._web(self.gerp)
+        fila = re.search(r"Inventario</th>(.*?)</tr>", home, re.S).group(1)
+        self.assertIn("Opcional", fila)
+        # Texto personalizado vacío no se guarda
+        self.client.post(FUNCS, self._form_funcs(self.gerp, {(f"{inv.pk}_{lite.pk}", "valor"): "texto", (f"{inv.pk}_{lite.pk}", "texto"): ""}) | {"accion": "borrador"})
+        inv.refresh_from_db()
+        self.assertFalse(inv.has_unpublished_changes)
+        # Ocultar en la web: no se borra, pero no se publica
+        self.client.post(FUNCS, self._form_funcs(self.gerp, {(inv.pk, "visible"): None}) | {"accion": "aprobar"})
+        inv.refresh_from_db()
+        self.assertFalse(inv.visible)
+        self.assertNotIn("Inventario</th>", self._web(self.gerp))
+
+    def test_funcionalidades_reordenar_y_permisos(self):
+        from contenidos.models import Funcionalidad
+        self.client.force_login(self.clara)
+        a, b = Funcionalidad.objects.filter(sitio=self.gerp, grupo="basic").order_by("orden")[:2]
+        self.client.post(FUNCS, self._form_funcs(self.gerp, {(a.pk, "orden"): str(b.orden), (b.pk, "orden"): str(a.orden)}) | {"accion": "aprobar"})
+        a2, b2 = Funcionalidad.objects.get(pk=a.pk), Funcionalidad.objects.get(pk=b.pk)
+        self.assertEqual((a2.orden, b2.orden), (b.orden, a.orden))
+        # Un editor de GEMA no ve ni modifica las de GERP
+        self.client.force_login(self.editor_gema)
+        pantalla = self.client.get(FUNCS + "?sitio=gerp").content.decode()
+        self.assertNotIn("Inventario", pantalla)
+        antes = a2.has_unpublished_changes
+        self.client.post(FUNCS, {"sitio": "gerp", f"grupo_{a.pk}": "advanced", "accion": "borrador"})
+        self.assertEqual(Funcionalidad.objects.get(pk=a.pk).has_unpublished_changes, antes)
+        # Un editor guarda borradores pero no aprueba
+        cereal = Funcionalidad.objects.create(sitio=self.geagro, etiqueta="Prueba de línea", orden=1)
+        self.client.force_login(self.ed_cereales)
+        cer = LineaProducto.objects.get(sitio=self.geagro, clave="cereales")
+        Funcionalidad.objects.filter(pk=cereal.pk).update(linea=cer)
+        pantalla = self.client.get(FUNCS + "?sitio=geagro").content.decode()
+        self.assertIn('name="linea_', pantalla)  # GEAGRO: Cereales, Vid o ambas
+        self.assertIn("Prueba de línea", pantalla)
+        self.client.post(FUNCS, {"sitio": "geagro", f"grupo_{cereal.pk}": "advanced", f"orden_{cereal.pk}": "1", "accion": "aprobar"})
+        cereal.refresh_from_db()
+        self.assertEqual(cereal.grupo, "basic")  # sin permiso para aprobar: quedó como borrador
+        self.assertTrue(cereal.has_unpublished_changes)
 
     def test_ultima_modificacion_interna(self):
         plan = Plan.objects.get(sitio=self.gema)

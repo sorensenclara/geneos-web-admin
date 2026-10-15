@@ -322,7 +322,7 @@ def datos_gerp(fuente, faqs_por_ruta):
         nuevos.append(item)
     base["plans"] = sorted(nuevos, key=lambda it: next((planes[it["key"]].orden for _ in [0] if it["key"] in planes), 99))
     claves = {p["key"] for p in base["plans"]}
-    funcs = sorted(fuente.snippets(Funcionalidad), key=lambda f: (f.grupo != "basic", f.orden))
+    funcs = sorted((f for f in fuente.snippets(Funcionalidad) if f.visible), key=lambda f: (f.grupo != "basic", f.orden))
     if funcs:
         base["features"] = []
         for f in funcs:

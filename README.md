@@ -38,7 +38,7 @@ Si GEAGRO no está en la ruta de siempre, copiá `.env.example` como `.env` y co
 | Carpeta | Qué hay |
 |---|---|
 | `sitios/` | Sitios, líneas de GEAGRO, contacto, destino de publicación, roles y permisos, tarea de aprobación por sitio. `manage.py inicializar` |
-| `contenidos/` | Páginas (encabezado, botones, SEO, secciones visibles), blog con artículos por bloques, planes y precios, comparador, FAQ, testimonios, sectores, redirecciones, recursos descargables |
+| `contenidos/` | Páginas (encabezado, botones, SEO, secciones visibles), blog con artículos por bloques, planes y precios, funcionalidades (comparador), FAQ, testimonios, sectores, redirecciones, recursos descargables |
 | `publicacion/` | Del contenido aprobado a los datos del generador, vista previa, controles, publicación con versiones, vuelta atrás y estado de cada web |
 | `formularios/` | API del formulario de demo (antispam, consentimiento, aviso por email) y listado de pedidos |
 | `renderer/` | Motor de sitios comerciales (copia de `GENEOS WEB/tools/sitios-comerciales`) que acepta los datos del administrador |
@@ -151,6 +151,25 @@ Dónde se muestra cada precio (todo sale del plan):
 En las preguntas frecuentes los importes no se escriben: se usa `[precio:clave]`, `[implementacion:clave]` o `[vigencia:clave]`
 (por ejemplo `[precio:lite]`), que se reemplaza por el importe vigente con su moneda e IVA. El administrador no deja guardar
 una respuesta con un importe escrito a mano ni con una clave de plan que no existe.
+
+## Funcionalidades (comparador)
+
+*Oferta comercial → Funcionalidades* (antes «Comparador»; mismo modelo y mismos datos) tiene una pestaña por producto con su
+isologo y la cantidad cargada, y dos vistas de los mismos datos:
+
+- **Comparador**: matriz con orden, nombre, grupo, «Resumido» (comparador resumido de la web) y una columna por cada plan real del
+  producto. Cada celda es Incluido, No incluido, Opcional, Texto personalizado o «A confirmar», con ícono y texto (no solo color).
+  Con un único plan (GEMA) se muestra una sola columna «Disponibilidad en …»; si se agregan planes, aparecen solos en la matriz.
+- **Lista**: nombre, grupo, orden, «Visible en la web» y estado editorial.
+- Filtros por grupo y estado, búsqueda por nombre, reordenar arrastrando (o con flechas) dentro de cada grupo, y menú ⋯ con
+  editar, historial y vista previa. En GEAGRO cada funcionalidad puede ser de Cereales, de Vid o de ambas líneas.
+- Los cambios se guardan juntos como borrador («Guardar borradores») o se aprueban («Guardar y aprobar», según el permiso) y se
+  ven en la web después de «Publicar en la web». Cada funcionalidad tiene borrador, aprobación, bloqueo e historial, como los planes;
+  las 16 de GERP quedaron aprobadas tal como estaban.
+- La edición completa agrega descripción comercial e ícono (Lucide) —todavía no se muestran en la web—, producto y línea,
+  disponibilidad por plan con su fuente y quién la validó.
+- GEAGRO y GEMA no tienen funcionalidades cargadas. Sus webs todavía no muestran esta sección: cargarlas no publica nada vacío.
+  Mostrarlas en esas webs requiere sumar la sección a sus plantillas.
 
 Comparador de GERP: los valores «A confirmar» quedan en el administrador, pero en la web la celda queda vacía,
 y las filas se muestran siempre, aunque todas sus celdas estén vacías (hoy: «Facturación electrónica ARCA (AFIP)»).

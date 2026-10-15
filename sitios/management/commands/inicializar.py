@@ -333,9 +333,9 @@ class Command(BaseCommand):
         WorkflowPage.objects.update_or_create(page=Page.get_first_root_node(), defaults={"workflow": wf})
         for s in SitioWeb.objects.all():
             IdentidadSitio.objects.get_or_create(sitio=s)
-        for model in (Plan, PreguntaFrecuente, Testimonio, IdentidadSitio):
+        for model in (Plan, Funcionalidad, PreguntaFrecuente, Testimonio, IdentidadSitio):
             WorkflowContentType.objects.update_or_create(content_type=ContentType.objects.get_for_model(model), defaults={"workflow": wf})
-        self.log("  Flujo de aprobación asignado a páginas, planes, preguntas frecuentes y testimonios")
+        self.log("  Flujo de aprobación asignado a páginas, planes, funcionalidades, preguntas frecuentes y testimonios")
 
     def gerp(self, s):
         if Plan.objects.filter(sitio=s).exists():

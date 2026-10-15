@@ -170,7 +170,7 @@ def estado_sitio(sitio):
             borradores += 1
         if p.workflow_in_progress:
             revision += 1
-    for model, tipo in ((Plan, "Plan"), (PreguntaFrecuente, "Pregunta frecuente"), (Testimonio, "Testimonio"), (IdentidadSitio, "Logos y favicon")):
+    for model, tipo in ((Plan, "Plan"), (Funcionalidad, "Funcionalidad"), (PreguntaFrecuente, "Pregunta frecuente"), (Testimonio, "Testimonio"), (IdentidadSitio, "Logos y favicon")):
         for o in model.objects.filter(sitio=sitio):
             if o.live and o.last_published_at and o.last_published_at > desde:
                 pendientes.append((tipo, str(o), o.last_published_at, _url_snippet(o)))
@@ -178,7 +178,7 @@ def estado_sitio(sitio):
                 borradores += 1
             if o.workflow_in_progress:
                 revision += 1
-    for model, tipo in ((Funcionalidad, "Funcionalidad"), (Sector, "Sector"), (Redireccion, "Redirección"), (CategoriaBlog, "Categoría"), (Recurso, "Recurso")):
+    for model, tipo in ((Sector, "Sector"), (Redireccion, "Redirección"), (CategoriaBlog, "Categoría"), (Recurso, "Recurso")):
         for o in model.objects.filter(sitio=sitio, actualizado__gt=desde):
             pendientes.append((tipo, str(o), o.actualizado, _url_snippet(o)))
     if sitio.actualizado > desde:

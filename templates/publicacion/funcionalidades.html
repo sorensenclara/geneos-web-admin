@@ -1,0 +1,187 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailadmin_tags %}
+{% block titletag %}Funcionalidades · {{ sitio.nombre }}{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'gwa/funcionalidades.css' %}">{% endblock %}
+{% block extra_js %}{{ block.super }}<script src="{% static 'gwa/funcionalidades.js' %}" defer></script>{% endblock %}
+{% block content %}
+{% with m=actual.marca n=filas|length np=planes|length %}
+<div class="gwa-pagina gwa-fx" style="--gwa-producto: {{ m.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="package" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><span>Oferta comercial</span>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Funcionalidades</span></nav>
+        <h1>Funcionalidades</h1>
+        <p>Las características de cada producto y en qué planes están incluidas.</p>
+      </div>
+    </div>
+    <div class="gu-info">{% icon name="info-circle" classname="gu-icon" %}
+      <p>Cada funcionalidad puede aparecer en el comparador resumido de la web o solo en la comparación completa. En cada plan puede estar
+         incluida, no incluida, ser opcional, llevar un texto propio o quedar «A confirmar», que en la web se muestra vacío.</p>
+    </div>
+  </div>
+
+  {# Productos: isologo oficial, color y cantidad de funcionalidades #}
+  <nav class="gwa-fx-productos" aria-label="Productos">
+    {% for p in productos %}
+    <a class="gwa-fx-producto{% if p.sitio.pk == sitio.pk %} is-actual{% endif %}" href="?sitio={{ p.sitio.clave }}&amp;vista={{ vista }}"
+       style="--gwa-producto: {{ p.marca.color }}"{% if p.sitio.pk == sitio.pk %} aria-current="page"{% endif %} data-producto>
+      {% if p.marca.isologo_url %}<img src="{{ p.marca.isologo_url }}" alt="" width="36" height="36">{% endif %}
+      <span><b>{{ p.sitio.nombre }}</b><small class="gwa-fx-cant-larga">{% if p.n %}{{ p.n }} funcionalidad{{ p.n|pluralize:"es" }}{% else %}Sin funcionalidades{% endif %}</small><small class="gwa-fx-cant-corta" aria-hidden="true">{% if p.n %}{{ p.n }}{% else %}Sin datos{% endif %}</small></span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  <div class="gwa-fx-barra-sup">
+    {% if n %}<div class="gwa-fx-vistas" role="tablist" aria-label="Vista">
+      <a role="tab" href="?sitio={{ sitio.clave }}&amp;vista=comparador" data-vista="comparador" aria-selected="{% if vista == 'comparador' %}true{% else %}false{% endif %}">{% icon name="table" classname="gu-icon" %}Comparador</a>
+      <a role="tab" href="?sitio={{ sitio.clave }}&amp;vista=lista" data-vista="lista" aria-selected="{% if vista == 'lista' %}true{% else %}false{% endif %}">{% icon name="list-ul" classname="gu-icon" %}Lista</a>
+    </div>{% else %}<span></span>{% endif %}
+    <div class="gwa-fx-acciones-sup">
+      {% if n %}<form method="post" action="{% url 'gwa_previa_sitio' sitio.clave %}" target="_blank">{% csrf_token %}
+        <button class="gu-btn gu-btn-outline">{% icon name="link-external" classname="gu-icon" %}Vista previa en la web</button></form>{% endif %}
+      {% if puede_agregar %}<a class="gu-btn gu-btn-primary" href="{% url 'wagtailsnippets_contenidos_funcionalidad:add' %}?sitio={{ sitio.clave }}">{% icon name="plus" classname="gu-icon" %}Añadir funcionalidad</a>{% endif %}
+    </div>
+  </div>
+
+  {% if not n %}
+  <section class="gu-card gu-card-pad gwa-fx-vacio">
+    {% if m.isologo_url %}<img src="{{ m.isologo_url }}" alt="" width="48" height="48">{% endif %}
+    <h2>Todavía no hay funcionalidades de {{ sitio.nombre }}</h2>
+    <p>Cuando las cargues, cada una se guarda como borrador y se aprueba como el resto del contenido.
+      {% if np > 1 %}Vas a poder marcar su disponibilidad en {% for p in planes %}{{ p.nombre }}{% if not forloop.last %}{% if forloop.revcounter == 2 %} y {% else %}, {% endif %}{% endif %}{% endfor %}.
+      {% elif np == 1 %}Como {{ sitio.nombre }} tiene un solo plan ({{ planes.0.nombre }}), se muestra su disponibilidad en ese plan.{% endif %}
+      {% if lineas %}Cada funcionalidad puede ser de {% for l in lineas %}{{ l.nombre }}{% if not forloop.last %}, de {% endif %}{% endfor %} o de ambas líneas.{% endif %}</p>
+    <p class="gwa-fx-nota">La web de {{ sitio.nombre }} todavía no muestra esta sección, así que no se publica nada vacío.</p>
+    {% if puede_agregar %}<a class="gu-btn gu-btn-primary" href="{% url 'wagtailsnippets_contenidos_funcionalidad:add' %}?sitio={{ sitio.clave }}">{% icon name="plus" classname="gu-icon" %}Añadir la primera funcionalidad</a>{% endif %}
+  </section>
+  {% else %}
+
+  <form method="post" id="gwa-fx" novalidate data-vista="{{ vista }}">{% csrf_token %}
+    <input type="hidden" name="sitio" value="{{ sitio.clave }}"><input type="hidden" name="vista" value="{{ vista }}" data-campo-vista>
+
+    <div class="gwa-fx-filtros" role="search">
+      <label class="gwa-fx-buscar">{% icon name="search" classname="gu-icon" %}<span class="w-sr-only">Buscar funcionalidad</span>
+        <input type="search" placeholder="Buscar funcionalidad…" data-filtro="q" autocomplete="off"></label>
+      <label class="gwa-fx-filtro"><span>Grupo</span>
+        <select data-filtro="grupo"><option value="">Todos</option>{% for k, v in grupos %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+      <label class="gwa-fx-filtro"><span>Estado</span>
+        <select data-filtro="estado"><option value="">Todos</option><option value="a_confirmar">Con valores «A confirmar»</option>
+          <option value="borrador">Borradores sin aprobar</option><option value="resumen">En el comparador resumido</option>
+          <option value="oculta">Ocultas en la web</option></select></label>
+      <p class="gwa-fx-cuenta" aria-live="polite" data-cuenta>{{ n }} funcionalidad{{ n|pluralize:"es" }}</p>
+    </div>
+
+    <div class="gwa-fx-tabla-wrap">
+    <table class="gu-table gwa-fx-tabla" data-planes="{{ np }}">
+      <thead>
+        <tr>
+          <th scope="col" class="gwa-fx-c-orden">Orden</th>
+          <th scope="col">Funcionalidad</th>
+          {% if lineas %}<th scope="col" class="gwa-fx-c-linea">Línea</th>{% endif %}
+          <th scope="col" class="gwa-fx-c-grupo">Grupo</th>
+          <th scope="col" class="gwa-fx-c-resumen solo-comparador"><span class="gwa-pr-th-ayuda">Resumido<span class="gwa-pr-tip" tabindex="0" aria-describedby="tip-resumen">{% icon name="info-circle" classname="gu-icon" %}<span role="tooltip" id="tip-resumen">Si está activo, aparece en el comparador resumido de la web. Si no, solo en «Ver comparación completa».</span></span></span></th>
+          {% for p in planes %}<th scope="col" class="gwa-fx-c-plan solo-comparador">{% if np == 1 %}Disponibilidad en {{ p.nombre }}{% else %}{{ p.nombre }}{% endif %}</th>{% endfor %}
+          <th scope="col" class="solo-lista">Visible en la web</th>
+          <th scope="col" class="solo-lista">Estado</th>
+          <th scope="col" class="gwa-fx-c-acc"><span class="w-sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in filas %}{% with f=r.f v=r.v %}
+      <tr data-fila="{{ f.pk }}" data-nombre="{{ v.etiqueta }}" data-grupo="{{ v.grupo }}" data-borrador="{{ f.has_unpublished_changes|yesno:'1,0' }}"
+          data-confirmar="{{ r.a_confirmar|yesno:'1,0' }}" {% if not r.editable %}data-solo-lectura{% endif %}>
+        <td class="gwa-fx-c-orden" data-th="Orden">
+          <span class="gwa-fx-orden">
+            {% if r.editable %}<button type="button" class="gwa-fx-mover" data-mover aria-label="Mover «{{ v.etiqueta }}»: flechas arriba y abajo" title="Arrastrá o usá las flechas para reordenar">{% icon name="grip" classname="gu-icon" %}</button>{% endif %}
+            <span data-orden-texto>{{ v.orden }}</span><input type="hidden" name="orden_{{ f.pk }}" value="{{ v.orden }}" data-orden>
+            {% if r.editable %}<span class="gwa-fx-flechas"><button type="button" data-paso="-1" aria-label="Subir «{{ v.etiqueta }}»">{% icon name="arrow-up" classname="gu-icon" %}</button><button type="button" data-paso="1" aria-label="Bajar «{{ v.etiqueta }}»">{% icon name="arrow-down" classname="gu-icon" %}</button></span>{% endif %}
+          </span>
+        </td>
+        <th scope="row" class="gwa-fx-nombre"><span class="gwa-fx-nombre-in">
+          {% if v.icono %}{% with "f-"|add:v.icono as ic %}{% icon name=ic classname="gu-icon gwa-fx-icono" %}{% endwith %}{% else %}{% icon name="package" classname="gu-icon gwa-fx-icono gwa-fx-icono--vacio" %}{% endif %}
+          <span class="gwa-fx-nombre-texto">{{ v.etiqueta }}
+            {% if f.has_unpublished_changes %}<span class="gu-status-pill warning">Borrador</span>{% endif %}
+            {% if not v.visible %}<span class="gu-status-pill neutral">{% icon name="no-view" classname="gu-icon" %}Oculta</span>{% endif %}
+            <span class="gu-status-pill info" data-cambio hidden>Sin guardar</span></span>
+        </span></th>
+        {% if lineas %}<td class="gwa-fx-c-linea" data-th="Línea">
+          <select name="linea_{{ f.pk }}" aria-label="Línea de «{{ v.etiqueta }}»" {% if not r.editable %}disabled{% endif %}>
+            <option value="">Ambas</option>{% for l in lineas %}<option value="{{ l.pk }}"{% if v.linea_id == l.pk %} selected{% endif %}>{{ l.nombre }}</option>{% endfor %}
+          </select></td>{% endif %}
+        <td class="gwa-fx-c-grupo" data-th="Grupo">
+          <select name="grupo_{{ f.pk }}" class="gwa-fx-grupo" data-grupo-campo aria-label="Grupo de «{{ v.etiqueta }}»" {% if not r.editable %}disabled{% endif %}>
+            {% for k, t in grupos %}<option value="{{ k }}"{% if v.grupo == k %} selected{% endif %}>{{ t }}</option>{% endfor %}
+          </select></td>
+        <td class="gwa-fx-c-resumen solo-comparador" data-th="Comparador resumido">
+          <input type="hidden" name="resumen_{{ f.pk }}__presente" value="1">
+          <label class="gu-switch"><input type="checkbox" name="resumen_{{ f.pk }}" {% if v.resumen %}checked{% endif %} {% if not r.editable %}disabled{% endif %}><span aria-hidden="true"></span><span class="w-sr-only">«{{ v.etiqueta }}» en el comparador resumido</span></label>
+        </td>
+        {% for c in r.celdas %}
+        <td class="gwa-fx-c-plan solo-comparador" data-th="{{ c.plan.nombre }}">
+          <div class="gwa-fx-valor" data-estado="{{ c.estado }}"{% if c.fuente or c.validado %} title="Fuente: {{ c.fuente|default:'—' }} · Validado por: {{ c.validado|default:'—' }}"{% endif %}>
+            <span class="gwa-fx-valor-sel">
+              {% icon name=c.icono classname="gu-icon gwa-fx-valor-icono" %}
+              <select name="valor_{{ f.pk }}_{{ c.plan.pk }}" data-valor aria-label="«{{ v.etiqueta }}» en {{ c.plan.nombre }}" {% if not r.editable %}disabled{% endif %}>
+                {% for k, t in estados %}<option value="{{ k }}"{% if c.estado == k %} selected{% endif %}>{{ t }}</option>{% endfor %}
+              </select>
+              {% icon name="arrow-down" classname="gu-icon gwa-fx-valor-chev" %}
+            </span>
+            <input type="text" name="texto_{{ f.pk }}_{{ c.plan.pk }}" value="{{ c.texto }}" maxlength="60" placeholder="Texto en la web" class="gwa-fx-valor-texto"
+                   aria-label="Texto de «{{ v.etiqueta }}» en {{ c.plan.nombre }}" data-texto {% if c.estado != "texto" %}hidden{% endif %} {% if not r.editable %}disabled{% endif %}>
+          </div>
+        </td>
+        {% endfor %}
+        <td class="solo-lista" data-th="Visible en la web">
+          <input type="hidden" name="visible_{{ f.pk }}__presente" value="1">
+          <label class="gu-switch"><input type="checkbox" name="visible_{{ f.pk }}" {% if v.visible %}checked{% endif %} {% if not r.editable %}disabled{% endif %}><span aria-hidden="true"></span><span class="w-sr-only">«{{ v.etiqueta }}» visible en la web</span></label>
+        </td>
+        <td class="solo-lista" data-th="Estado">
+          {% if f.has_unpublished_changes %}<span class="gu-status-pill warning">Borrador</span>{% elif f.live %}<span class="gu-status-pill good">Aprobada</span>{% else %}<span class="gu-status-pill neutral">Sin aprobar</span>{% endif %}
+          {% if f.workflow_in_progress %}<span class="gu-status-pill info">En revisión</span>{% endif %}
+          {% if f.locked %}<span class="gu-status-pill neutral">{% icon name="lock" classname="gu-icon" %}Bloqueada</span>{% endif %}
+        </td>
+        <td class="gwa-fx-c-acc">
+          <span class="gu-btn-dropdown">
+            <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon" data-gu-dropdown="fx-mas-{{ f.pk }}" aria-expanded="false" aria-haspopup="true" aria-label="Acciones de «{{ v.etiqueta }}»">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
+            <span class="gu-btn-dropdown-menu" id="fx-mas-{{ f.pk }}" hidden>
+              <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_funcionalidad:edit' f.pk %}">{% icon name="edit" classname="gu-icon" %}Editar funcionalidad</a>
+              <a class="gu-btn-dropdown-item" href="{% url 'wagtailsnippets_contenidos_funcionalidad:history' f.pk %}">{% icon name="history" classname="gu-icon" %}Ver historial</a>
+              {% if r.previa %}<a class="gu-btn-dropdown-item" href="{{ r.previa }}" target="_blank" rel="noopener">{% icon name="view" classname="gu-icon" %}Vista previa</a>{% endif %}
+            </span>
+          </span>
+        </td>
+      </tr>
+      {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="gwa-fx-sin-resultados" data-sin-resultados hidden>Ninguna funcionalidad coincide con los filtros.</p>
+    <p class="gwa-pr-ayuda">Reordená arrastrando {% icon name="grip" classname="gu-icon" %} o con las flechas del teclado. El orden se respeta dentro de cada grupo (primero las básicas).
+      {% if con_a_confirmar %}{{ con_a_confirmar }} funcionalidad{{ con_a_confirmar|pluralize:"es" }} tiene{{ con_a_confirmar|pluralize:"n" }} valores «A confirmar»: en la web se muestran vacíos.{% endif %}</p>
+
+    <div class="gwa-pr-barra" role="region" aria-label="Guardar cambios">
+      <p class="gwa-pr-barra-estado">{% icon name="info-circle" classname="gu-icon" %}<span data-resumen aria-live="polite">No hay cambios sin guardar.</span></p>
+      <div class="gwa-pr-barra-acciones">
+        <button type="submit" class="gu-btn gu-btn-secondary gu-btn-lg" name="accion" value="borrador" data-accion="borrador">Guardar borradores</button>
+        <button type="submit" class="gu-btn gu-btn-primary gu-btn-lg" name="accion" value="aprobar" data-accion="aprobar">{% icon name="check" classname="gu-icon" %}Guardar y aprobar</button>
+        {% if puede_publicar %}<a class="gu-btn gu-btn-tertiary gu-btn-lg" href="{% url 'gwa_sitio' sitio.clave %}" data-publicar>Publicar en la web{% icon name="arrow-right" classname="gu-icon" %}</a>{% endif %}
+      </div>
+    </div>
+  </form>
+
+  <dialog class="gwa-pr-dialogo" id="gwa-fx-confirmar" aria-labelledby="gwa-fx-confirmar-titulo">
+    <form method="dialog">
+      <h2 id="gwa-fx-confirmar-titulo">¿Aprobar las funcionalidades?</h2>
+      <p data-dialogo-texto></p>
+      <ul data-dialogo-lista></ul>
+      <p class="gwa-pr-ayuda">Quedan listas para publicar. La web no cambia hasta que toques «Publicar en la web».</p>
+      <div class="gwa-pr-barra-acciones">
+        <button class="gu-btn gu-btn-outline gu-btn-lg" value="cancelar">Volver a revisar</button>
+        <button class="gu-btn gu-btn-primary gu-btn-lg" value="aprobar">{% icon name="check" classname="gu-icon" %}Sí, guardar y aprobar</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
+</div>
+{% endwith %}
+{% endblock %}

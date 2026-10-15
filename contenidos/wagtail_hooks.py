@@ -1,7 +1,7 @@
 from django.utils.timezone import localtime
 from wagtail.admin.ui.tables import Column
 from wagtail.snippets.models import register_snippet
-from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
+from wagtail.snippets.views.snippets import CreateView as SnippetCreateView, SnippetViewSet, SnippetViewSetGroup
 
 from sitios.columnas import columna_sitio
 from sitios.permisos import ProtegerObjetos, SitioPermissionPolicy
@@ -45,12 +45,36 @@ class PlanViewSet(PorSitio):
         return precios
 
 
+class CrearConProducto(SnippetCreateView):
+    """«Añadir funcionalidad» desde la pestaña de un producto: el formulario llega con ese producto elegido."""
+
+    def get_initial_form_instance(self):
+        obj = super().get_initial_form_instance()
+        clave = self.request.GET.get("sitio")
+        if clave:
+            from sitios.models import SitioWeb
+            sitio = SitioWeb.objects.filter(clave=clave).first()
+            if sitio is not None:
+                obj = obj or self.model()
+                obj.sitio = sitio
+        return obj
+
+
 class FuncionalidadViewSet(PorSitio):
+    """«Oferta comercial → Funcionalidades» (antes «Comparador»): mismo modelo y mismos datos."""
     model = Funcionalidad
-    icon = "tasks"
-    menu_label = "Comparador"
+    icon = "package"
+    menu_label = "Funcionalidades"
+    add_view_class = CrearConProducto
     list_display = ["etiqueta", columna_sitio(), "grupo", "resumen", "orden"]
     list_filter = ["sitio", "grupo"]
+
+    @property
+    def index_view(self):
+        """El listado es la pantalla por producto con las vistas Comparador y Lista (publicacion/funcionalidades.py).
+        Edición completa, historial y vista previa siguen siendo las vistas de Wagtail."""
+        from publicacion.funcionalidades import funcionalidades
+        return funcionalidades
 
 
 class SectorViewSet(PorSitio):

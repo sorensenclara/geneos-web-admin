@@ -235,3 +235,13 @@
 /* Producto identificado con su isologo oficial (listados, buscador, inicio) */
 .gu-producto { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); white-space: nowrap; }
 .gu-producto img { width: 22px; height: 22px; flex: none; display: block; }
+
+/* Interruptor (encendido / apagado) con el mismo lenguaje que los botones */
+.gu-switch { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.gu-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.gu-switch > span[aria-hidden] { width: 38px; height: 22px; border-radius: 999px; background: var(--border-strong); position: relative; transition: background-color .15s ease; }
+.gu-switch > span[aria-hidden]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-secondary); transition: transform .15s ease, background-color .15s ease; }
+.gu-switch input:checked + span[aria-hidden] { background: var(--brand-green); }
+.gu-switch input:checked + span[aria-hidden]::after { transform: translateX(16px); background: #fff; }
+.gu-switch input:focus-visible + span[aria-hidden] { outline: 2px solid var(--brand-green-ink); outline-offset: 2px; }
+.gu-switch input:disabled + span[aria-hidden] { opacity: .5; }

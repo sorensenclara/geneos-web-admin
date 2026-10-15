@@ -1,0 +1,158 @@
+/* «Oferta comercial → Funcionalidades»: pestañas por producto (isologo y color oficiales), vistas Comparador y Lista,
+   matriz editable con la tabla de GELECTRIC. En pantallas angostas cada funcionalidad pasa a ser una tarjeta. */
+.gwa-fx input, .gwa-fx select { box-sizing: border-box; font-family: var(--font-body); }
+.gwa-fx select, .gwa-fx input[type="text"], .gwa-fx input[type="search"] {
+  height: 34px !important; min-height: 0 !important; padding: 0 10px !important; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background-color: var(--surface-2);
+  color: var(--text); font-size: .88rem !important; line-height: 1.2 !important; max-width: 100%; }
+.gwa-fx select { padding-right: 28px !important; appearance: none; -webkit-appearance: none; background-repeat: no-repeat !important; background-size: 14px !important;
+  background-position: right 8px center !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2385908a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important; }
+.gwa-fx select:focus, .gwa-fx input:focus { outline: none; border-color: var(--brand-green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-green) 25%, transparent); }
+
+/* ---------- Productos ---------- */
+.gwa-fx-productos { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 0 0 6px; overflow-x: auto; scrollbar-width: thin; }
+.gwa-fx-producto { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 22px 14px 16px; color: var(--text-secondary); text-decoration: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0; flex: none; }
+.gwa-fx-producto::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 14px; width: 3px; border-radius: 3px; background: var(--gwa-producto); opacity: .8; }
+.gwa-fx-producto img { width: 36px; height: 36px; flex: none; display: block; }
+.gwa-fx-producto b { display: block; font-size: 1.05rem; color: var(--text); font-weight: 700; }
+.gwa-fx-producto small { display: block; font-size: .82rem; color: var(--text-muted); }
+.gwa-fx-producto:hover { background: var(--surface); color: var(--text); }
+.gwa-fx-producto.is-actual { background: var(--surface); }
+.gwa-fx-producto.is-actual::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: var(--gwa-producto); }
+.gwa-fx-producto:focus-visible { outline: 2px solid var(--brand-green-ink); outline-offset: -2px; }
+
+/* ---------- Vistas y acciones ---------- */
+.gwa-fx-barra-sup { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 6px 0 14px; }
+.gwa-fx-vistas { display: flex; gap: 2px; border-bottom: 1px solid var(--border); }
+.gwa-fx-vistas a { display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; color: var(--text-secondary); text-decoration: none; font-weight: 600;
+  border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.gwa-fx-vistas a .gu-icon { width: 16px; height: 16px; }
+.gwa-fx-vistas a:hover { color: var(--text); }
+.gwa-fx-vistas a[aria-selected="true"] { color: var(--brand-green-ink); border-bottom-color: var(--brand-green); }
+.gwa-fx-acciones-sup { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.gwa-fx-acciones-sup form { display: contents; }
+
+/* ---------- Filtros ---------- */
+.gwa-fx-filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin: 0 0 12px; }
+.gwa-fx-buscar { position: relative; flex: 1 1 240px; max-width: 360px; display: flex; align-items: center; }
+.gwa-fx-buscar > .gu-icon { position: absolute; left: 11px; width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
+.gwa-fx .gwa-fx-buscar input[type="search"] { width: 100%; padding-left: 34px !important; border-radius: 999px !important; }
+.gwa-fx-filtro { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; font-weight: 600; color: var(--text-muted); }
+.gwa-fx-cuenta { margin: 0 0 8px auto; font-size: .85rem; color: var(--text-muted); }
+
+/* ---------- Matriz ---------- */
+.gwa-fx-tabla-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 6px; container-type: inline-size; container-name: matriz; overflow-x: auto; }
+.gwa-fx-tabla { font-size: .92rem; }
+.gwa-fx-tabla th[scope="col"] { vertical-align: bottom; }
+.gwa-fx-tabla tbody tr { transition: background-color .15s ease; }
+.gwa-fx-tabla tbody tr:hover { background: color-mix(in srgb, var(--surface-3) 50%, transparent); }
+.gwa-fx-tabla tbody tr.is-dirty { background: color-mix(in srgb, var(--status-info) 8%, transparent); }
+.gwa-fx-tabla tbody tr.is-arrastrando { opacity: .45; }
+.gwa-fx-tabla tbody tr.is-destino { box-shadow: inset 0 2px 0 var(--brand-green); }
+.gwa-fx-tabla td, .gwa-fx-tabla tbody th, .gwa-fx-tabla thead th { padding: 8px 8px; }
+.gwa-fx-tabla td, .gwa-fx-tabla tbody th { border-top: 1px solid var(--border); }
+.gwa-fx-tabla tbody tr:first-child td, .gwa-fx-tabla tbody tr:first-child th { border-top: none; }
+.gwa-fx-tabla thead th.gwa-fx-c-plan { text-align: center; background: color-mix(in srgb, var(--gwa-producto) 20%, var(--surface-2)); color: var(--text); }
+.gwa-fx-c-orden { width: 64px; white-space: nowrap; }
+.gwa-fx-orden { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.gwa-fx-mover { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 30px; padding: 0; border: 0; background: none; color: var(--text-muted);
+  border-radius: 6px; cursor: grab; touch-action: none; }
+.gwa-fx-mover:hover { color: var(--text); background: var(--surface-3); }
+.gwa-fx-mover:focus-visible { outline: 2px solid var(--brand-green-ink); outline-offset: 1px; }
+.gwa-fx-mover .gu-icon { width: 16px; height: 16px; }
+.gwa-fx-flechas { display: none; gap: 4px; margin-left: 6px; }
+.gwa-fx-flechas button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong);
+  border-radius: 999px; background: none; color: var(--text-secondary); cursor: pointer; }
+.gwa-fx-flechas button:hover { color: var(--text); background: var(--surface-3); }
+.gwa-fx-flechas .gu-icon { width: 15px; height: 15px; }
+.gwa-fx-nombre { white-space: normal !important; text-align: left; font-weight: 600; font-size: .95rem; color: var(--text); text-transform: none; letter-spacing: 0; min-width: 120px; }
+.gwa-fx-nombre-texto { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; vertical-align: middle; }
+.gwa-fx-nombre-in { display: flex; align-items: center; gap: 10px; }
+.gwa-fx-icono { width: 20px; height: 20px; color: var(--text-secondary); flex: none; }
+.gwa-fx-icono--vacio { opacity: .35; }
+.gwa-fx-nombre .gu-status-pill { font-size: .7rem; padding: 2px 8px; font-weight: 600; }
+.gwa-fx-nombre .gu-status-pill .gu-icon { width: 12px; height: 12px; }
+.gwa-fx-c-grupo { width: 108px; }
+.gwa-fx-c-grupo select { width: 102px; }
+.gwa-fx-c-linea select { width: 112px; }
+.gwa-fx-c-resumen { width: 80px; text-align: center; }
+.gwa-fx-c-acc { width: 48px; text-align: right; }
+
+/* Valor por plan: ícono + texto (no depende solo del color) */
+.gwa-fx-c-plan { min-width: 186px; }
+.gwa-fx-valor { display: flex; flex-direction: column; gap: 5px; }
+.gwa-fx-valor-sel { position: relative; display: flex; align-items: center; }
+.gwa-fx-valor-sel select { width: 100%; padding: 0 24px 0 30px !important; cursor: pointer; font-weight: 500; font-size: .85rem !important; background-image: none !important; text-overflow: ellipsis; }
+.gwa-fx-valor-icono { position: absolute; left: 9px; width: 16px; height: 16px; pointer-events: none; }
+.gwa-fx-valor-chev { position: absolute; right: 9px; width: 14px; height: 14px; color: var(--text-muted); pointer-events: none; }
+.gwa-fx-valor-texto { width: 100%; height: 30px !important; font-size: .82rem !important; }
+.gwa-fx-valor[data-estado="incluido"] select { border-color: color-mix(in srgb, var(--status-good) 45%, var(--border)); background: color-mix(in srgb, var(--status-good) 10%, var(--surface-2)); }
+.gwa-fx-valor[data-estado="incluido"] .gwa-fx-valor-icono { color: var(--status-good); }
+.gwa-fx-valor[data-estado="no_incluido"] select { border-color: color-mix(in srgb, var(--status-critical) 40%, var(--border)); background: color-mix(in srgb, var(--status-critical) 8%, var(--surface-2)); }
+.gwa-fx-valor[data-estado="no_incluido"] .gwa-fx-valor-icono { color: var(--status-critical); }
+.gwa-fx-valor[data-estado="opcional"] select { border-color: color-mix(in srgb, var(--status-warning) 45%, var(--border)); background: color-mix(in srgb, var(--status-warning) 9%, var(--surface-2)); }
+.gwa-fx-valor[data-estado="opcional"] .gwa-fx-valor-icono { color: var(--status-warning); }
+.gwa-fx-valor[data-estado="texto"] select { border-color: color-mix(in srgb, var(--status-info) 45%, var(--border)); }
+.gwa-fx-valor[data-estado="texto"] .gwa-fx-valor-icono { color: var(--status-info); }
+.gwa-fx-valor[data-estado="a_confirmar"] select { border-style: dashed; color: var(--text-secondary); }
+.gwa-fx-valor[data-estado="a_confirmar"] .gwa-fx-valor-icono { color: var(--text-muted); }
+
+/* Comparador / Lista: mismas filas y mismos campos, distintas columnas */
+#gwa-fx[data-vista="comparador"] .solo-lista { display: none; }
+#gwa-fx[data-vista="lista"] .solo-comparador { display: none; }
+#gwa-fx[data-vista="lista"] .gwa-fx-tabla { font-size: .95rem; }
+
+.gwa-fx-sin-resultados { margin: 14px 4px; color: var(--text-muted); }
+.gwa-fx-vacio { text-align: center; padding: 40px 24px; max-width: 720px; margin: 10px auto; }
+.gwa-fx-vacio img { margin: 0 auto 10px; display: block; }
+.gwa-fx-vacio h2 { margin: 0 0 8px; font-size: 1.3rem; }
+.gwa-fx-vacio p { color: var(--text-secondary); margin: 0 0 10px; }
+.gwa-fx-nota { font-size: .85rem; color: var(--text-muted) !important; }
+
+/* ---------- Matriz angosta: una tarjeta por funcionalidad ---------- */
+.gwa-fx-cant-corta { display: none !important; }
+@container matriz (max-width: 1040px) {
+  .gwa-fx-tabla, .gwa-fx-tabla tbody { display: block; }
+  .gwa-fx-tabla thead { position: absolute; left: -9999px; }
+  .gwa-fx-tabla tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; padding: 12px; margin: 0 0 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+  .gwa-fx-tabla tbody tr > * { border: 0 !important; padding: 0 !important; width: auto !important; min-width: 0; text-align: left; }
+  .gwa-fx-tabla tbody tr > [hidden] { display: none; }
+  #gwa-fx .gwa-fx-tabla tbody tr > .solo-lista, #gwa-fx .gwa-fx-tabla tbody tr > .solo-comparador { display: block; }
+  #gwa-fx[data-vista="comparador"] .gwa-fx-tabla tbody tr > .solo-lista { display: none; }
+  #gwa-fx[data-vista="lista"] .gwa-fx-tabla tbody tr > .solo-comparador { display: none; }
+  .gwa-fx-nombre { grid-column: 1 / -1; grid-row: 1; padding-right: 40px !important; min-width: 0; }
+  .gwa-fx-c-acc { position: absolute; }
+  .gwa-fx-tabla tbody tr { position: relative; }
+  .gwa-fx-tabla tbody tr > .gwa-fx-c-acc { position: absolute; top: 8px; right: 8px; }
+  .gwa-fx-c-orden { grid-column: 1; }
+  .gwa-fx-tabla td[data-th]::before { content: attr(data-th); display: block; font-size: .72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: none; }
+  .gwa-fx-c-orden::before { display: none !important; }
+  .gwa-fx-flechas { display: inline-flex; }
+  .gwa-fx-c-plan { grid-column: 1 / -1; }
+  .gwa-fx-c-grupo select, .gwa-fx-c-linea select { width: 100%; }
+  .gwa-fx-c-resumen { text-align: left; }
+}
+/* Tablet: los planes uno al lado del otro dentro de cada tarjeta */
+@container matriz (min-width: 600px) and (max-width: 1040px) {
+  .gwa-fx-tabla tbody tr { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gwa-fx-c-plan { grid-column: auto; }
+}
+.gwa-fx .gwa-pr-barra-acciones { flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .gwa-fx-productos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+  .gwa-fx-producto { padding: 10px 8px 12px 12px; gap: 8px; }
+  .gwa-fx-producto img { width: 28px; height: 28px; }
+  .gwa-fx-producto b { font-size: .95rem; }
+  .gwa-fx-producto small { font-size: .72rem; }
+  .gwa-fx-cant-larga { display: none !important; }
+  .gwa-fx-cant-corta { display: block !important; }
+  .gwa-fx .gwa-pr-barra-acciones [data-publicar] { flex-basis: 100%; height: 34px; }
+  .gwa-fx-acciones-sup { width: 100%; }
+  .gwa-fx-acciones-sup .gu-btn { flex: 1 1 auto; }
+  .gwa-fx-buscar { max-width: none; flex-basis: 100%; }
+  .gwa-fx-filtro { flex: 1 1 140px; }
+  .gwa-fx-filtro select { width: 100%; }
+  .gwa-fx-cuenta { margin-left: 0; flex-basis: 100%; }
+}

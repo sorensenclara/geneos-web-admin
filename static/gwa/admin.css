@@ -59,3 +59,37 @@
 .gwa-buscar-grupo ul { list-style: none; margin: 0; padding: 0; }
 .gwa-selector-producto { display: inline-flex; align-items: center; gap: 6px; }
 .gwa-selector-producto img { width: 18px; height: 18px; display: block; }
+
+/* Pantallas de edición rápida (Planes y precios, Funcionalidades): migas, ayudas, barra fija de guardado y confirmación */
+.gwa-pr-ayuda { font-size: .82rem; color: var(--text-muted); margin: 8px 0 0; }
+.gwa-pr-barra { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  margin: 20px 0 0; padding: 12px 18px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(6px);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 -8px 24px rgba(0, 0, 0, .35); }
+.gwa-pr-barra.is-dirty { border-color: color-mix(in srgb, var(--status-info) 55%, var(--border)); }
+.gwa-pr-barra-estado { display: flex; align-items: center; gap: 9px; margin: 0; font-size: .92rem; color: var(--text-secondary); }
+.gwa-pr-barra.is-dirty .gwa-pr-barra-estado { color: var(--text); font-weight: 600; }
+.gwa-pr-barra-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.gwa-pr-dialogo { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 24px; max-width: min(480px, calc(100vw - 32px));
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.gwa-pr-dialogo::backdrop { background: rgba(0, 0, 0, .65); }
+.gwa-pr-dialogo h2 { margin: 0 0 8px; font-size: 1.3rem; }
+.gwa-pr-dialogo ul { margin: 8px 0; padding-left: 1.2em; }
+.gwa-pr-dialogo .gwa-pr-barra-acciones { justify-content: flex-end; margin-top: 18px; }
+.gwa-migas { display: flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--text-muted); margin: 0 0 2px; }
+.gwa-migas .gu-icon { width: 13px; height: 13px; }
+.gwa-migas [aria-current] { color: var(--text-secondary); }
+.gwa-pr-th-ayuda { display: inline-flex; align-items: center; gap: 5px; }
+.gwa-pr-tip { position: relative; display: inline-flex; color: var(--text-muted); cursor: help; border-radius: 50%; }
+.gwa-pr-tip .gu-icon { width: 15px; height: 15px; }
+.gwa-pr-tip [role="tooltip"] { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 240px; padding: 9px 11px;
+  background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  font-size: .8rem; font-weight: 400; line-height: 1.4; color: var(--text); white-space: normal; text-transform: none; z-index: 20;
+  opacity: 0; visibility: hidden; transition: opacity .12s ease; }
+.gwa-pr-tip:hover [role="tooltip"], .gwa-pr-tip:focus [role="tooltip"] { opacity: 1; visibility: visible; }
+.gwa-pr-tip:focus-visible { outline: 2px solid var(--brand-green-ink); outline-offset: 2px; }
+@media (max-width: 860px) {
+  .gwa-pr-barra { padding: 10px 12px; gap: 8px; }
+  .gwa-pr-barra-estado { font-size: .85rem; }
+  .gwa-pr-barra-acciones { width: 100%; flex-wrap: nowrap; gap: 8px; }
+  .gwa-pr-barra-acciones .gu-btn { flex: 1 1 0; padding: 0 10px; font-size: 13.5px; }
+}
