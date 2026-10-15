@@ -1,0 +1,94 @@
+/* «Actualizar precios»: secciones por producto, tarjetas por plan y barra de guardado fija.
+   Colores del panel: variables de Wagtail (tema claro y oscuro). Color de cada producto: --gwa-sitio. */
+.gwa-pr { --pr-borde: var(--w-color-border-furniture, #e0e0e0); --pr-fondo: var(--w-color-surface-page, #fff);
+  --pr-campo: var(--w-color-surface-field, #fff); --pr-texto: var(--w-color-text-context, #262626); --pr-meta: var(--w-color-text-meta, #5c5c5c);
+  max-width: 1180px; padding-bottom: 120px; }
+.gwa-pr-intro { max-width: 78ch; color: var(--pr-meta); margin-bottom: 28px; }
+.gwa-pr code { font-size: .85em; }
+.gwa-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.gwa-pr-sitio { border: 1px solid var(--pr-borde); border-radius: 16px; margin-bottom: 28px; overflow: hidden; background: var(--pr-fondo); }
+.gwa-pr-sitio-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 22px 14px;
+  border-top: 5px solid var(--gwa-sitio); }
+.gwa-pr-sitio-head h2 { margin: 0; font-size: 1.45rem; display: flex; align-items: center; gap: 10px; }
+.gwa-pr-marca { width: 14px; height: 14px; border-radius: 50%; background: var(--gwa-sitio); flex: none; }
+.gwa-pr-cuenta { margin: 0; color: var(--pr-meta); font-size: .9rem; }
+
+/* Vigencia compartida */
+.gwa-pr-vigencia { display: grid; gap: 12px; padding: 14px 22px 18px; border-top: 1px solid var(--pr-borde); border-bottom: 1px solid var(--pr-borde);
+  background: color-mix(in srgb, var(--gwa-sitio) 7%, transparent); }
+.gwa-pr-vig-titulo h3 { margin: 0 0 2px; font-size: 1rem; }
+.gwa-pr-ayuda { margin: 0; color: var(--pr-meta); font-size: .85rem; }
+.gwa-pr-vig-comun { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: end; }
+.gwa-pr-campo { display: grid; gap: 4px; min-width: 0; }
+.gwa-pr-campo > span { font-size: .82rem; font-weight: 600; color: var(--pr-texto); }
+.gwa-pr-campo small { font-weight: 400; color: var(--pr-meta); }
+.gwa-pr-campo input, .gwa-pr-campo select { width: 100%; min-width: 0; }
+.gwa-pr-porplan summary { cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--w-color-text-link-default, #007d7e); width: max-content; }
+.gwa-pr-porplan-filas { display: grid; gap: 8px; margin-top: 10px; }
+.gwa-pr-porplan-fila { display: grid; grid-template-columns: 120px minmax(0, 1fr) 200px; gap: 10px; align-items: center; }
+.gwa-pr-porplan-nombre { font-weight: 600; font-size: .9rem; }
+
+/* Planes */
+.gwa-pr-planes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; padding: 18px 22px 22px; }
+.gwa-pr-plan { border: 1px solid var(--pr-borde); border-radius: 12px; padding: 16px; display: grid; gap: 14px; align-content: start; min-width: 0;
+  background: var(--pr-fondo); transition: border-color .15s, box-shadow .15s; }
+.gwa-pr-plan.is-dirty { border-color: var(--w-color-warning-100, #faa500); box-shadow: 0 0 0 1px var(--w-color-warning-100, #faa500); }
+.gwa-pr-plan-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.gwa-pr-plan-head h3 { margin: 0; font-size: 1.35rem; line-height: 1.15; color: color-mix(in srgb, var(--gwa-sitio) 55%, var(--pr-texto)); }
+.gwa-pr-clave { margin: 2px 0 0; font-size: .8rem; color: var(--pr-meta); }
+.gwa-pr-oculto { color: var(--w-color-text-error, #cd4444); }
+.gwa-pr-estados { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.gwa-pr-badge { font-size: .72rem; font-weight: 700; letter-spacing: .02em; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  background: var(--w-color-surface-field-inactive, #f2f2f2); color: var(--pr-texto); }
+.gwa-pr-badge--ok { background: color-mix(in srgb, #178943 18%, transparent); color: var(--pr-texto); }
+.gwa-pr-badge--borrador, .gwa-pr-badge--cambio { background: color-mix(in srgb, #faa500 25%, transparent); color: var(--pr-texto); }
+
+.gwa-pr-importes { display: grid; gap: 12px; }
+.gwa-pr-importe { display: grid; gap: 4px; }
+.gwa-pr-importe > span:first-child { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--pr-meta); }
+.gwa-pr-importe small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.gwa-pr-monto { display: flex; align-items: center; gap: 8px; border: 1px solid var(--w-color-border-field-default, #929292); border-radius: 8px;
+  background: var(--pr-campo); padding: 0 12px; }
+.gwa-pr-monto:focus-within { outline: 3px solid var(--w-color-focus, #00b0b1); outline-offset: 1px; }
+.gwa-pr-monto b { font-size: 1.25rem; color: var(--pr-meta); }
+.gwa-pr-monto i { font-style: normal; font-size: .85rem; color: var(--pr-meta); white-space: nowrap; }
+.gwa-pr .gwa-pr-monto input { border: 0; background: transparent; outline: none; padding: 10px 0; min-width: 0; flex: 1; width: 100%;
+  font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pr-texto); box-shadow: none; }
+.gwa-pr-importe--sec .gwa-pr-monto input { font-size: 1.2rem; }
+.gwa-pr-monto:has(input:invalid) { border-color: var(--w-color-text-error, #cd4444); }
+.gwa-pr-nota { margin: -4px 0 0; font-size: .8rem; color: var(--pr-meta); }
+
+.gwa-pr-mas { border-top: 1px solid var(--pr-borde); padding-top: 10px; }
+.gwa-pr-mas summary { cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--w-color-text-link-default, #007d7e); }
+.gwa-pr-mas-grid { display: grid; gap: 12px; margin-top: 12px; }
+.gwa-pr-check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.gwa-pr-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+.gwa-pr-dl dt { font-size: .75rem; color: var(--pr-meta); }
+.gwa-pr-dl dd { margin: 0; font-size: .9rem; overflow-wrap: anywhere; }
+.gwa-pr-links { margin: 0; font-size: .88rem; }
+
+/* Barra de guardado */
+.gwa-pr-barra { position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 8px; padding: 14px 18px; border: 1px solid var(--pr-borde); border-radius: 14px; background: var(--w-color-surface-header, var(--pr-fondo));
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, .18); }
+.gwa-pr-barra-estado { margin: 0; font-weight: 600; }
+.gwa-pr-barra.is-dirty .gwa-pr-barra-estado { color: var(--w-color-warning-100, #faa500); }
+.gwa-pr-barra-acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.gwa-pr-dialogo { border: 1px solid var(--pr-borde); border-radius: 14px; padding: 22px; max-width: min(520px, calc(100vw - 32px));
+  background: var(--pr-fondo); color: var(--pr-texto); }
+.gwa-pr-dialogo::backdrop { background: rgba(0, 0, 0, .55); }
+.gwa-pr-dialogo h2 { margin-top: 0; }
+.gwa-pr-dialogo ul { padding-left: 1.2em; }
+
+@media (max-width: 700px) {
+  .gwa-pr-sitio-head, .gwa-pr-vigencia, .gwa-pr-planes { padding-left: 14px; padding-right: 14px; }
+  .gwa-pr-vig-comun { grid-template-columns: 1fr; }
+  .gwa-pr-porplan-fila { grid-template-columns: 1fr; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--pr-borde); }
+  .gwa-pr-barra { border-radius: 12px; padding: 12px; }
+  .gwa-pr-barra-acciones { width: 100%; } .gwa-pr-barra-acciones .button { flex: 1 1 auto; padding-inline: 12px; }
+  .gwa-pr .gwa-pr-monto input { font-size: 1.35rem; }
+}
+@media (prefers-reduced-motion: reduce) { .gwa-pr-plan { transition: none; } }
+.gwa-pr input, .gwa-pr select { box-sizing: border-box; max-width: 100%; }
+.gwa-pr-dialogo ul { display: grid; gap: 4px; margin: 4px 0 14px; }
