@@ -163,6 +163,12 @@ def export(key, P):
     if PD.get("siblings"):
         P["siblings"] = [tuple(x) for x in PD["siblings"]]
     # Títulos, descripciones e indexación de cada página (administrador)
+    # Logos cargados en el administrador («Logos y favicon»)
+    IDENT = PD.get("identity") or {}
+    P["logo_original"] = P.get("logo")
+    for k in ("header_logo", "header_logo_w", "header_logo_h", "logo", "logo_w", "logo_h"):
+        if IDENT.get(k):
+            P[k] = IDENT[k]
     pages = []
     for pg in P["pages"]:
         o = (PD.get("pages") or {}).get(pg["out"], {})
@@ -240,6 +246,8 @@ def export(key, P):
             """Título, bajada y botones del hero cargados en el administrador (si los hay)."""
             o = page_over.get("hero") or {}
             h = dict(h)
+            if h.get("logo") and h["logo"] == P.get("logo_original") and P.get("logo") != P.get("logo_original"):
+                h.update({"logo": P["logo"], "logo_w": P.get("logo_w") or h.get("logo_w"), "logo_h": P.get("logo_h") or h.get("logo_h")})
             if o.get("title"):
                 h["title"] = [line if isinstance(line, list) else [line, False] for line in o["title"]]
             if o.get("lead"):
@@ -285,7 +293,8 @@ def export(key, P):
         def show(section):
             return section not in (page_over.get("hidden") or [])
 
-        env.globals.update(V=VERSION_ESTATICOS, site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
+        fav_dir = Path((PD.get("identity") or {}).get("favicons") or HERE / "favicons" / key)
+        env.globals.update(FAVICON_SVG=(fav_dir / "favicon.svg").exists(), V=VERSION_ESTATICOS, site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
                            DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, show=show,
                            cur=cur, iva=iva, currency_code=currency_code, importe=importe, plans_note=plans_note,
                            FORM=PD.get("form"),
@@ -324,7 +333,10 @@ def export(key, P):
             for d, src in sorted(used.items()):
                 fh.write(f"{key}\t{src}\t{d}\n")
     missing = []
+    del_admin = {d for _src, d in PD.get("files", [])}
     for d, src in sorted(used.items()):
+        if d in del_admin:
+            continue
         s = PUB / "assets" / src
         if not s.exists() and (HERE / "assets" / key / d).exists():
             s = HERE / "assets" / key / d  # recursos propios del sitio comercial (tools/sitios-comerciales/assets/<sitio>/)
@@ -347,7 +359,7 @@ def export(key, P):
             t.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, t)
     # Favicons del producto
-    fav = HERE / "favicons" / key
+    fav = Path((PD.get("identity") or {}).get("favicons") or HERE / "favicons" / key)
     for f in fav.iterdir():
         t = out / ("favicon.ico" if f.name == "favicon.ico" else "assets/icons/favicon/" + f.name)
         t.parent.mkdir(parents=True, exist_ok=True)

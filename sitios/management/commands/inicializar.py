@@ -28,7 +28,7 @@ from django.db import transaction
 from wagtail.models import (Collection, GroupCollectionPermission, GroupPagePermission, Page, Site, Workflow, WorkflowContentType,
                             WorkflowPage, WorkflowTask)
 
-from contenidos.models import (BlogIndexPage, Funcionalidad, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector, Testimonio,
+from contenidos.models import (IdentidadSitio, BlogIndexPage, Funcionalidad, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector, Testimonio,
                                ValorFuncionalidad)
 from sitios.models import AccesoSitio, AprobacionSitio, LineaProducto, SitioWeb
 
@@ -331,7 +331,9 @@ class Command(BaseCommand):
         WorkflowTask.objects.get_or_create(workflow=wf, task=tarea.task_ptr, defaults={"sort_order": 0})
         Workflow.objects.exclude(pk=wf.pk).update(active=False)
         WorkflowPage.objects.update_or_create(page=Page.get_first_root_node(), defaults={"workflow": wf})
-        for model in (Plan, PreguntaFrecuente, Testimonio):
+        for s in SitioWeb.objects.all():
+            IdentidadSitio.objects.get_or_create(sitio=s)
+        for model in (Plan, PreguntaFrecuente, Testimonio, IdentidadSitio):
             WorkflowContentType.objects.update_or_create(content_type=ContentType.objects.get_for_model(model), defaults={"workflow": wf})
         self.log("  Flujo de aprobación asignado a páginas, planes, preguntas frecuentes y testimonios")
 

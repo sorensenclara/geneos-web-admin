@@ -14,7 +14,7 @@ from django.utils.html import escape
 from wagtail.models import Page
 from wagtail.rich_text import expand_db_html
 
-from contenidos.models import (ArticuloPage, BlogIndexPage, Funcionalidad, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector,
+from contenidos.models import (ArticuloPage, BlogIndexPage, Funcionalidad, IdentidadSitio, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector,
                                Testimonio)
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
@@ -46,6 +46,7 @@ class Fuente:
 
     def __init__(self, sitio, overrides=None):
         self.sitio = sitio
+        self.files = []  # [origen absoluto, destino en assets/] que el generador copia al sitio
         self.over = {}
         for o in overrides or []:
             self.over[(o.__class__.__name__, o.pk)] = o
@@ -302,6 +303,12 @@ def datos_gerp(fuente, faqs_por_ruta):
                              ("color_hover", "hover"), ("color_suave", "soft"), ("icono", "icon"), ("logo_blanco", "logo_white"), ("nota_funciones", "functions_note")]:
             if getattr(p, campo):
                 item[clave] = getattr(p, campo)
+        for campo, clave, prefijo in (("icono_img", "icon", "img/"), ("logo_blanco_img", "logo_white", "")):
+            img = getattr(p, campo)
+            if img and img.file:
+                src, nombre, _w, _h = preparar_imagen(sitio, img, f"plan-{p.clave}-{campo.replace('_img', '').replace('_', '-')}")
+                fuente.files.append([src, f"img/identidad/{nombre}"])
+                item[clave] = f"{prefijo}identidad/{nombre}"
         if p.color:
             c = p.color.lstrip("#")
             item["deep_rgb"] = ", ".join(str(int(c[i:i + 2], 16)) for i in (0, 2, 4))
@@ -333,10 +340,101 @@ def datos_gerp(fuente, faqs_por_ruta):
     return base
 
 
+# ------------------------------------------------------------------------------------------------ Identidad visual
+def _cache_identidad(sitio):
+    d = Path(settings.GWA_VAR_DIR) / "identidad" / sitio.clave
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _medidas_svg(ruta):
+    t = Path(ruta).read_text(errors="ignore")[:4000]
+    m = re.search(r'viewBox="\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)', t)
+    if m:
+        return round(float(m.group(1))), round(float(m.group(2)))
+    w, h = re.search(r'width="([\d.]+)', t), re.search(r'height="([\d.]+)', t)
+    return (round(float(w.group(1))), round(float(h.group(1)))) if w and h else (300, 100)
+
+
+def preparar_imagen(sitio, imagen, nombre):
+    """Copia un logo o ícono del administrador al sitio. SVG tal cual; PNG/JPG se convierten a WebP.
+    Devuelve (ruta absoluta, nombre de archivo, ancho, alto). El nombre lleva una huella del archivo: si cambia, cambia la URL."""
+    import hashlib
+    origen = Path(imagen.file.path)
+    huella = hashlib.sha1(origen.read_bytes()).hexdigest()[:8]
+    if origen.suffix.lower() == ".svg":
+        w, h = _medidas_svg(origen)
+        return str(origen), f"{nombre}-{huella}.svg", w, h
+    from PIL import Image
+    destino = _cache_identidad(sitio) / f"{nombre}-{huella}.webp"
+    with Image.open(origen) as im:
+        w, h = im.size
+        if not destino.exists():
+            im.save(destino, "WEBP", quality=92, method=6)
+    return str(destino), destino.name, w, h
+
+
+def preparar_favicons(sitio, ident):
+    """Juego completo de favicons a partir de la imagen cargada (PNG cuadrado ≥ 512 px) y del SVG opcional.
+    Parte del juego actual del sitio, así lo que no se carga queda como estaba."""
+    import hashlib, shutil
+    from PIL import Image
+    base = RENDERER / "favicons" / sitio.clave
+    partes = [ident.favicon.file.path if ident.favicon else "", ident.favicon_svg.file.path if ident.favicon_svg else ""]
+    huella = hashlib.sha1("".join(Path(p).read_bytes().hex()[:4000] + str(Path(p).stat().st_size) if p else "-" for p in partes).encode()).hexdigest()[:10]
+    d = _cache_identidad(sitio) / f"favicons-{huella}"
+    if d.exists():
+        return str(d)
+    tmp = d.with_name(d.name + ".tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    shutil.copytree(base, tmp)
+    if ident.favicon:
+        with Image.open(ident.favicon.file.path) as im:
+            im = im.convert("RGBA")
+            lado = max(im.size)
+            cuadro = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
+            cuadro.paste(im, ((lado - im.width) // 2, (lado - im.height) // 2))
+            for nombre, px in (("favicon-16x16.png", 16), ("favicon-32x32.png", 32), ("apple-touch-icon.png", 180),
+                               ("android-chrome-192x192.png", 192), ("android-chrome-512x512.png", 512)):
+                icono = cuadro.resize((px, px), Image.LANCZOS)
+                if nombre == "apple-touch-icon.png":  # iOS no usa transparencia: fondo blanco
+                    fondo = Image.new("RGBA", icono.size, (255, 255, 255, 255)); fondo.alpha_composite(icono); icono = fondo.convert("RGB")
+                icono.save(tmp / nombre, optimize=True)
+            cuadro.save(tmp / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
+    if ident.favicon_svg:
+        shutil.copy2(ident.favicon_svg.file.path, tmp / "favicon.svg")
+    elif ident.favicon and (tmp / "favicon.svg").exists():
+        (tmp / "favicon.svg").unlink()  # el SVG anterior taparía al favicon nuevo en los navegadores que prefieren SVG
+    manifest = json.loads((base / "site.webmanifest").read_text())
+    manifest["name"] = manifest.get("name") or sitio.nombre
+    (tmp / "site.webmanifest").write_text(json.dumps(manifest, ensure_ascii=False))
+    tmp.rename(d)
+    return str(d)
+
+
+def datos_identidad(fuente, files):
+    """Logos y favicon cargados en «Logos y favicon». Vacío: el sitio conserva los actuales."""
+    sitio = fuente.sitio
+    lista = fuente.snippets(IdentidadSitio)
+    ident = lista[0] if lista else None
+    if ident is None:
+        return {}
+    res = {}
+    for campo, clave in (("logo", "header_logo"), ("logo_blanco", "logo")):
+        img = getattr(ident, campo)
+        if img and img.file:
+            src, nombre, w, h = preparar_imagen(sitio, img, f"{sitio.clave}-{campo.replace('_', '-')}")
+            files.append([src, f"img/identidad/{nombre}"])
+            res.update({clave: f"identidad/{nombre}", f"{clave}_w": w, f"{clave}_h": h})
+    if ident.favicon or ident.favicon_svg:
+        res["favicons"] = preparar_favicons(sitio, ident)
+    return res
+
+
 def datos_sitio(sitio, overrides=None):
     """Devuelve {"contacto.json": ..., "<clave>.json": ..., ["gerp.json": ...]} y la lista de archivos a copiar."""
     fuente = Fuente(sitio, overrides)
-    files = []
+    files = fuente.files
     fq = faqs(fuente)
     rutas_planes = {p.ruta for p in fuente.snippets(Plan) if p.ruta} if sitio.clave == "gerp" else set()
     pd = {"domain": sitio.dominio_publico, "pages": datos_paginas(fuente, fq, excluir_faqs=rutas_planes), "files": files}
@@ -345,6 +443,7 @@ def datos_sitio(sitio, overrides=None):
                         "currency": p.simbolo, "currency_code": p.moneda, "iva": p.mas_iva, "validity": p.leyenda_vigencia}
                        for p in fuente.snippets(Plan)]
     pd["blog"] = datos_blog(fuente, files)
+    pd["identity"] = datos_identidad(fuente, files)
     if sitio.usa_formularios:
         pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento}
     archivos = {"contacto.json": contacto(sitio), f"{sitio.clave}.admin.json": pd}

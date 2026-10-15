@@ -306,8 +306,12 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
     color_acento = models.CharField("Color de acento", max_length=7, blank=True)
     color_hover = models.CharField("Color al pasar el mouse", max_length=7, blank=True)
     color_suave = models.CharField("Fondo suave", max_length=7, blank=True)
-    icono = models.CharField("Ícono (archivo)", max_length=200, blank=True, help_text="Ruta del ícono original en los recursos de la web.")
-    logo_blanco = models.CharField("Logo blanco (archivo)", max_length=200, blank=True)
+    icono = models.CharField("Ícono (ruta actual)", max_length=200, blank=True, help_text="Ruta del ícono en los recursos de la web. Si elegís una imagen, se usa la imagen.")
+    logo_blanco = models.CharField("Logo blanco (ruta actual)", max_length=200, blank=True)
+    icono_img = models.ForeignKey("wagtailimages.Image", verbose_name="Ícono del plan", null=True, blank=True, on_delete=models.SET_NULL,
+                                  related_name="+", help_text="SVG recomendado. Reemplaza a la ruta actual.")
+    logo_blanco_img = models.ForeignKey("wagtailimages.Image", verbose_name="Logo blanco del plan", null=True, blank=True,
+                                        on_delete=models.SET_NULL, related_name="+", help_text="Para la portada de la landing. SVG recomendado.")
     modulos = StreamField([("modulo", blocks.StructBlock([("icono", blocks.CharBlock(help_text="Bootstrap Icon, ej.: bi-box-seam")),
                                                           ("titulo", blocks.CharBlock()), ("texto", blocks.TextBlock())], label="Módulo"))],
                           verbose_name="Módulos incluidos", blank=True, use_json_field=True)
@@ -335,7 +339,8 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
         FieldPanel("modulos"), FieldPanel("funciones"), FieldPanel("nota_funciones"),
     ]
     panels_identidad = [FieldRowPanel([FieldPanel("color"), FieldPanel("color_acento")]), FieldRowPanel([FieldPanel("color_hover"), FieldPanel("color_suave")]),
-                        FieldPanel("icono"), FieldPanel("logo_blanco")]
+                        FieldRowPanel([FieldPanel("icono_img"), FieldPanel("logo_blanco_img")]),
+                        MultiFieldPanel([FieldPanel("icono"), FieldPanel("logo_blanco")], "Rutas actuales (se usan si no elegís una imagen)", classname="collapsed")]
     edit_handler = TabbedInterface([ObjectList(panels_precio, heading="Precio y presentación"), ObjectList(panels_landing, heading="Landing"),
                                     ObjectList(panels_identidad, heading="Identidad")])
     preview_modes = [("inicio", "Inicio del sitio"), ("landing", "Landing del plan")]
@@ -347,6 +352,11 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
 
     def __str__(self):
         return self.etiqueta or f"{self.sitio.nombre} {self.nombre}"
+
+    def clean(self):
+        super().clean()
+        validar_logo(self.icono_img, "icono_img", minimo=64)
+        validar_logo(self.logo_blanco_img, "logo_blanco_img")
 
     @property
     def precio_num(self):
@@ -546,6 +556,82 @@ class Recurso(ContenidoSitio):
 
     def __str__(self):
         return self.titulo
+
+
+# ---------------------------------------------------------------------------------------------- Identidad visual
+FORMATOS_LOGO = (".svg", ".png", ".webp", ".jpg", ".jpeg")
+
+
+def _ext(imagen):
+    return ("." + imagen.file.name.rsplit(".", 1)[-1].lower()) if imagen and imagen.file else ""
+
+
+def validar_logo(imagen, campo, minimo=300):
+    """Logos: SVG (recomendado) o una imagen de al menos `minimo` px de ancho."""
+    from django.core.exceptions import ValidationError
+    if imagen is None:
+        return
+    ext = _ext(imagen)
+    if ext not in FORMATOS_LOGO:
+        raise ValidationError({campo: "Usá un SVG (recomendado), PNG, WebP o JPG."})
+    if ext != ".svg" and imagen.width < minimo:
+        raise ValidationError({campo: f"La imagen mide {imagen.width} px de ancho; necesita al menos {minimo} px para verse nítida (o subí un SVG)."})
+
+
+class IdentidadSitio(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, PreviewableMixin, models.Model):
+    """Logos y favicon de cada web. Vacío = se usan los de siempre."""
+    base_form_class = FormPorSitio
+    sitio = models.OneToOneField(SitioWeb, verbose_name="Sitio", on_delete=models.CASCADE, related_name="identidad")
+    logo = models.ForeignKey("wagtailimages.Image", verbose_name="Logo a color (encabezado)", null=True, blank=True,
+                             on_delete=models.SET_NULL, related_name="+", help_text="SVG recomendado. PNG o WebP de al menos 300 px de ancho.")
+    logo_blanco = models.ForeignKey("wagtailimages.Image", verbose_name="Logo blanco (portada y pie)", null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+", help_text="Versión para fondos oscuros. SVG recomendado.")
+    favicon = models.ForeignKey("wagtailimages.Image", verbose_name="Favicon", null=True, blank=True, on_delete=models.SET_NULL,
+                                related_name="+", help_text="PNG cuadrado de al menos 512 × 512 px. Con él se generan todos los tamaños "
+                                                            "(pestaña del navegador, iPhone, Android y accesos directos).")
+    favicon_svg = models.ForeignKey("wagtailimages.Image", verbose_name="Favicon en SVG (opcional)", null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+", help_text="Se usa en los navegadores que lo admiten; se ve nítido en cualquier tamaño.")
+    actualizado = models.DateTimeField(auto_now=True)
+
+    panels = [
+        HelpPanel("<p>Elegí o subí las imágenes desde la biblioteca. Los campos vacíos mantienen los logos y el favicon actuales. "
+                  "Guardá el borrador, mirá la vista previa y publicalo: los cambios llegan a la web en la próxima publicación.</p>"),
+        FieldPanel("sitio", read_only=True),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("logo"), FieldPanel("logo_blanco")])], "Logos"),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("favicon"), FieldPanel("favicon_svg")])], "Favicon"),
+    ]
+    preview_modes = [("", "Inicio del sitio")]
+
+    class Meta:
+        verbose_name = "identidad visual"
+        verbose_name_plural = "identidad visual"
+
+    def __str__(self):
+        return f"Identidad de {self.sitio.nombre}"
+
+    @property
+    def linea_id(self):  # la identidad es de todo el sitio
+        return None
+
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        validar_logo(self.logo, "logo")
+        validar_logo(self.logo_blanco, "logo_blanco")
+        if self.favicon:
+            if _ext(self.favicon) not in (".png", ".webp", ".jpg", ".jpeg"):
+                raise ValidationError({"favicon": "El favicon tiene que ser un PNG (o WebP/JPG) cuadrado. Si tenés un SVG, cargalo en «Favicon en SVG»."})
+            w, h = self.favicon.width, self.favicon.height
+            if abs(w - h) > max(2, w * 0.02):
+                raise ValidationError({"favicon": f"El favicon tiene que ser cuadrado; la imagen mide {w} × {h} px."})
+            if w < 512:
+                raise ValidationError({"favicon": f"La imagen mide {w} × {h} px; necesita al menos 512 × 512 px para Android y los accesos directos."})
+        if self.favicon_svg and _ext(self.favicon_svg) != ".svg":
+            raise ValidationError({"favicon_svg": "Este campo es solo para archivos SVG."})
+
+    def serve_preview(self, request, mode_name):
+        from publicacion.servicio import vista_previa_objeto
+        return vista_previa_objeto(request, self, mode_name)
 
 
 def texto_plano(html):

@@ -5,7 +5,7 @@ from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
 from sitios.permisos import ProtegerObjetos, SitioPermissionPolicy
 
-from .models import CategoriaBlog, Funcionalidad, Plan, PreguntaFrecuente, Recurso, Redireccion, Sector, Testimonio
+from .models import IdentidadSitio, CategoriaBlog, Funcionalidad, Plan, PreguntaFrecuente, Recurso, Redireccion, Sector, Testimonio
 
 
 class PorSitio(ProtegerObjetos, SnippetViewSet):
@@ -95,11 +95,19 @@ class RedireccionViewSet(PorSitio):
     list_display = ["origen", "destino", "sitio"]
 
 
+class IdentidadViewSet(PorSitio):
+    model = IdentidadSitio
+    icon = "image"
+    menu_label = "Logos y favicon"
+    list_display = ["__str__", "sitio", "live"]
+    list_filter = []
+
+
 class ContenidosGroup(SnippetViewSetGroup):
     menu_label = "Contenidos"
     menu_icon = "folder-inverse"
     menu_order = 220
-    items = (FAQViewSet, TestimonioViewSet, RecursoViewSet, CategoriaViewSet, RedireccionViewSet)
+    items = (IdentidadViewSet, FAQViewSet, TestimonioViewSet, RecursoViewSet, CategoriaViewSet, RedireccionViewSet)
 
 
 register_snippet(ComercialGroup)

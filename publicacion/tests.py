@@ -25,7 +25,7 @@ from sitios.permisos import SitioPermissionPolicy, puede
 VAR = Path(tempfile.mkdtemp(prefix="gwa-test-"))
 
 
-@override_settings(GWA_VAR_DIR=VAR, GWA_FORM_SEGUNDOS_MINIMOS=0)
+@override_settings(GWA_VAR_DIR=VAR, GWA_FORM_SEGUNDOS_MINIMOS=0, MEDIA_ROOT=str(VAR / "media"))
 class Circuito(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -232,6 +232,65 @@ class Circuito(TestCase):
             self.assertIn(f'class="pp-plan-more" href="{clave}/"', tarjeta)
         self.assertIn("$89.250", home)
         self.assertNotIn("is-link", re.search(r'id="precio".*?</section>', lite, re.S).group(0))  # en la landing la tarjeta no se enlaza a sí misma
+
+    # ---------------------------------------------------------------------------------------------- Logos y favicon
+    def _imagen(self, nombre, contenido):
+        from django.core.files.base import ContentFile
+        from wagtail.images.models import Image
+        return Image.objects.create(title=nombre, file=ContentFile(contenido, name=nombre))
+
+    def _png(self, w, h):
+        import io
+        from PIL import Image as PI
+        b = io.BytesIO(); PI.new("RGBA", (w, h), (200, 30, 90, 255)).save(b, "PNG"); return b.getvalue()
+
+    def test_identidad_logos_y_favicon(self):
+        from contenidos.models import IdentidadSitio
+        svg = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80"><text y="50">LOGO NUEVO</text></svg>'
+        logo, fav = self._imagen("logo.svg", svg), self._imagen("fav.png", self._png(600, 600))
+        ident = IdentidadSitio.objects.get(sitio=self.gerp)
+        ident.logo, ident.favicon = logo, fav
+        ident.save_revision()                      # borrador: la web no cambia
+        ident.refresh_from_db()
+        self.assertIsNone(ident.logo_id)
+        self.assertNotIn("identidad/", self._web(self.gerp))
+        ident.latest_revision.publish()            # aprobado: queda pendiente de publicar
+        self.assertIn("Logos y favicon", [p[0] for p in estado_sitio(self.gerp)["pendientes"]])
+        home = self._web(self.gerp)
+        self.assertRegex(home, r'class="brand"[^>]*><img src="assets/img/identidad/gerp-logo-[0-9a-f]{8}\.svg"')
+        self.assertNotIn("favicon.svg", home)     # se cargó solo el PNG: no queda el SVG anterior tapándolo
+        raiz = despliegue.raiz(self.gerp) / "actual"
+        from PIL import Image as PI
+        self.assertEqual(PI.open(raiz / "assets/icons/favicon/android-chrome-512x512.png").size, (512, 512))
+        self.assertEqual(PI.open(raiz / "assets/icons/favicon/apple-touch-icon.png").size, (180, 180))
+        self.assertIn((48, 48), PI.open(raiz / "favicon.ico").info["sizes"])
+        lite = (raiz / "lite/index.html").read_text()
+        self.assertIn("gerp-planes/gerp-lite-logo-blanco.svg", lite)   # la landing del plan conserva su logo
+        # GEMA sin cambios: sigue con sus logos y favicon de siempre
+        gema = self._web(self.gema)
+        self.assertNotIn("identidad/", gema)
+        self.assertIn("favicon.svg", gema)
+
+    def test_identidad_validaciones(self):
+        from django.core.exceptions import ValidationError
+        from contenidos.models import IdentidadSitio
+        ident = IdentidadSitio.objects.get(sitio=self.gema)
+        for campo, img in (("favicon", self._imagen("rect.png", self._png(800, 400))),       # no cuadrado
+                           ("favicon", self._imagen("chico.png", self._png(128, 128))),      # menos de 512 px
+                           ("favicon_svg", self._imagen("no-svg.png", self._png(600, 600))),  # no es SVG
+                           ("logo", self._imagen("logo-chico.png", self._png(120, 40)))):    # logo de baja resolución
+            setattr(ident, campo, img)
+            with self.assertRaises(ValidationError, msg=campo) as e:
+                ident.full_clean()
+            self.assertIn(campo, e.exception.message_dict)
+            setattr(ident, campo, None)
+
+    def test_icono_de_plan_como_imagen(self):
+        plan = Plan.objects.get(sitio=self.gerp, clave="core")
+        plan.icono_img = self._imagen("icono.svg", b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 42"><circle cx="22" cy="21" r="20"/></svg>')
+        plan.save_revision().publish()
+        home = self._web(self.gerp)
+        self.assertRegex(home, r'(?s)id="plan-core".*?<img src="assets/img/identidad/plan-core-icono-[0-9a-f]{8}\.svg"')
 
     def test_testimonio_autorizado_exige_datos(self):
         from django.core.exceptions import ValidationError

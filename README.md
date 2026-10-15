@@ -88,6 +88,15 @@ Propuesta para validar con Infra: la web comercial en `gema.geneos.com.ar` y la 
 - Íconos y logos de los planes se indican con la ruta del archivo; la carga como imagen queda para una etapa siguiente.
 - Sin segundo factor de autenticación todavía (previsto para el servidor).
 
+## Logos y favicon
+
+*Contenidos → Logos y favicon*: una ficha por sitio con el logo a color (encabezado), el logo blanco (portada y pie),
+el favicon (PNG cuadrado de al menos 512 px; se generan todos los tamaños para navegador, iPhone, Android y accesos directos)
+y un favicon SVG opcional. Las imágenes se suben a la biblioteca de Wagtail. Si un archivo no sirve (no es cuadrado,
+es muy chico o no es SVG donde corresponde) el administrador lo avisa al guardar. Sigue el mismo circuito que el resto:
+borrador → vista previa → aprobación → «Publicar en la web». Los campos vacíos mantienen los logos actuales.
+Los íconos y logos de cada plan de GERP se eligen como imagen en la pestaña «Identidad» del plan.
+
 ## Precios: una sola fuente
 
 Cada plan (*Oferta comercial → Planes y precios*, o todos juntos en *Actualizar precios*) tiene como campos independientes:

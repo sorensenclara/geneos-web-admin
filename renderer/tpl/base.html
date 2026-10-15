@@ -27,7 +27,7 @@
   <meta name="theme-color" content="#ffffff">
   {# Favicons del producto (favicon.io): favicon.ico en la raíz y el resto en assets/icons/favicon/ #}
   <link rel="icon" href="{{ prefix }}favicon.ico" sizes="48x48">
-  <link rel="icon" type="image/svg+xml" href="{{ prefix }}assets/icons/favicon/favicon.svg">
+  {% if FAVICON_SVG %}<link rel="icon" type="image/svg+xml" href="{{ prefix }}assets/icons/favicon/favicon.svg">{% endif %}
   <link rel="icon" type="image/png" sizes="32x32" href="{{ prefix }}assets/icons/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ prefix }}assets/icons/favicon/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="{{ prefix }}assets/icons/favicon/apple-touch-icon.png">

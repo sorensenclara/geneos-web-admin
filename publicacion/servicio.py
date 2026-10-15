@@ -16,7 +16,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from contenidos.models import (ArticuloPage, BlogIndexPage, CategoriaBlog, Funcionalidad, PaginaWeb, Plan, PreguntaFrecuente, Recurso,
+from contenidos.models import (ArticuloPage, BlogIndexPage, CategoriaBlog, Funcionalidad, IdentidadSitio, PaginaWeb, Plan, PreguntaFrecuente, Recurso,
                                Redireccion, Sector, Testimonio, sitio_de_pagina)
 from sitios.models import SitioWeb
 
@@ -170,7 +170,7 @@ def estado_sitio(sitio):
             borradores += 1
         if p.workflow_in_progress:
             revision += 1
-    for model, tipo in ((Plan, "Plan"), (PreguntaFrecuente, "Pregunta frecuente"), (Testimonio, "Testimonio")):
+    for model, tipo in ((Plan, "Plan"), (PreguntaFrecuente, "Pregunta frecuente"), (Testimonio, "Testimonio"), (IdentidadSitio, "Logos y favicon")):
         for o in model.objects.filter(sitio=sitio):
             if o.live and o.last_published_at and o.last_published_at > desde:
                 pendientes.append((tipo, str(o), o.last_published_at, _url_snippet(o)))
