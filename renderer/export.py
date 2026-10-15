@@ -53,6 +53,9 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescap
 
 PUB = GENEOS / "public"  # sitio GENEOS ya construido (fuente de los recursos optimizados)
 
+# Submenú «Planes» de GERP: una página por plan y el comparador (en la home y en cada landing hay una sección #comparar)
+GERP_PLANES_MENU = [(q["label"], "/" + q["slug"]) for q in GERP_DATA["plans"]] + [("Comparar planes", "#comparar")]
+
 PRODUCTS = {
     "gerp": dict(
         folder="gerp-web", name="GERP", domain="https://gerp.ar",
@@ -60,10 +63,10 @@ PRODUCTS = {
                     title="GERP | Software de gestión ERP para pymes basado en Odoo",
                     description="GERP: sistema de gestión online basado en Odoo para pymes. Inventario, compras, ventas, facturación y contabilidad. Planes, precios y demo.",
                     og="img/og/gerp.jpg",
-                    nav=[("Cómo funciona", "#como-funciona"), ("Módulos", "#modulos"), ("Planes", "#planes"), ("Comparar", "#comparar"), ("Preguntas", "#faq")])]
+                    nav=[("Cómo funciona", "#como-funciona"), ("Módulos", "#modulos"), ("Planes", "#planes", GERP_PLANES_MENU), ("Preguntas", "#faq")])]
               + [dict(tpl="gerp-plan.html", out=p["slug"], plan=p["key"], crumb=p["label"], title=p["title"], description=p["description"],
                       og="img/og/gerp.jpg",
-                      nav=[("Qué incluye", "#incluye"), ("Comparar", "#comparar")] + [(q["name"].capitalize(), "/" + q["slug"]) for q in GERP_DATA["plans"]])
+                      nav=[("Qué incluye", "#incluye"), ("Planes", "/#planes", GERP_PLANES_MENU), ("Preguntas", "#faq")])
                  for p in GERP_DATA["plans"]],
         logo="productos/gerp-logo-blanco.svg", logo_w=296, logo_h=87,
         header_logo="2025/02/Isologo-GERP-Full.svg", header_logo_w=296, header_logo_h=87,
@@ -162,7 +165,9 @@ def export(key, P):
         o = (PD.get("pages") or {}).get(pg["out"], {})
         pages.append(dict(pg, **{k: v for k, v in o.items() if k in ("title", "description", "robots", "og_alt") and v}))
     # Blog (índices y artículos)
-    home_nav = [(lab, href if not href.startswith("#") else "/" + href) for lab, href in P["pages"][0]["nav"]]
+    def raiz(href):
+        return href if not href.startswith("#") else "/" + href
+    home_nav = [(it[0], raiz(it[1])) + ((tuple((a, raiz(b)) for a, b in it[2]),) if len(it) > 2 else ()) for it in P["pages"][0]["nav"]]
     for b in (PD.get("blog") or {}).get("indexes", []):
         pages.append(dict(tpl="blog-index.html", out=b["path"], crumb=b["title"], title=b["seo_title"], description=b["description"],
                           og=P["pages"][0]["og"], nav=home_nav, robots=b.get("robots"), blog=b))

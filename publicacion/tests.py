@@ -213,6 +213,23 @@ class Circuito(TestCase):
         self.assertNotIn("clara", html)
         self.assertNotIn("Última modificación", html)
 
+    def test_navegacion_planes_gerp(self):
+        import re
+        home, lite = self._web(self.gerp), self._web(self.gerp, "lite/")
+        menu = re.search(r'<li class="nav-dd[^"]*" data-dd>(.*?)</ul>\s*</li>', home, re.S).group(1)
+        self.assertIn('<a href="#planes">Planes</a><button type="button" class="nav-dd-toggle" aria-expanded="false"', menu)
+        for href, texto in (("lite/", "GERP Lite"), ("core/", "GERP Core"), ("plus/", "GERP Plus"), ("#comparar", "Comparar planes")):
+            self.assertIn(f'<a href="{href}">{texto}</a>', menu)
+        self.assertIn('<a href="../lite/" aria-current="page">GERP Lite</a>', lite)   # la landing marca su plan
+        self.assertIn('<a href="../#planes">Planes</a>', lite)                         # «Planes» vuelve a las tarjetas
+        # Tarjetas enteras como enlace, sin enlaces anidados, con los precios de siempre
+        for clave in ("lite", "core", "plus"):
+            tarjeta = re.search(rf'<article class="[^"]*is-link[^"]*" id="plan-{clave}".*?</article>', home, re.S).group(0)
+            self.assertEqual(len(re.findall(r"<a\s", tarjeta)), 2)                   # «Solicitar demo» y «Conocer el plan»
+            self.assertIn(f'class="pp-plan-more" href="{clave}/"', tarjeta)
+        self.assertIn("$89.250", home)
+        self.assertNotIn("is-link", re.search(r'id="precio".*?</section>', lite, re.S).group(0))  # en la landing la tarjeta no se enlaza a sí misma
+
     def test_testimonio_autorizado_exige_datos(self):
         from django.core.exceptions import ValidationError
         from contenidos.models import Testimonio

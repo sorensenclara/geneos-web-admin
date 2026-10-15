@@ -98,7 +98,7 @@
 
 {# Tarjeta de precio de un plan #}
 {% macro plan_card(D, p, link=True, demo_href="#demo") -%}
-<article class="pp-plan pp-plan-x{% if p.featured %} is-featured{% endif %}" id="plan-{{ p.key }}" style="{{ plan_vars(p) }}">
+<article class="pp-plan pp-plan-x{% if p.featured %} is-featured{% endif %}{% if link %} is-link{% endif %}" id="plan-{{ p.key }}" style="{{ plan_vars(p) }}">
   <header class="pp-plan-head">
     <span class="pp-plan-icon"><img src="{{ asset(p.icon) }}" alt="" width="44" height="42"></span>
     <div>
