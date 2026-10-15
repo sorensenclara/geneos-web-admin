@@ -53,8 +53,8 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescap
 
 PUB = GENEOS / "public"  # sitio GENEOS ya construido (fuente de los recursos optimizados)
 
-# Submenú «Planes» de GERP: una página por plan y el comparador (en la home y en cada landing hay una sección #comparar)
-GERP_PLANES_MENU = [(q["label"], "/" + q["slug"]) for q in GERP_DATA["plans"]] + [("Comparar planes", "#comparar")]
+# Desplegable «Planes» de GERP: una página por plan y las tarjetas de la home
+GERP_PLANES_MENU = [(q["label"], "/" + q["slug"]) for q in GERP_DATA["plans"]] + [("Ver todos los planes", "/#planes")]
 
 PRODUCTS = {
     "gerp": dict(
@@ -63,10 +63,10 @@ PRODUCTS = {
                     title="GERP | Software de gestión ERP para pymes basado en Odoo",
                     description="GERP: sistema de gestión online basado en Odoo para pymes. Inventario, compras, ventas, facturación y contabilidad. Planes, precios y demo.",
                     og="img/og/gerp.jpg",
-                    nav=[("Cómo funciona", "#como-funciona"), ("Módulos", "#modulos"), ("Planes", "#planes", GERP_PLANES_MENU), ("Preguntas", "#faq")])]
+                    nav=[("Cómo funciona", "#como-funciona"), ("Módulos", "#modulos"), ("Planes", "", GERP_PLANES_MENU), ("Preguntas", "#faq")])]
               + [dict(tpl="gerp-plan.html", out=p["slug"], plan=p["key"], crumb=p["label"], title=p["title"], description=p["description"],
                       og="img/og/gerp.jpg",
-                      nav=[("Qué incluye", "#incluye"), ("Planes", "/#planes", GERP_PLANES_MENU), ("Preguntas", "#faq")])
+                      nav=[("Qué incluye", "#incluye"), ("Planes", "", GERP_PLANES_MENU), ("Preguntas", "#faq")])
                  for p in GERP_DATA["plans"]],
         logo="productos/gerp-logo-blanco.svg", logo_w=296, logo_h=87,
         header_logo="2025/02/Isologo-GERP-Full.svg", header_logo_w=296, header_logo_h=87,

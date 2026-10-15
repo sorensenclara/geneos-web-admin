@@ -8,44 +8,83 @@
   });
 })();
 
-/* Submenús del menú principal (GERP · Planes)
-   Patrón «disclosure»: el enlace navega y el botón de la flecha abre o cierra el submenú (aria-expanded).
-   Teclado: Enter/Espacio en la flecha abre; ↓ abre y va a la primera opción; ↑/↓ recorren; Escape cierra y vuelve a la flecha.
-   Se cierra al hacer clic afuera, al salir con Tab o al abrir otro. */
+/* Desplegable del menú principal (GERP · Planes)
+   «Planes» es un botón (aria-expanded + aria-controls) que abre y cierra la lista de opciones.
+   Escritorio: abre al pasar el mouse o con clic; un clic sobre un desplegable abierto con clic lo cierra;
+     se cierra al hacer clic afuera, al elegir una opción o al retirar el mouse del conjunto (con 250 ms de margen).
+   Teclado: Enter/Espacio abren y cierran; ↓ abre y va a la primera opción; ↑/↓, Inicio y Fin recorren;
+     Escape cierra y devuelve el foco a «Planes»; Tab recorre y cierra al salir del componente.
+   Celular: tocar «Planes» abre y vuelve a tocarlo cierra; tocar afuera o cerrar el menú hamburguesa lo cierra. */
 (() => {
   const items = [...document.querySelectorAll("[data-dd]")];
   if (!items.length) return;
+  const DEMORA = 250;
+  const escritorio = matchMedia("(min-width: 921px) and (hover: hover) and (pointer: fine)");
   const links = (li) => [...li.querySelectorAll(".nav-dd-menu a")];
-  const set = (li, open) => {
+  const estado = new Map(); // li -> {porMouse, timer}
+  const set = (li, open, porMouse = false) => {
+    const st = estado.get(li);
+    clearTimeout(st.timer);
+    st.porMouse = open && porMouse;
     li.classList.toggle("is-open", open);
-    li.querySelector(".nav-dd-toggle").setAttribute("aria-expanded", open);
+    li.querySelector(".nav-dd-btn").setAttribute("aria-expanded", open);
   };
-  const closeAll = (except) => items.forEach((li) => li !== except && set(li, false));
+  const isOpen = (li) => li.classList.contains("is-open");
+  const closeAll = (except) => items.forEach((li) => li !== except && isOpen(li) && set(li, false));
+
   items.forEach((li) => {
-    const btn = li.querySelector(".nav-dd-toggle");
+    estado.set(li, { porMouse: false, timer: 0 });
+    const btn = li.querySelector(".nav-dd-btn");
+    const menu = li.querySelector(".nav-dd-menu");
+
+    // Mouse (solo escritorio): abrir al entrar, cerrar con demora al salir del conjunto botón + panel
+    li.addEventListener("pointerenter", (e) => {
+      if (e.pointerType !== "mouse" || !escritorio.matches) return;
+      clearTimeout(estado.get(li).timer);
+      if (!isOpen(li)) { closeAll(li); set(li, true, true); }
+    });
+    li.addEventListener("pointerleave", (e) => {
+      if (e.pointerType !== "mouse" || !escritorio.matches || !isOpen(li)) return;
+      const st = estado.get(li);
+      clearTimeout(st.timer);
+      st.timer = setTimeout(() => set(li, false), DEMORA);
+    });
+
+    // Clic, toque, Enter o Espacio sobre «Planes»
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const open = !li.classList.contains("is-open");
+      const st = estado.get(li);
+      // Si lo abrió el mouse al pasar, el primer clic lo deja abierto (no lo cierra «de golpe»)
+      if (isOpen(li) && st.porMouse && e.detail > 0) { st.porMouse = false; return; }
+      const open = !isOpen(li);
       closeAll(li);
       set(li, open);
     });
     btn.addEventListener("keydown", (e) => {
       if (e.key === "ArrowDown") { e.preventDefault(); closeAll(li); set(li, true); links(li)[0]?.focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); closeAll(li); set(li, true); links(li).at(-1)?.focus(); }
     });
-    li.querySelector(".nav-dd-menu").addEventListener("keydown", (e) => {
+    menu.addEventListener("keydown", (e) => {
       const l = links(li), i = l.indexOf(document.activeElement);
       if (e.key === "ArrowDown") { e.preventDefault(); l[(i + 1) % l.length].focus(); }
       else if (e.key === "ArrowUp") { e.preventDefault(); l[(i - 1 + l.length) % l.length].focus(); }
       else if (e.key === "Home") { e.preventDefault(); l[0].focus(); }
       else if (e.key === "End") { e.preventDefault(); l[l.length - 1].focus(); }
     });
+    // Elegir una opción cierra el desplegable (y la navegación sigue normalmente)
+    menu.addEventListener("click", (e) => { if (e.target.closest("a")) set(li, false); });
     li.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && li.classList.contains("is-open")) { e.stopPropagation(); set(li, false); btn.focus(); }
+      if (e.key === "Escape" && isOpen(li)) { e.stopPropagation(); set(li, false); btn.focus(); }
     });
-    li.querySelector(".nav-dd-menu").addEventListener("click", (e) => { if (e.target.closest("a")) set(li, false); });
-    li.addEventListener("focusout", (e) => { if (!li.contains(e.relatedTarget)) set(li, false); });
+    // Tab: cierra cuando el foco sale del componente
+    li.addEventListener("focusout", (e) => { if (e.relatedTarget && !li.contains(e.relatedTarget)) set(li, false); });
   });
+
+  // Clic o toque afuera
   document.addEventListener("click", (e) => { if (!e.target.closest("[data-dd]")) closeAll(); });
+  // Cerrar el menú hamburguesa también cierra el desplegable
+  const nav = document.getElementById("menu");
+  if (nav) new MutationObserver(() => { if (!nav.classList.contains("open")) closeAll(); }).observe(nav, { attributes: true, attributeFilter: ["class"] });
 })();
 
 /* Comparador de planes: "Ver comparación completa" y selector de plan en celulares */

@@ -217,11 +217,14 @@ class Circuito(TestCase):
         import re
         home, lite = self._web(self.gerp), self._web(self.gerp, "lite/")
         menu = re.search(r'<li class="nav-dd[^"]*" data-dd>(.*?)</ul>\s*</li>', home, re.S).group(1)
-        self.assertIn('<a href="#planes">Planes</a><button type="button" class="nav-dd-toggle" aria-expanded="false"', menu)
-        for href, texto in (("lite/", "GERP Lite"), ("core/", "GERP Core"), ("plus/", "GERP Plus"), ("#comparar", "Comparar planes")):
+        # «Planes» es un único botón que abre el desplegable (no un enlace)
+        self.assertRegex(menu, r'<button type="button" class="nav-dd-btn" aria-expanded="false" aria-controls="(submenu-\d+)">Planes')
+        self.assertNotIn('<a href="#planes">Planes</a>', menu)
+        for href, texto in (("lite/", "GERP Lite"), ("core/", "GERP Core"), ("plus/", "GERP Plus"), ("./#planes", "Ver todos los planes")):
             self.assertIn(f'<a href="{href}">{texto}</a>', menu)
+        self.assertNotIn("Comparar planes", menu)
         self.assertIn('<a href="../lite/" aria-current="page">GERP Lite</a>', lite)   # la landing marca su plan
-        self.assertIn('<a href="../#planes">Planes</a>', lite)                         # «Planes» vuelve a las tarjetas
+        self.assertIn('<a href="../#planes">Ver todos los planes</a>', lite)          # vuelve a las tarjetas de la home
         # Tarjetas enteras como enlace, sin enlaces anidados, con los precios de siempre
         for clave in ("lite", "core", "plus"):
             tarjeta = re.search(rf'<article class="[^"]*is-link[^"]*" id="plan-{clave}".*?</article>', home, re.S).group(0)
