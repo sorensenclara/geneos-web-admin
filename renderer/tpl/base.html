@@ -50,7 +50,7 @@
   {% endif %}
   {% block preload %}{% endblock %}
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
-  <link rel="stylesheet" href="{{ prefix }}assets/css/site.css">
+  <link rel="stylesheet" href="{{ prefix }}assets/css/site.css?v={{ V["site.css"] }}">
   {% block head %}{% endblock %}
   {% set graph = [
       {"@type": "Organization", "@id": abs_url("#organizacion"), "name": "GENEOS", "legalName": site.legal_name,
@@ -130,11 +130,11 @@
   </footer>
   <a class="wa-float" href="{{ wa() }}" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">{{ icon('ui-whatsapp') }}</a>
   <script src="{{ asset('js/main.js') }}" defer></script>
-  <script src="{{ prefix }}assets/js/site.js" defer></script>
+  <script src="{{ prefix }}assets/js/site.js?v={{ V["site.js"] }}" defer></script>
   {% if FORM and FORM.endpoint %}
   {# Formulario de demo conectado al administrador: guarda el pedido y avisa por email. WhatsApp sigue como alternativa. #}
   <script>window.GWA_FORM = {{ FORM|tojson }};</script>
-  <script src="{{ prefix }}assets/js/formulario.js" defer></script>
+  <script src="{{ prefix }}assets/js/formulario.js?v={{ V["formulario.js"] }}" defer></script>
   {% endif %}
 </body>
 </html>

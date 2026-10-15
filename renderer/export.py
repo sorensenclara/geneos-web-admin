@@ -56,6 +56,11 @@ PUB = GENEOS / "public"  # sitio GENEOS ya construido (fuente de los recursos op
 # Desplegable «Planes» de GERP: una página por plan y las tarjetas de la home
 GERP_PLANES_MENU = [(q["label"], "/" + q["slug"]) for q in GERP_DATA["plans"]] + [("Ver todos los planes", "/#planes")]
 
+# Versión de site.css, site.js y formulario.js (huella del contenido): al cambiar el archivo cambia la URL
+# y el navegador no usa una copia vieja guardada en caché.
+import hashlib  # noqa: E402
+VERSION_ESTATICOS = {f.name: hashlib.sha1(f.read_bytes()).hexdigest()[:10] for f in (HERE / "static").rglob("*") if f.is_file()}
+
 PRODUCTS = {
     "gerp": dict(
         folder="gerp-web", name="GERP", domain="https://gerp.ar",
@@ -282,7 +287,7 @@ def export(key, P):
         def show(section):
             return section not in (page_over.get("hidden") or [])
 
-        env.globals.update(site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
+        env.globals.update(V=VERSION_ESTATICOS, site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
                            DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, show=show,
                            cur=cur, iva=iva, currency_code=currency_code, importe=importe, plans_note=plans_note,
                            FORM=PD.get("form"),
