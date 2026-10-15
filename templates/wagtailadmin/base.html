@@ -1,4 +1,5 @@
 {% extends "wagtailadmin/base.html" %}
+{% load static %}
 {% block branding_logo %}
-<svg viewBox="0 0 120 120" width="64" height="64" style="display:block;margin:auto" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="#178943"/><text x="60" y="76" text-anchor="middle" font-family="Titillium Web, sans-serif" font-weight="700" font-size="44" fill="#fff">G</text></svg>
+<img src="{% static 'gwa/favicon/favicon.svg' %}" alt="" width="64" height="64" style="display:block;margin:auto">
 {% endblock %}

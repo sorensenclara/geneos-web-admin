@@ -1,2 +1,11 @@
 {% extends "wagtailadmin/admin_base.html" %}
+{% load static %}
 {% block branding_title %}GENEOS Web Admin{% endblock %}
+{% block branding_favicon %}
+    <link rel="icon" href="{% static 'gwa/favicon/favicon.ico' %}" sizes="48x48">
+    <link rel="icon" type="image/svg+xml" href="{% static 'gwa/favicon/favicon.svg' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'gwa/favicon/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'gwa/favicon/favicon-16x16.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'gwa/favicon/apple-touch-icon.png' %}">
+    <link rel="manifest" href="{% static 'gwa/favicon/site.webmanifest' %}">
+{% endblock %}

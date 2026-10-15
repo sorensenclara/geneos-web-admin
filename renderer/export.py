@@ -75,7 +75,6 @@ PRODUCTS = {
                  for p in GERP_DATA["plans"]],
         logo="productos/gerp-logo-blanco.svg", logo_w=296, logo_h=87,
         header_logo="2025/02/Isologo-GERP-Full.svg", header_logo_w=296, header_logo_h=87,
-        favicon="GERP.svg",
         footer_text="GERP es el software de gestión empresarial de GENEOS, basado en Odoo Community: inventario, compras, ventas, facturación y contabilidad en una sola plataforma online.",
         footer_pages=[("GERP · Inicio", "/")] + [(p["label"], "/" + p["slug"]) for p in GERP_DATA["plans"]] + [("Comparar planes", "/#comparar")],
         siblings=[("GEAGRO · Software agropecuario", "https://geagro.ar/")],
@@ -102,7 +101,7 @@ PRODUCTS = {
         ],
         logo="geagro/logo-geagro-white.svg", logo_w=300, logo_h=64,
         header_logo="geagro/logo-geagro.svg", header_logo_w=414, header_logo_h=88,
-        favicon="GEAGRO.svg", favicons=True, local_fonts=True, website=True,
+        favicons=True, local_fonts=True, website=True,
         footer_text="GEAGRO es el software de gestión agropecuaria de GENEOS para campañas agrícolas (CEREALES) y viñedos (VID).",
         footer_pages=[("GEAGRO · Inicio", "/"), ("GEAGRO CEREALES", "/cereales/"), ("GEAGRO VID", "/vid/"), ("Planes", "/#planes")],
         siblings=[("GERP · Software de gestión", "https://gerp.ar/")],
@@ -130,7 +129,6 @@ PRODUCTS = {
                     nav=[("Cómo funciona", "#como-funciona"), ("Módulos", "#modulos"), ("Planes", "#planes"), ("Preguntas", "#faq")])],
         logo="productos/gema-logo-blanco.svg", logo_w=300, logo_h=84,
         header_logo="recursos/gema-logotipo.svg", header_logo_w=340, header_logo_h=95,
-        favicon="GEMA.svg",
         footer_text="GEMA es la plataforma online de GENEOS para talleres de matafuegos: vencimientos, recargas, órdenes de trabajo y avisos a clientes.",
         siblings=[("GERP · Software de gestión", "https://gerp.ar/"), ("GEAGRO · Software agropecuario", "https://geagro.ar/")],
     ),
@@ -321,6 +319,10 @@ def export(key, P):
     for css in ("css/styles.css", "css/product.css"):
         for ref in CSS_URL.findall((PUB / "assets" / css).read_text()):
             used[ref] = ref
+    if os.environ.get("GWA_LISTA_RECURSOS"):  # auditoría de assets: qué archivos de GENEOS WEB usa cada sitio
+        with open(os.environ["GWA_LISTA_RECURSOS"], "a") as fh:
+            for d, src in sorted(used.items()):
+                fh.write(f"{key}\t{src}\t{d}\n")
     missing = []
     for d, src in sorted(used.items()):
         s = PUB / "assets" / src
