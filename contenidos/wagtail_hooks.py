@@ -143,6 +143,7 @@ class BlogViewSet(ViewSet):
             path("<slug:clave>/configurar/", vistas.configurar, name="configurar"),
             path("<slug:clave>/actualidad/", vistas.actualidad, name="actualidad"),
             path("<slug:clave>/fuentes/", vistas.fuentes, name="fuentes"),
+            path("<slug:clave>/revision/", vistas.revision, name="revision"),
             path("<slug:clave>/novedad-oficial/", vistas.novedad_oficial, name="novedad_oficial"),
             path("fuente/<int:pk>/<slug:accion>/", vistas.fuente_accion, name="fuente_accion"),
             path("lectura/auto/", vistas.lectura_automatica, name="lectura_auto"),

@@ -1,0 +1,41 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% block titletag %}Revisión de actualidad · {{ sitio.nombre }}{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="search" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><a href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Blog de {{ sitio.nombre }}</a>{% icon name="arrow-right" classname="gu-icon" %}<a href="{% url 'blog:fuentes' sitio.clave %}">Estado de las fuentes</a>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Revisión</span></nav>
+        <h1>Revisión de resultados de {{ sitio.nombre }}</h1>
+        <p>Qué aceptó y qué descartó la última lectura de cada fuente, con el motivo. Una noticia entra con puntaje {{ umbral }} o más:
+          un término fuerte del producto vale 4; un término general, 2 en el título y 1 en el resumen. {{ visibles }} novedades leídas se muestran hoy en el administrador.</p>
+      </div>
+    </div>
+  </div>
+  {% for f in fuentes %}
+  <section class="gu-card gwa-bl-panel gwa-rv">
+    <h3>{{ f.nombre }} <span class="gwa-fu-estado is-{{ f.estado_visible }}">{{ f.estado_legible }}</span>{% if f.idioma == 'en' %} <span class="gwa-ac-chip">En inglés</span>{% endif %}</h3>
+    <p class="gwa-ac-estado"><span>Lectura del {{ f.ultima_lectura|date:"d/m/Y H:i" }}</span><span>{{ f.items_leidos }} leídas · {{ f.items_relevantes }} relacionadas · {{ f.items_nuevos }} nuevas</span>
+      {% if f.revision.error %}<span><b>Error:</b> {{ f.revision.error }}</span>{% endif %}{% for n in f.revision.notas %}<span>{{ n }}</span>{% endfor %}</p>
+    <div class="gwa-rv-cols">
+      <div><h4 class="is-ok">Aceptadas ({{ f.r_aceptadas|length }})</h4>
+        <ul>{% for m in f.r_aceptadas %}<li><a href="{{ m.url }}" target="_blank" rel="noopener">{{ m.titulo }}</a> <small>{{ m.fecha }} · {{ m.motivo }}{% if m.terminos %} · {{ m.terminos|join:", " }}{% endif %}</small></li>{% empty %}<li><small>Ninguna en esta lectura.</small></li>{% endfor %}</ul></div>
+      <div><h4 class="is-no">Descartadas ({{ f.r_descartadas|length }}{% if f.r_duplicadas %} + {{ f.r_duplicadas|length }} repetidas{% endif %})</h4>
+        <ul>{% for m in f.r_descartadas %}<li><a href="{{ m.url }}" target="_blank" rel="noopener">{{ m.titulo }}</a> <small>{{ m.motivo }}</small></li>{% endfor %}
+          {% for m in f.r_duplicadas %}<li><a href="{{ m.url }}" target="_blank" rel="noopener">{{ m.titulo }}</a> <small>{{ m.motivo }}</small></li>{% endfor %}
+          {% if not f.r_descartadas and not f.r_duplicadas %}<li><small>Ninguna.</small></li>{% endif %}</ul></div>
+    </div>
+  </section>
+  {% empty %}
+  <section class="gu-card gwa-bl-panel"><p>Todavía no hay lecturas con muestras para revisar. Se registran a partir de la próxima lectura.</p></section>
+  {% endfor %}
+  {% if descartadas %}
+  <section class="gu-card gwa-bl-panel gwa-rv">
+    <h3>Descartadas al revisar la relevancia de lo ya guardado</h3>
+    <p class="gwa-ac-estado"><span>No se borran: se pueden restaurar desde «Ver descartadas».</span></p>
+    <ul>{% for i in descartadas %}<li><a href="{{ i.fuente_url }}" target="_blank" rel="noopener">{{ i.titulo }}</a> <small>{{ i.fuente }} · {{ i.fecha|date:"d/m/Y" }} — {{ i.motivo_descarte }}</small></li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

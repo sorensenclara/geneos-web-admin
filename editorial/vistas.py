@@ -138,7 +138,7 @@ def _ideas(sitio, linea_id, f=None, descartadas=False):
 
     def orden(i):
         cuando = i.evento_fecha.toordinal() if i.tipo == "evento" else -i.fecha.toordinal()
-        return (i.estado != "guardada", ORDEN_TIPO.get(i.tipo, 9), not (i.prioritaria or i.naturaleza == "oficial"), cuando, -i.pk)
+        return (i.estado != "guardada", ORDEN_TIPO.get(i.tipo, 9), not (i.prioritaria or i.naturaleza == "oficial"), i.idioma != "es", cuando, -i.pk)
     return sorted(res, key=orden)
 
 
@@ -157,8 +157,9 @@ def estado_lectura(sitio=None):
     fuentes = FuenteActualidad.objects.filter(producto__in=[sitio.clave, "todos"]) if sitio else FuenteActualidad.objects.all()
     activas = [x for x in fuentes if x.muestra_resultados]
     return {"ultima_lectura": u, "leyendo": lector.en_curso(),
-            "fuentes_activas": len(activas), "fuentes_error": sum(1 for x in activas if x.ultimo_error),
-            "fuentes_prueba": sum(1 for x in fuentes if x.estado == "prueba")}
+            "fuentes_activas": sum(1 for x in fuentes if x.estado_visible == "activa"),
+            "fuentes_error": sum(1 for x in fuentes if x.estado_visible == "errores"),
+            "fuentes_prueba": sum(1 for x in fuentes if x.estado_visible == "prueba")}
 
 
 def _ctx_actualidad(sitio, linea, f, ideas, limite=None):
@@ -357,20 +358,44 @@ def lectura_estado(request):
                          "nuevos": u.nuevos if u else 0})
 
 
-ORDEN_ESTADO = {"activa": 0, "prueba": 1, "pausada": 2, "experimental": 3, "sin_canal": 4, "descartada": 5}
+ORDEN_ESTADO = {"activa": 0, "errores": 1, "prueba": 2, "desactivada": 3}
+ESTADOS_VISIBLES = [("", "Todas"), ("activa", "Activas"), ("prueba", "En prueba"), ("errores", "Con errores"), ("desactivada", "Desactivadas")]
 
 
 def fuentes(request, clave):
-    """Estado de las fuentes del producto: cuáles funcionan, cuáles fallan y por qué."""
+    """Estado de las fuentes del producto: activas, en prueba, con errores o desactivadas; última lectura, noticias y último error."""
+    from django.db.models import Count
     sitio = _sitio_post(request, clave)
-    lista = sorted(FuenteActualidad.objects.filter(producto__in=[sitio.clave, "todos"]),
-                   key=lambda x: (ORDEN_ESTADO.get(x.estado, 9), not x.prioritaria, x.orden))
-    for x in lista:
+    todas = list(FuenteActualidad.objects.filter(producto__in=[sitio.clave, "todos"])
+                 .annotate(visibles=Count("items", filter=Q(items__sitio=sitio, items__estado__in=("sugerida", "guardada")))))
+    for x in todas:
         x.pendiente_clave = x.metodo == "youtube" and not lector.youtube_configurado()
+    filtro = request.GET.get("estado", "")
+    lista = sorted([x for x in todas if not filtro or x.estado_visible == filtro],
+                   key=lambda x: (ORDEN_ESTADO.get(x.estado_visible, 9), not x.prioritaria, x.orden))
+    cuentas = {k: sum(1 for x in todas if x.estado_visible == k) for k, _ in ESTADOS_VISIBLES if k}
     return render(request, "editorial/fuentes.html", {
         "page_title": f"Fuentes de actualidad · {sitio.nombre}", "sitio": sitio, "marca": sitio.marca, "fuentes": lista,
+        "filtro": filtro, "estados": [(k, t, cuentas.get(k, len(todas))) for k, t in ESTADOS_VISIBLES],
         "actualizaciones": ActualizacionActualidad.objects.all()[:8], "youtube": lector.youtube_configurado(),
         "puede_configurar": puede(request.user, sitio.pk), **estado_lectura(sitio)})
+
+
+def revision(request, clave):
+    """Revisión de calidad: por fuente, ejemplos reales de noticias aceptadas, descartadas y repetidas en la última lectura,
+    y lo descartado al revisar la relevancia de lo ya guardado (con el motivo)."""
+    sitio = _sitio_post(request, clave)
+    fs = [f for f in FuenteActualidad.objects.filter(producto__in=[sitio.clave, "todos"]) if f.ultima_lectura and f.revision]
+    for f in fs:
+        for k in ("aceptadas", "descartadas", "duplicadas"):
+            setattr(f, "r_" + k, [m for m in f.revision.get(k, []) if m.get("producto", sitio.clave) in (sitio.clave, "todos")])
+    fs.sort(key=lambda f: (ORDEN_ESTADO.get(f.estado_visible, 9), -len(f.r_aceptadas)))
+    descartadas = (IdeaEditorial.objects.filter(sitio=sitio, estado="descartada").exclude(motivo_descarte="")
+                   .select_related("fuente_actualidad", "linea").order_by("-publicado")[:40])
+    visibles = IdeaEditorial.objects.filter(sitio=sitio, fuente_actualidad__isnull=False, estado__in=("sugerida", "guardada"))
+    return render(request, "editorial/revision.html", {
+        "page_title": f"Revisión de actualidad · {sitio.nombre}", "sitio": sitio, "marca": sitio.marca, "fuentes": fs,
+        "descartadas": descartadas, "visibles": visibles.count(), "umbral": lector.UMBRAL, **estado_lectura(sitio)})
 
 
 @require_POST

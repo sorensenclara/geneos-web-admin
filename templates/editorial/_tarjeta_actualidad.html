@@ -9,6 +9,7 @@
       <span class="gwa-ac-tipo">{{ i.etiqueta }}{% if i.generada_ia %} · IA{% endif %}</span>
       {% if i.linea %}<span class="gwa-ac-linea">{{ i.linea.nombre }}</span>{% elif lineas %}<span class="gwa-ac-linea">General</span>{% endif %}
       {% if i.prioritaria %}<span class="gwa-ac-chip is-prioritaria" title="Fuente marcada como prioritaria">Prioritaria</span>{% endif %}
+      {% if i.idioma == 'en' %}<span class="gwa-ac-chip" title="La fuente publica en inglés">En inglés</span>{% endif %}
       {% if i.estado == 'guardada' %}<span class="gwa-ac-guardada" title="Guardada">{% icon name="bookmark" classname="gu-icon" %}</span>{% endif %}
       <p class="gwa-ac-fuente"><span>{{ i.fuente }}</span> ·
         {% if i.tipo == 'evento' and i.evento_fecha %}<time datetime="{{ i.evento_fecha|date:'Y-m-d' }}">{{ i.evento_fecha|date:"d/m/Y" }}{% if i.evento_fin and i.evento_fin != i.evento_fecha %} al {{ i.evento_fin|date:"d/m/Y" }}{% endif %}</time>
@@ -23,6 +24,7 @@
   {% if i.relacion %}<p class="gwa-ac-por"><b>Relación con {{ i.sitio.nombre }}:</b> {{ i.relacion }}</p>
   {% elif i.descripcion %}<p class="gwa-ac-por"><b>Por qué:</b> {{ i.descripcion }}</p>{% endif %}
   {% if i.menciona_normativa %}<p class="gwa-ac-aviso">{% if i.es_oficial %}Documento normativo: revisá el texto oficial antes de afirmar vigencia u obligaciones.{% else %}Menciona una normativa: es una nota periodística, no el documento oficial. Verificalo antes de escribir.{% endif %}</p>{% endif %}
+  {% if i.estado == 'descartada' and i.motivo_descarte %}<p class="gwa-ac-descarte">{{ i.motivo_descarte }}</p>{% endif %}
   {% if i.propuesta and i.propuesta != i.titulo %}<p class="gwa-ac-prop"><b>Artículo posible:</b> {{ i.propuesta }}</p>{% endif %}
   <div class="gwa-ac-acc">
     <form method="post" action="{% url 'blog:idea_accion' i.pk 'borrador' %}">{% csrf_token %}<button class="gu-btn gu-btn-primary gu-btn-sm" type="submit">{% icon name="file-plus" classname="gu-icon" %}Crear borrador</button></form>

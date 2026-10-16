@@ -20,6 +20,7 @@
         <span class="gu-btn-dropdown-menu" id="ac-mas" hidden>
           <a class="gu-btn-dropdown-item" href="{% url 'blog:novedad_oficial' sitio.clave %}">{% icon name="file-plus" classname="gu-icon" %}Cargar novedad oficial</a>
           <a class="gu-btn-dropdown-item" href="{% url 'blog:fuentes' sitio.clave %}">{% icon name="list" classname="gu-icon" %}Estado de las fuentes</a>
+          <a class="gu-btn-dropdown-item" href="{% url 'blog:revision' sitio.clave %}">{% icon name="search" classname="gu-icon" %}Revisión de resultados</a>
           <a class="gu-btn-dropdown-item" href="{{ trends_url }}" target="_blank" rel="noopener">{% icon name="link-external" classname="gu-icon" %}Investigar en Google Trends</a>
           <a class="gu-btn-dropdown-item" href="{% url 'blog:importar' sitio.clave %}">{% icon name="file-up" classname="gu-icon" %}Importar archivo de Google Trends</a>
           <a class="gu-btn-dropdown-item" href="{% url 'blog:actualidad' sitio.clave %}?ver=descartadas">{% icon name="cross" classname="gu-icon" %}Ver descartadas</a>

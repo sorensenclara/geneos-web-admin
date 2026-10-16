@@ -22,10 +22,15 @@ class Command(BaseCommand):
         parser.add_argument("--producto", choices=["geneos", "gerp", "geagro", "gema"])
         parser.add_argument("--fuente", action="append", help="Clave de una fuente (se puede repetir).")
         parser.add_argument("--catalogo", action="store_true", help="Vuelve a cargar el catálogo (agrega fuentes y eventos nuevos).")
+        parser.add_argument("--reclasificar", action="store_true", help="Vuelve a evaluar la relevancia de lo ya guardado y termina.")
 
     def handle(self, *args, **o):
         if o["catalogo"]:
             sembrar()
+        if o["reclasificar"]:
+            n = lector.reclasificar(forzar=True)
+            self.stdout.write(f"Relevancia revisada: {n} novedades guardadas pasaron a «descartadas» (con el motivo; se pueden restaurar).")
+            return
         if not o["forzar"] and not lector.necesita_actualizar():
             self.stdout.write("La última lectura tiene menos de 24 horas. Usá --forzar para leer ahora.")
             return

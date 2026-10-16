@@ -8,34 +8,63 @@ sembrar() es idempotente: agrega lo que falta y actualiza datos de catálogo, si
 """
 from datetime import date
 
-# Términos de relevancia por producto (sin tildes, en minúsculas; se comparan sobre el texto normalizado).
-# Una publicación entra solo si menciona alguno. EXCLUIR saca ruido conocido aunque coincida.
-TERMINOS = {
-    "geneos": "cooperativa, cooperativas, cooperativismo, cooperativista, inaes, mutual, mutuales, economia social, economia popular, "
-              "economia solidaria, facttic, cooperar, software libre, codigo abierto, open source, linux, python, django, "
-              "desarrollo de software, software, programacion, programadores, ciberseguridad, datos abiertos, transformacion digital, "
-              "gobierno digital, inteligencia artificial, startups tecnologicas, industria del software",
-    "gerp": "arca, afip, factura electronica, facturacion, monotributo, monotributistas, iva, ganancias, ingresos brutos, retenciones, "
-            "percepciones, regimen de informacion, vencimiento, vencimientos, pyme, pymes, mipyme, empresas, comercio, comercios, "
-            "comerciantes, exportadores, importadores, sueldos, liquidacion de sueldos, contable, contabilidad, contadores, balance, "
-            "inventario, stock, gestion empresarial, digitalizacion, erp, boletin oficial, resolucion general, cuit, emprendedores, "
-            "logistica, ventas, cuenta dni, billeteras virtuales, cheques, credito pyme, laboral, empleadores",
-    "geagro:cereales": "soja, maiz, trigo, girasol, sorgo, cebada, cosecha, siembra, cultivo, cultivos, granos, cereales, campana agricola, "
-                       "rinde, rindes, fertilizacion, fertilizantes, agroquimicos, fitosanitarios, maquinaria agricola, productores, "
-                       "bolsa de cereales, agricultura, agricola, lotes, malezas, plagas, sequia, lluvias, retenciones, inta, siembra directa",
-    "geagro:vid": "vid, vinedo, vinedos, vino, vinos, bodega, bodegas, vitivinicola, vitivinicolas, vitivinicultura, uva, uvas, vendimia, "
-                  "inv, coviar, malbec, enologia, enologo, poda, granizo, heladas, riego, cosecha de uva, mosto, viticultores",
-    "gema": "matafuego, matafuegos, extintor, extintores, incendio, incendios, fuego, bombero, bomberos, seguridad contra incendios, "
-            "proteccion contra incendios, prevencion de incendios, iram 3517, iram 3625, evacuacion, rociadores, hidrantes, detectores de humo, "
-            "higiene y seguridad, riesgos del trabajo, srt, brigada, nfpa, fire, firefighter, firefighters, extinguisher, extinguishers, "
-            "fire protection, fire safety, sprinkler, sprinklers, suppression",
+# Relevancia por producto (texto normalizado: minúsculas, sin tildes). Puntaje: término fuerte 4 (en cualquier parte);
+# término general 2 en el título y 1 en el resumen. Hace falta 4: un término fuerte, o varios generales juntos.
+# Así una sola palabra general («empresas», «cultivo», «fire») no alcanza para clasificar una noticia como relevante.
+# EXCLUIR saca temas ajenos (salvo que el título tenga un término fuerte) y RUIDO, las series repetitivas.
+def _t(texto):
+    return [x.strip() for x in texto.split(",") if x.strip()]
+
+
+RELEVANCIA = {
+    "geneos": dict(
+        fuertes=_t("cooperativa, cooperativas, cooperativismo, cooperativista, cooperativistas, inaes, facttic, cooperar, mutual, mutuales, "
+                   "mutualismo, economia social, economia solidaria, economia popular, software libre, codigo abierto, open source, "
+                   "django, python, desarrollo de software, industria del software, economia del conocimiento, programadores, desarrolladores, "
+                   "co-op, co-ops, cooperative, cooperatives, cooperativas de trabajo, empresas recuperadas"),
+        debiles=_t("software, linux, ciberseguridad, datos abiertos, transformacion digital, gobierno digital, programacion, tecnologia, "
+                   "tecnologicas, startups, desarrollo tecnologico, innovacion, digitalizacion")),
+    "gerp": dict(
+        fuertes=_t("arca, afip, factura electronica, facturacion electronica, facturacion, monotributo, monotributistas, iva, ingresos brutos, "
+                   "impuesto a las ganancias, ganancias, retenciones, percepciones, regimen de informacion, vencimientos impositivos, "
+                   "pyme, pymes, mipyme, mipymes, liquidacion de sueldos, recibo de sueldo, libro de sueldos, contabilidad, contadores, "
+                   "balance contable, inventario, inventarios, control de stock, erp, gestion empresarial, boletin oficial, resolucion general, "
+                   "cuit, declaracion jurada, convenio multilateral, fondo de asistencia laboral, simplificacion tributaria, comprobantes"),
+        debiles=_t("empresas, empresa, comercio, comercios, comerciantes, ventas, sueldos, laboral, empleadores, cheques, credito, "
+                   "exportadores, importadores, logistica, emprendedores, impuestos, tributario, tributaria, digitalizacion, costos")),
+    "geagro:cereales": dict(
+        fuertes=_t("soja, maiz, trigo, girasol, sorgo, cebada, colza, granos, cereales, oleaginosas, siembra, campana agricola, siembra directa, "
+                   "rinde, rindes, fertilizacion, fertilizantes, fitosanitarios, herbicidas, malezas, agricultura de precision, "
+                   "maquinaria agricola, bolsa de cereales, cosecha gruesa, cosecha fina, monitoreo de cultivos"),
+        debiles=_t("cosecha, cultivo, cultivos, productores, agricola, agricolas, agricultura, plagas, lluvias, sequia, heladas, lotes, inta, "
+                   "campo, agro, agtech, retenciones, insumos")),
+    "geagro:vid": dict(
+        fuertes=_t("vid, vinedo, vinedos, vitivinicultura, vitivinicola, vitivinicolas, viticultura, viticultores, viticola, vendimia, "
+                   "cosecha de uva, uva, uvas, poda, oidio, peronospora, lobesia, polilla de la vid, inv, coviar, mosto"),
+        debiles=_t("vino, vinos, malbec, bodega, bodegas, enologo, enologia, heladas, granizo, riego, fincas, mendoza, san juan")),
+    "gema": dict(
+        fuertes=_t("matafuego, matafuegos, extintor, extintores, recarga de matafuegos, recargadores, seguridad contra incendios, "
+                   "proteccion contra incendios, prevencion de incendios, iram 3517, iram 3625, nfpa, rociadores, sprinkler, sprinklers, "
+                   "extinguisher, extinguishers, fire protection, fire safety, fire suppression, fire detection, fire alarm, fire code, "
+                   "deteccion de incendios, detectores de humo, detector de humo, smoke alarm, smoke alarms, hidrantes, bocas de incendio, "
+                   "carga de fuego, plan de evacuacion, brigada de incendio"),
+        debiles=_t("incendio, incendios, fuego, bombero, bomberos, firefighter, firefighters, fire, evacuacion, higiene y seguridad, "
+                   "riesgos del trabajo, srt, seguridad laboral, habilitacion, inspeccion, inspecciones")),
 }
 EXCLUIR = {
-    "geneos": "futbol, horoscopo, quiniela",
-    "gerp": "dolar blue, riesgo pais, merval, bonos, futbol, horoscopo, quiniela, criptomonedas",
-    "geagro": "ganaderia, hacienda, feedlot, tambo, novillos, futbol",
-    "gema": "futbol, horoscopo, incendio forestal, incendios forestales, guerra, misil, bombardeo",
+    "geneos": _t("futbol, horoscopo, quiniela"),
+    "gerp": _t("dolar blue, riesgo pais, merval, bonos, criptomonedas, bitcoin, futbol, quiniela, horoscopo, onlyfans"),
+    "geagro": _t("ganaderia, ganaderos, hacienda, novillo, novillos, terneros, terneras, feedlot, tambo, tambos, lecheria, apicultura, abejas, "
+                 "apiarios, acuicola, acuicultura, piscicultura, pesca"),
+    "gema": _t("incendio forestal, incendios forestales, wildfire, wildfires, forest fire, forest fires, guerra, misil, bombardeo, "
+               "death penalty, pena de muerte"),
 }
+RUIDO = {
+    "geagro": [r"^cierre de mercados", r"^precio (del|de la|de los|de las) .{0,40}(hoy|en rosario)", r"^cotizacion", r"^mercado de (granos|hacienda)"],
+    "*": [r"^libro de pases", r"horoscopo", r"quiniela"],
+}
+# Compatibilidad: términos de cada producto como lista plana (fuertes + generales).
+TERMINOS = {k: ", ".join(v["fuertes"] + v["debiles"]) for k, v in RELEVANCIA.items()}
 NORMATIVA = r"\b(resolucion(es)? general(es)?|resolucion \d|rg \d|decreto|ley \d|ley de|disposicion \d|norma iram|iram \d{3,5}|boletin oficial|reglamentacion|normativa)\b"
 
 RSS_OK = "RSS público del sitio: se usan solo título, fecha, resumen breve y enlace; se respeta robots.txt."
@@ -47,10 +76,12 @@ F = []
 
 
 def f(clave, producto, nombre, metodo, url="", relacion="", linea="", organizacion="", fuente_tipo="medio", naturaleza="periodistica",
-      consulta="", terminos="", filtrar=True, estado="prueba", prioritaria=False, motivo="", sitio_web="", tipo="noticia", condiciones=None):
+      consulta="", terminos="", filtrar=True, estado="prueba", prioritaria=False, motivo="", sitio_web="", tipo="noticia", condiciones=None,
+      idioma="es", estricto=False, forzar=False):
     F.append(dict(clave=clave, producto=producto, linea=linea, nombre=nombre, organizacion=organizacion, fuente_tipo=fuente_tipo,
                   naturaleza=naturaleza, metodo=metodo, url=url, consulta=consulta, relacion=relacion, terminos=terminos, filtrar=filtrar,
-                  estado=estado, prioritaria=prioritaria, motivo=motivo, sitio_web=sitio_web, tipo=tipo,
+                  estado=estado, prioritaria=prioritaria, motivo=motivo, sitio_web=sitio_web, tipo=tipo, idioma=idioma, estricto=estricto,
+                  forzar=forzar,
                   condiciones=condiciones if condiciones is not None else {"rss": RSS_OK, "gdelt": GDELT_OK, "youtube": YT_OK}.get(metodo, "")),
              )
 
@@ -62,10 +93,10 @@ f("geneos-aciamericas", "geneos", "Cooperativas de las Américas · Noticias", "
   "Organización regional de la Alianza Cooperativa Internacional.", organizacion="Cooperativas de las Américas", fuente_tipo="oficial",
   naturaleza="oficial", filtrar=False, sitio_web="https://www.aciamericas.coop/")
 f("geneos-ica", "geneos", "Alianza Cooperativa Internacional (ICA)", "rss", "https://ica.coop/es/rss.xml", "Organismo internacional del cooperativismo.",
-  organizacion="ICA", fuente_tipo="oficial", naturaleza="oficial", filtrar=False, sitio_web="https://ica.coop/es")
+  organizacion="ICA", idioma="es", fuente_tipo="oficial", naturaleza="oficial", filtrar=False, sitio_web="https://ica.coop/es")
 f("geneos-thenews-coop", "geneos", "Co-operative News", "rss", "https://www.thenews.coop/feed/", "Medio internacional especializado en cooperativas (en inglés).",
-  terminos="co-op, co-ops, cooperative, cooperatives, cooperativa, cooperativas, worker, platform co-op, technology, tech, digital",
-  sitio_web="https://www.thenews.coop/")
+  terminos="co-op, co-ops, cooperative, cooperatives, cooperativa, cooperativas, cooperative movement, platform co-op",
+  sitio_web="https://www.thenews.coop/", idioma="en")
 f("geneos-django", "geneos", "Django · Weblog oficial", "rss", "https://www.djangoproject.com/rss/weblog/",
   "Novedades del framework con el que se desarrolla el software de GENEOS: versiones, seguridad y comunidad.", organizacion="Django Software Foundation",
   fuente_tipo="oficial", naturaleza="oficial", filtrar=False, sitio_web="https://www.djangoproject.com/")
@@ -78,7 +109,12 @@ f("geneos-losandes-economia", "geneos", "Los Andes · Economía", "rss", "https:
 f("geneos-ambito-tecnologia", "geneos", "Ámbito · Tecnología", "rss", "https://www.ambito.com/rss/pages/tecnologia.xml",
   "Desarrollo tecnológico y software en Argentina.")
 f("geneos-losandes-tecno", "geneos", "Los Andes · Tecno", "rss", "https://www.losandes.com.ar/rss/pages/muy-tecno.xml", "Tecnología y software.")
-f("geneos-desdelinux", "geneos", "DesdeLinux", "rss", "https://feeds.feedburner.com/desdelinuxweb", "Software libre y Linux en español.")
+f("geneos-desdelinux", "geneos", "DesdeLinux", "rss", "https://feeds.feedburner.com/desdelinuxweb", "Sitio dedicado a software libre y Linux en español.",
+  filtrar=False)
+f("geneos-colsecor", "geneos", "COLSECOR Noticias", "rss", "", "Agencia de noticias de una cooperativa de medios: cooperativismo argentino.",
+  sitio_web="https://www.colsecornoticias.com.ar/")
+f("geneos-cooperar", "geneos", "Cooperar · Noticias", "rss", "", "Confederación Cooperativa de la República Argentina.", organizacion="Cooperar",
+  fuente_tipo="oficial", naturaleza="oficial", prioritaria=True, sitio_web="https://www.cooperar.coop/")
 f("geneos-iprofesional-tecnologia", "geneos", "iProfesional · Tecnología", "rss", "https://www.iprofesional.com/rss/tecnologia",
   "Tecnología y transformación digital en Argentina.")
 f("geneos-gdelt", "geneos", "GDELT · cooperativismo y tecnología en Argentina", "gdelt", relacion="Búsqueda en medios argentinos: cooperativas, INAES, economía social y software libre.",
@@ -131,10 +167,10 @@ f("gema-bomberos", "gema", "Bomberos Voluntarios de Argentina", "rss", "https://
   "Consejo Nacional de Federaciones de Bomberos Voluntarios: prevención, capacitación y normativa.", organizacion="Consejo Nacional de Bomberos Voluntarios",
   fuente_tipo="oficial", naturaleza="oficial", sitio_web="https://www.bomberosra.org.ar/")
 f("gema-fsja", "gema", "Fire & Safety Journal Americas", "rss", "https://fireandsafetyjournalamericas.com/feed/",
-  "Revista de protección contra incendios para América (en inglés).", sitio_web="https://fireandsafetyjournalamericas.com/")
+  "Revista de protección contra incendios para América (en inglés).", sitio_web="https://fireandsafetyjournalamericas.com/", idioma="en")
 f("gema-nfpa-podcast", "gema", "NFPA · Podcast oficial", "rss", "https://rss.libsyn.com/shows/18452/destinations/12612.xml",
   "Asociación internacional que publica códigos de protección contra incendios (en inglés).", organizacion="NFPA", fuente_tipo="oficial",
-  naturaleza="oficial", filtrar=False, sitio_web="https://www.nfpa.org/")
+  naturaleza="oficial", sitio_web="https://www.nfpa.org/", idioma="en")
 f("gema-redproteger", "gema", "Red Proteger · Safety Blog", "rss", "https://redproteger.com.ar/safetyblog/feed/",
   "Blog argentino de seguridad laboral y protección contra incendios.", sitio_web="https://redproteger.com.ar/")
 f("gema-iram-youtube", "gema", "IRAM · canal oficial de YouTube", "youtube", relacion="Videos oficiales sobre normas y certificación.",
@@ -142,6 +178,18 @@ f("gema-iram-youtube", "gema", "IRAM · canal oficial de YouTube", "youtube", re
   terminos="incendio, incendios, extintor, extintores, matafuego, matafuegos, fuego, seguridad, 3517, 3625, bombero, bomberos")
 f("gema-bomberos-youtube", "gema", "Bomberos Voluntarios · canal oficial de YouTube", "youtube", relacion="Videos oficiales de prevención y capacitación.",
   organizacion="Consejo Nacional de Bomberos Voluntarios", fuente_tipo="oficial", naturaleza="oficial", consulta="UCFaupvbQ4EsgQE3NjM6VcBg")
+G_ESTR = "Medio o portal general: solo se toman publicaciones con un término fuerte de GEMA (matafuegos, extintores, protección contra incendios)."
+for clave, nombre, url, sitio, org, oficial in [
+        ("gema-mendoza", "Gobierno de Mendoza · Prensa", "", "https://www.mendoza.gov.ar/prensa/", "Gobierno de Mendoza", True),
+        ("gema-santafe", "Gobierno de Santa Fe · Noticias", "", "https://www.santafe.gob.ar/noticias/", "Gobierno de Santa Fe", True),
+        ("gema-caba", "Ciudad de Buenos Aires · Noticias", "", "https://buenosaires.gob.ar/noticias", "Gobierno de la Ciudad de Buenos Aires", True),
+        ("gema-cordoba", "Gobierno de Córdoba · Prensa", "", "https://prensa.cba.gov.ar/", "Gobierno de Córdoba", True),
+        ("gema-infobae", "Infobae", "https://www.infobae.com/arc/outboundfeeds/rss/", "https://www.infobae.com/", "", False),
+        ("gema-lanacion", "La Nación", "https://www.lanacion.com.ar/arc/outboundfeeds/rss/?outputType=xml", "https://www.lanacion.com.ar/", "", False),
+        ("gema-clarin", "Clarín · Lo último", "https://www.clarin.com/rss/lo-ultimo/", "https://www.clarin.com/", "", False),
+        ("gema-pagina12", "Página/12", "https://www.pagina12.com.ar/rss/portada", "https://www.pagina12.com.ar/", "", False)]:
+    f(clave, "gema", nombre, "rss", url, ("Comunicados oficiales: inspecciones, habilitaciones, normativa y prevención. " if oficial else "Medio nacional. ") + G_ESTR,
+      organizacion=org, fuente_tipo="oficial" if oficial else "medio", naturaleza="oficial" if oficial else "periodistica", sitio_web=sitio, estricto=True)
 f("gema-gdelt", "gema", "GDELT · matafuegos y extintores en Argentina", "gdelt", relacion="Búsqueda en medios argentinos sobre matafuegos, extintores y prevención de incendios.",
   fuente_tipo="gdelt", consulta='(matafuegos OR matafuego OR extintores OR "seguridad contra incendios" OR "prevención de incendios")',
   sitio_web="https://www.gdeltproject.org/")
@@ -154,7 +202,8 @@ f("gema-editores", "gema", "Editores SRL (Ingeniería Eléctrica)", "rss", "http
 # ---- GEAGRO: cereales y vid
 f("geagro-bichos", "geagro", "Bichos de Campo", "rss", "https://bichosdecampo.com/feed/", "Periodismo agropecuario argentino.")
 f("geagro-bichos-vid", "geagro", "Bichos de Campo · Vitivinicultura", "rss", "https://bichosdecampo.com/tag/vitivinicultura/feed/", "Vitivinicultura.", linea="vid")
-f("geagro-infocampo", "geagro", "Infocampo", "rss", "https://www.infocampo.com.ar/feed/", "Noticias del agro argentino.")
+f("geagro-infocampo", "geagro", "Infocampo (general)", "rss", "https://www.infocampo.com.ar/feed/", "Noticias del agro argentino.", estado="descartada",
+  forzar=True, motivo="Repite las secciones Agricultura y Vitivinicultura de Infocampo y suma ganadería y precios diarios: se leen solo esas dos secciones.")
 f("geagro-infocampo-agricultura", "geagro", "Infocampo · Agricultura", "rss", "https://www.infocampo.com.ar/category/agricultura/feed/", "Agricultura extensiva.",
   linea="cereales")
 f("geagro-infocampo-vid", "geagro", "Infocampo · Vitivinicultura", "rss", "https://www.infocampo.com.ar/category/vitivinicultura/feed/", "Vitivinicultura.",
@@ -163,7 +212,8 @@ f("geagro-expoagro", "geagro", "Expoagro · Noticias", "rss", "https://www.expoa
   organizacion="Expoagro", sitio_web="https://www.expoagro.com.ar/")
 f("geagro-defrente", "geagro", "De Frente al Campo · Agro Noticias", "rss", "https://www.defrentealcampo.com.ar/categoria/agro-noticias/feed/", "Agro.")
 f("geagro-losandes-fincas", "geagro", "Los Andes · AgroIndustria", "rss", "https://www.losandes.com.ar/rss/pages/fincas.xml", "Agro de Cuyo: viñedos y fincas.")
-f("geagro-losandes-cuyo", "geagro", "Los Andes · Cuyo Agro", "rss", "https://www.losandes.com.ar/rss/pages/Cuyo%20Agro.xml", "Agro de Cuyo.")
+f("geagro-losandes-cuyo", "geagro", "Los Andes · Cuyo Agro", "rss", "https://www.losandes.com.ar/rss/pages/Cuyo%20Agro.xml", "Agro de Cuyo.",
+  estado="descartada", forzar=True, motivo="El servidor responde 505 a esa dirección; Los Andes · AgroIndustria cubre el agro de Cuyo.")
 f("geagro-iprofesional-vinos", "geagro", "iProfesional · Vinos y Bodegas", "rss", "https://www.iprofesional.com/rss/vinos", "Vinos y bodegas.", linea="vid")
 f("geagro-inta", "geagro", "INTA Informa", "rss", "https://intainforma.inta.gob.ar/feed/", "Instituto Nacional de Tecnología Agropecuaria.",
   organizacion="INTA", fuente_tipo="oficial", naturaleza="oficial", prioritaria=True)
@@ -244,16 +294,21 @@ def sembrar(FuenteActualidad=None, IdeaEditorial=None, SitioWeb=None, LineaProdu
     if FuenteActualidad is None:
         from sitios.models import LineaProducto, SitioWeb
         from .models import FuenteActualidad, IdeaEditorial
+    campos = {x.name for x in FuenteActualidad._meta.get_fields()}  # una migración vieja no tiene los campos nuevos
     for orden, d in enumerate(FUENTES):
         d = dict(d)
-        estado, prioritaria, motivo = d.pop("estado"), d.pop("prioritaria"), d.pop("motivo")
+        estado, prioritaria, motivo, forzar = d.pop("estado"), d.pop("prioritaria"), d.pop("motivo"), d.pop("forzar")
+        d = {k: v for k, v in d.items() if k in campos}
         obj, nueva = FuenteActualidad.objects.get_or_create(clave=d["clave"], defaults=dict(d, estado=estado, prioritaria=prioritaria,
                                                                                            motivo=motivo, orden=orden))
         if not nueva:  # solo datos de catálogo: estado, prioridad, términos y resultados se administran desde el blog
-            for k in ("producto", "linea", "nombre", "organizacion", "fuente_tipo", "naturaleza", "tipo", "metodo", "url", "consulta",
-                      "relacion", "condiciones", "sitio_web"):
-                setattr(obj, k, d[k])
-            if estado in ("descartada", "sin_canal", "experimental") and obj.estado == "prueba":
+            for k in ("producto", "linea", "nombre", "organizacion", "fuente_tipo", "naturaleza", "tipo", "metodo", "consulta",
+                      "relacion", "condiciones", "sitio_web", "terminos", "filtrar", "idioma", "estricto"):
+                if k in d:
+                    setattr(obj, k, d[k])
+            if d["url"] and not getattr(obj, "url_descubierta", False):  # un feed encontrado por autodescubrimiento no se pisa
+                obj.url = d["url"]
+            if forzar or (estado in ("descartada", "sin_canal", "experimental") and obj.estado == "prueba"):
                 obj.estado, obj.motivo = estado, motivo
             obj.orden = orden
             obj.save()

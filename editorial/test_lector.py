@@ -53,7 +53,7 @@ class Red:
         self.respuestas = respuestas
         self.pedidos = []
 
-    def __call__(self, url, timeout=15):
+    def __call__(self, url, timeout=15, **kw):
         self.pedidos.append(url)
         for clave, valor in self.respuestas.items():
             if url.startswith(clave):
@@ -61,8 +61,8 @@ class Red:
                     raise valor
                 return valor
         if url.endswith("/robots.txt"):
-            raise ErrorLectura("El servidor respondió 404 (Not Found).")
-        raise ErrorLectura("No se pudo conectar: sin respuesta simulada")
+            raise ErrorLectura("El servidor respondió 404 (Not Found).", 404)
+        raise ErrorLectura("No se pudo conectar: sin respuesta simulada", "conexion")
 
 
 @override_settings(GWA_VAR_DIR=VAR, MEDIA_ROOT=str(VAR / "media"), ACTUALIDAD_EN_SEGUNDO_PLANO=False, YOUTUBE_API_KEY="")
@@ -117,7 +117,7 @@ class LecturaAutomatica(TestCase):
         self.assertIn("La red de este equipo", f["gerp-iprofesional-impuestos"].motivo)
         self.assertIn("título, fecha y enlace", f["gerp-ambito-negocios"].motivo)
         self.assertIn("se relaciona con el producto", f["gerp-ambito-economia"].motivo)
-        self.assertIn("no es un feed", f["gerp-iprofesional-legales"].motivo)
+        self.assertIn("página web, no un feed", f["gerp-iprofesional-legales"].motivo)
         self.assertIn("90 días", f["gerp-iprofesional-management"].motivo)
         # Descartadas y YouTube sin clave: no se consultan
         self.assertFalse(any("cronista" in u or "googleapis" in u for u in red.pedidos))
@@ -139,7 +139,7 @@ class LecturaAutomatica(TestCase):
         self.assertIn("Noticia periodística", html)
         pagina = self.client.get(f"{BLOG}gerp/fuentes/").content.decode()
         self.assertIn("La red de este equipo no permite conectarse", pagina)
-        self.assertIn("Pendiente de clave", pagina)
+        self.assertIn("Falta la clave de YouTube", pagina)
 
     def test_no_se_muestran_fuentes_sin_verificar_y_falla_conserva_resultados(self):
         f = FuenteActualidad.objects.get(clave="gema-iram")
@@ -310,3 +310,184 @@ class LecturaAutomatica(TestCase):
         self.assertEqual(lector.huella("https://www.ambito.com/a1/?utm_source=x"), lector.huella("http://ambito.com/a1"))
         self.assertEqual(lector.coincidencias("La AFIP y el IVA", ["afip", "iva", "ganancias"]), ["afip", "iva"])
         self.assertEqual(lector.coincidencias("Inversiones", ["iva"]), [])
+
+
+# ---------------------------------------------------------------------------------------------- Ajustes tras la primera lectura real
+def evaluar(titulo, producto, linea="", resumen="", **kw):
+    return lector.evaluar(titulo, resumen, producto, linea, **kw)
+
+
+@override_settings(GWA_VAR_DIR=VAR, MEDIA_ROOT=str(VAR / "media"), ACTUALIDAD_EN_SEGUNDO_PLANO=False, YOUTUBE_API_KEY="")
+class AjustesLectura(TestCase):
+    """Casos tomados de la primera lectura real (16/10/2026)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        with override_settings(GWA_VAR_DIR=VAR):
+            call_command("inicializar", "--sin-publicar", stdout=open("/dev/null", "w"))
+        sembrar()
+        cls.geagro = SitioWeb.objects.get(clave="geagro")
+        cls.gerp = SitioWeb.objects.get(clave="gerp")
+        cls.clara = User.objects.create_superuser("clara", "clara@example.com", "x")
+
+    def leer(self, respuestas, claves):
+        red = Red(respuestas)
+        with mock.patch.object(lector, "descargar", red), mock.patch.object(lector, "GDELT_PAUSA", 0), mock.patch.object(lector.time, "sleep"):
+            act = lector.actualizar_fuentes("comando", claves=claves)
+        return act, red
+
+    def test_relevancia_con_casos_reales(self):
+        acepta = [("Ganancias: cómo presentar la nueva declaración jurada web de ARCA en noviembre", "gerp"),
+                  ("Del Monotributo al régimen de IVA: cuánto más hay que vender para ganar lo mismo", "gerp"),
+                  ("La soja 2026/27 da sus primeros pasos: Corrientes y el norte de Santa Fe marcan el inicio de la siembra", "geagro", "cereales"),
+                  ("Resguardo para los viñedos: ya está en Argentina un “aliado” botánico contra el oídio", "geagro", "vid"),
+                  ("Everon and Teledyne FLIR launch UL-listed thermal imaging fire detection solution", "gema"),
+                  ("Africa’s finance co-ops gather for pan-continental congress", "geneos")]
+        for caso in acepta:
+            ok, puntaje, terminos, motivo = evaluar(*caso)
+            self.assertTrue(ok, f"{caso[0]} → {motivo}")
+        rechaza = [("Justin Timberlake y Jessica Biel apuestan por una gaseosa proteica que busca facturar u$s20 millones", "gerp", "", "General"),
+                   ("Libro de pases", "gerp", "", "Libro de pases de ejecutivos de empresas"),
+                   ("Otra marca de ropa con presencia en shoppings se presentó en concurso de acreedores", "gerp", "", "Cheques rechazados"),
+                   ("Cierre de Mercados, martes 13 de octubre del 2026: el Índice Novillo cerró en $4.325/kg y el dólar bajó", "geagro", "cereales", "maíz y trigo"),
+                   ("Precio del maíz en Rosario hoy 16 octubre 2026", "geagro", "cereales", ""),
+                   ("El Niño también amenaza a las abejas y se refuerzan las recomendaciones para proteger los apiarios", "geagro", "cereales", "lluvias"),
+                   ("La trufa sigue buscando su lugar en Mendoza: un cultivo bajo tierra que exige años de espera", "geagro", "cereales", ""),
+                   ("Trump calls for death penalty for anyone convicted of killing a firefighter", "gema", "", ""),
+                   ("Santa Ana winds raise California Wildfire risk as crews and utilities prepare", "gema", "", "fire"),
+                   ("IAFC releases cyber resilience guide for fire and EMS departments", "gema", "", ""),
+                   ("Elon Musk lanzó una advertencia sobre el futuro de la inteligencia artificial", "geneos", "", ""),
+                   ("Tu celular Android puede durar cinco años más con estos trucos", "geneos", "", "software")]
+        for titulo, producto, linea, resumen in rechaza:
+            ok, puntaje, terminos, motivo = evaluar(titulo, producto, linea, resumen)
+            self.assertFalse(ok, f"{titulo} → aceptada con {terminos}")
+            self.assertTrue(motivo)
+        self.assertIn("Solo términos generales", evaluar("Las empresas y el comercio", "gerp", resumen="")[3] or "Solo términos generales")
+        self.assertIn("Serie repetitiva", evaluar("Precio de la Soja en Rosario hoy 16 octubre 2026", "geagro", "cereales")[3])
+        # Medio general (estricto): hace falta un término fuerte en el título
+        self.assertFalse(evaluar("Incendio en un edificio de Palermo", "gema", estricto=True)[0])
+        self.assertTrue(evaluar("Controlarán los matafuegos en los autos durante el verano", "gema", estricto=True)[0])
+
+    def test_misma_noticia_desde_varios_feeds_y_linea_correcta(self):
+        nota = ("Un vino argentino rompió con la hegemonía francesa y fue elegido el mejor tinto del mundo", "https://www.infocampo.com.ar/vino-mejor/", rfc822(1), "Malbec de viñedos de Mendoza.")
+        copia = ("Un vino argentino rompió con la hegemonía francesa y fue elegido mejor tinto del mundo", "https://bichosdecampo.com/vino-mejor/", rfc822(1), "Malbec de viñedos de altura.")
+        respuestas = {"https://www.infocampo.com.ar/category/vitivinicultura/feed/": rss(nota),
+                      "https://bichosdecampo.com/feed/": rss(copia, ("La soja inicia la siembra en el norte", "https://bichosdecampo.com/soja/", rfc822(1), "")),
+                      "https://bichosdecampo.com/tag/vitivinicultura/feed/": rss(copia)}
+        act, red = self.leer(respuestas, ["geagro-infocampo-vid", "geagro-bichos", "geagro-bichos-vid"])
+        items = IdeaEditorial.objects.filter(sitio=self.geagro, fuente_actualidad__isnull=False)
+        self.assertEqual(sorted(i.titulo[:20] for i in items), ["La soja inicia la si", "Un vino argentino ro"])
+        self.assertEqual(items.get(titulo__startswith="Un vino").linea.clave, "vid")
+        motivos = [m["motivo"] for f in FuenteActualidad.objects.filter(clave__startswith="geagro-") for m in f.revision.get("duplicadas", [])]
+        self.assertIn("Misma noticia", " ".join(motivos))  # otra redacción del mismo título, desde otro medio
+        self.assertIn("Mismo enlace", " ".join(motivos))   # el mismo artículo en dos feeds del mismo medio
+        # Infocampo general queda descartada: repetía sus secciones
+        self.assertEqual(FuenteActualidad.objects.get(clave="geagro-infocampo").estado, "descartada")
+
+    def test_feeds_defectuosos_se_corrigen_sin_relajar_limites(self):
+        # Expoagro: espacios antes de la declaración XML
+        items = lector.leer_feed(b"\n\n  " + rss(("Expoagro 2027 presenta su agenda", "https://www.expoagro.com.ar/a/", rfc822(1), "")))
+        self.assertEqual(len(items), 1)
+        # «&» sin escapar y caracteres de control (Red Proteger)
+        roto = rss(("Seguridad & matafuegos", "https://redproteger.com.ar/a?x=1&y=2", rfc822(1), "Texto\x0b con control"))
+        self.assertEqual(lector.leer_feed(roto.replace(b"&amp;", b"&"))[0]["titulo"], "Seguridad & matafuegos")
+        # INTA: feed de más de 3 MB → se leen las primeras publicaciones sin superar el tope
+        grande = rss(*[(f"Nota {n} sobre siembra de trigo", f"https://intainforma.inta.gob.ar/n{n}/", rfc822(1), "x" * 200_000) for n in range(20)])
+        self.assertGreater(len(grande), lector.LIMITE_BYTES)
+        parcial = grande[:lector.LIMITE_BYTES]
+        items = lector.leer_feed(parcial, truncado=True)
+        self.assertGreater(len(items), 5)
+        self.assertLess(len(items), 20)
+        # Una página web no es un feed: se busca el feed que declara el sitio (autodescubrimiento estándar)
+        f = FuenteActualidad.objects.get(clave="gema-bomberos")
+        pagina = (b'<!DOCTYPE html><html><head><link rel="alternate" type="application/rss+xml" title="Comentarios" href="/comments/feed/">'
+                  b'<link rel="alternate" type="application/rss+xml" title="Noticias" href="/noticias/feed/"></head></html>')
+        respuestas = {"https://www.bomberosra.org.ar/feed/": pagina,
+                      "https://www.bomberosra.org.ar/noticias/feed/": rss(("Capacitación en uso de extintores para brigadistas", "https://www.bomberosra.org.ar/n1/", rfc822(1), ""))}
+        act, red = self.leer(respuestas, ["gema-bomberos"])
+        f.refresh_from_db()
+        self.assertEqual((f.estado, f.url, f.url_descubierta), ("activa", "https://www.bomberosra.org.ar/noticias/feed/", True))
+        self.assertIn("Feed encontrado", f.motivo)
+        # 404 con un sitio que no declara feed: error claro, sin leer el HTML
+        act, red = self.leer({"https://facttic.org.ar/": b"<!doctype html><html><head></head><body>Hola</body></html>"}, ["geneos-facttic"])
+        f = FuenteActualidad.objects.get(clave="geneos-facttic")
+        self.assertIn("no declara", f.motivo)
+        self.assertEqual(f.estado_visible, "errores")
+
+    def test_reintento_ante_timeout_y_403_sin_insistir(self):
+        llamadas = []
+
+        def pedir(url, timeout):
+            llamadas.append(url)
+            if len(llamadas) == 1:
+                raise ErrorLectura("El sitio no respondió a tiempo.", "tiempo")
+            return b"ok", "text/xml"
+        with mock.patch.object(lector, "_pedir", pedir), mock.patch.object(lector.time, "sleep"):
+            self.assertEqual(lector.descargar("https://www.ambito.com/rss/pages/novedades-fiscales.xml"), b"ok")
+        self.assertEqual(len(llamadas), 2)
+        llamadas.clear()
+
+        def prohibido(url, timeout):
+            llamadas.append(url)
+            raise ErrorLectura("El sitio rechaza lectores automáticos (403). No se insiste.", 403)
+        with mock.patch.object(lector, "_pedir", prohibido), mock.patch.object(lector.time, "sleep"):
+            with self.assertRaises(ErrorLectura):
+                lector.descargar("https://www.aciamericas.coop/feed/")
+        self.assertEqual(len(llamadas), 1)
+
+    def test_gdelt_429_reintento_cache_y_pausa(self):
+        pedidos = []
+        art = {"articles": [{"url": "https://www.lanacion.com.ar/pyme-arca", "title": "ARCA simplifica la facturación electrónica para pymes",
+                             "seendate": AHORA.strftime("%Y%m%dT%H%M%SZ"), "domain": "lanacion.com.ar"}]}
+
+        def red(url, timeout=30, **kw):
+            pedidos.append(url)
+            if len(pedidos) == 1:
+                raise ErrorLectura("El servicio limitó los pedidos (429: demasiados pedidos).", 429, reintentar=40)
+            return json.dumps(art).encode()
+        with mock.patch.object(lector, "descargar", red), mock.patch.object(lector, "GDELT_PAUSA", 0), mock.patch.object(lector.time, "sleep") as dormir:
+            lector.actualizar_fuentes("comando", claves=["gerp-gdelt"])
+            dormir.assert_any_call(40)  # respeta el Retry-After
+            self.assertEqual(len(pedidos), 2)
+            # Segunda lectura dentro de 12 horas: sale de la caché, sin pedir
+            lector.actualizar_fuentes("comando", claves=["gerp-gdelt"])
+            self.assertEqual(len(pedidos), 2)
+        self.assertEqual(IdeaEditorial.objects.filter(fuente_actualidad__clave="gerp-gdelt").count(), 1)
+        # Tres lecturas seguidas con 429 → se desactiva sola
+        from .models import CacheLectura
+        CacheLectura.objects.all().delete()
+        siempre = mock.Mock(side_effect=ErrorLectura("El servicio limitó los pedidos (429: demasiados pedidos).", 429))
+        with mock.patch.object(lector, "descargar", siempre), mock.patch.object(lector, "GDELT_PAUSA", 0), mock.patch.object(lector.time, "sleep"):
+            for _ in range(3):
+                lector.actualizar_fuentes("comando", claves=["gerp-gdelt", "gema-gdelt"])
+        g = FuenteActualidad.objects.get(clave="gerp-gdelt")
+        self.assertEqual((g.estado, g.estado_visible), ("pausada", "desactivada"))
+        self.assertIn("Desactivada automáticamente", g.motivo)
+        # Después del primer 429 de una lectura, las demás consultas de GDELT no se hacen
+        self.assertIn("No se consultó", FuenteActualidad.objects.get(clave="gema-gdelt").ultimo_error)
+
+    def test_reclasificar_lo_guardado_y_pantallas(self):
+        f = FuenteActualidad.objects.get(clave="gerp-ambito-negocios")
+        f.estado, f.verificada = "activa", timezone.now()
+        f.save()
+        hoy = timezone.localdate()
+        for t in ("Justin Timberlake y Jessica Biel apuestan por una gaseosa proteica", "Monotributo: nuevas categorías para pymes desde noviembre",
+                  "Monotributo: nuevas categorías para las pymes desde noviembre"):
+            IdeaEditorial.objects.create(sitio=self.gerp, tipo="noticia", naturaleza="periodistica", titulo=t, fuente="Ámbito", publicado=hoy,
+                                         consultado=hoy, fuente_actualidad=f, clave=lector.huella("https://x/" + t))
+        self.assertEqual(lector.reclasificar(forzar=True), 2)
+        d = IdeaEditorial.objects.filter(estado="descartada", sitio=self.gerp)
+        motivos = " ".join(d.values_list("motivo_descarte", flat=True))
+        self.assertIn("No menciona", motivos + " ")
+        self.assertIn("Misma noticia", motivos)
+        self.assertEqual(lector.reclasificar(), 0)  # una sola vez por versión de las reglas
+        self.client.force_login(self.clara)
+        html = self.client.get(f"{BLOG}gerp/revision/").content.decode()
+        self.assertIn("Descartadas al revisar la relevancia", html)
+        self.assertIn("Justin Timberlake", html)
+        html = self.client.get(f"{BLOG}gerp/fuentes/?estado=activa").content.decode()
+        self.assertIn("Ámbito · Negocios", html)
+        self.assertNotIn("El Cronista", html)
+        html = self.client.get(f"{BLOG}gerp/fuentes/?estado=desactivada").content.decode()
+        self.assertIn("El Cronista", html)
+        self.assertIn("Con errores", self.client.get(f"{BLOG}gerp/fuentes/").content.decode())

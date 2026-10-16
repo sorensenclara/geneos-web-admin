@@ -192,6 +192,10 @@ class IdeaEditorial(models.Model):
     menciona_normativa = models.BooleanField(default=False, help_text="Menciona una ley, resolución o norma: verificar el documento oficial.")
     relacion = models.CharField("Relación con el producto", max_length=300, blank=True)
     prioritaria = models.BooleanField(default=False)
+    idioma = models.CharField(max_length=2, default="es")
+    puntaje = models.PositiveSmallIntegerField("Puntaje de relevancia", default=0)
+    motivo_descarte = models.CharField("Por qué se descartó", max_length=300, blank=True,
+                                       help_text="Descarte automático por las reglas de relevancia o duplicado; se puede restaurar.")
     cargada_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     # Eventos
     evento_fin = models.DateField("Finaliza", null=True, blank=True)
@@ -259,6 +263,8 @@ class FuenteActualidad(models.Model):
     terminos = models.TextField("Términos de relevancia", blank=True,
                                 help_text="Separados por coma. Vacío: los del producto. Una publicación sin ninguno no se muestra.")
     filtrar = models.BooleanField("Filtrar por términos", default=True)
+    estricto = models.BooleanField(default=False, help_text="Medio o portal general: solo cuentan los términos fuertes del producto.")
+    idioma = models.CharField(max_length=2, default="es")
     condiciones = models.CharField("Condiciones de uso", max_length=300, blank=True)
     estado = models.CharField(max_length=12, choices=ESTADOS_FUENTE, default="prueba")
     prioritaria = models.BooleanField(default=False, help_text="Sus novedades actuales y relevantes aparecen antes que las demás.")
@@ -273,6 +279,10 @@ class FuenteActualidad(models.Model):
     items_relevantes = models.PositiveIntegerField(default=0)
     items_nuevos = models.PositiveIntegerField(default=0)
     ultimo_item = models.DateField(null=True, blank=True)
+    tipo_error = models.CharField(max_length=8, blank=True, help_text="tecnico (no se pudo leer) o calidad (se leyó pero no sirve).")
+    fallas_seguidas = models.PositiveSmallIntegerField(default=0)
+    url_descubierta = models.BooleanField(default=False, help_text="El feed se encontró en la página del sitio (autodescubrimiento).")
+    revision = models.JSONField(default=dict, blank=True, help_text="Muestras de la última lectura: aceptadas y descartadas con el motivo.")
 
     class Meta:
         ordering = ["producto", "orden", "nombre"]
@@ -287,12 +297,29 @@ class FuenteActualidad(models.Model):
         return self.estado == "activa" and self.verificada is not None
 
     @property
+    def estado_visible(self):
+        """Activa, En prueba, Con errores o Desactivada (lo que se muestra en «Estado de las fuentes»)."""
+        if self.estado in ("pausada", "descartada", "sin_canal", "experimental"):
+            return "desactivada"
+        if self.tipo_error == "tecnico" and self.ultimo_error:
+            return "errores"
+        if self.estado == "activa":
+            return "activa"
+        return "prueba"
+
+    @property
     def estado_legible(self):
-        if self.estado == "activa" and self.ultimo_error:
-            return "Activa · última lectura con error"
-        if self.estado == "prueba" and self.ultima_lectura:
-            return "En prueba · no pasó los controles"
-        return self.get_estado_display()
+        return {"activa": "Activa", "prueba": "En prueba", "errores": "Con errores", "desactivada": "Desactivada"}[self.estado_visible]
+
+    @property
+    def detalle_estado(self):
+        if self.estado_visible == "desactivada":
+            return self.get_estado_display()
+        if self.estado_visible == "errores":
+            return "Activa: se muestran sus resultados anteriores" if self.verificada else "Nunca se pudo leer"
+        if self.estado_visible == "prueba" and self.ultima_lectura:
+            return "Se leyó, pero no pasó los controles de calidad"
+        return ""
 
 
 ORIGENES_ACTUALIZACION = [("ingreso", "Al ingresar al administrador"), ("boton", "«Actualizar ahora»"), ("comando", "Comando o tarea programada")]
@@ -314,6 +341,14 @@ class ActualizacionActualidad(models.Model):
         ordering = ["-inicio"]
         verbose_name = "actualización de fuentes"
         verbose_name_plural = "actualizaciones de fuentes"
+
+
+class CacheLectura(models.Model):
+    """Respuestas guardadas por un tiempo (GDELT: 12 horas) para no repetir pedidos a servicios con límite de frecuencia."""
+    clave = models.CharField(max_length=200, unique=True)
+    datos = models.TextField(blank=True)
+    creado = models.DateTimeField(auto_now=True)
+    expira = models.DateTimeField()
 
 
 class CerrojoActualidad(models.Model):

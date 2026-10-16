@@ -12,40 +12,46 @@
           con publicaciones reales (título, fecha y enlace) y relacionadas con {{ sitio.nombre }}. Si una lectura falla, se conservan sus resultados anteriores.</p>
       </div>
     </div>
+    <div class="gwa-bl-head-acc"><a class="gu-btn gu-btn-outline" href="{% url 'blog:revision' sitio.clave %}">{% icon name="search" classname="gu-icon" %}Revisión de resultados</a></div>
   </div>
   <section class="gu-card gwa-bl-panel">
     <p class="gwa-ac-estado">
-      <span>Última lectura: {% if ultima_lectura and ultima_lectura.fin %}{{ ultima_lectura.fin|date:"d/m/Y H:i" }} · {{ ultima_lectura.get_origen_display }} · {{ ultima_lectura.fuentes_ok }} bien, {{ ultima_lectura.fuentes_error }} con problemas, {{ ultima_lectura.nuevos }} novedades{% else %}todavía no se leyeron{% endif %}</span>
+      <span>Última lectura: {% if ultima_lectura and ultima_lectura.fin %}{{ ultima_lectura.fin|date:"d/m/Y H:i" }} · {{ ultima_lectura.get_origen_display }}{% else %}todavía no se leyeron{% endif %}</span>
       {% if leyendo %}<span class="gwa-ac-leyendo" role="status">{% icon name="refresh-cw" classname="gu-icon" %}Leyendo fuentes…</span>{% endif %}
       <span>Se leen al ingresar al administrador si pasaron más de 24 horas, o con «Actualizar ahora».</span>
     </p>
     {% if not youtube %}<p class="gwa-ac-aviso">Los canales de YouTube están preparados pero no se consultan: falta configurar la clave gratuita de YouTube Data API en el servidor (<code>YOUTUBE_API_KEY</code> en el archivo .env).</p>{% endif %}
+    <nav class="gwa-fu-filtro" aria-label="Filtrar por estado">
+      {% for k, t, n in estados %}<a href="?{% if k %}estado={{ k }}{% endif %}" class="gwa-fu-tab is-{{ k|default:'todas' }}"{% if filtro == k %} aria-current="page"{% endif %}>{{ t }} <b>{{ n }}</b></a>{% endfor %}
+    </nav>
     <div class="gwa-fu-tabla" role="region" aria-label="Fuentes" tabindex="0">
     <table class="gu-table">
-      <thead><tr><th>Fuente</th><th>Tipo</th><th>Estado</th><th>Última lectura</th><th>Resultado y motivo</th>{% if puede_configurar %}<th><span class="w-sr-only">Acciones</span></th>{% endif %}</tr></thead>
+      <thead><tr><th>Fuente</th><th>Estado</th><th>Última lectura</th><th>Noticias</th><th>Último error o resultado</th>{% if puede_configurar %}<th><span class="w-sr-only">Acciones</span></th>{% endif %}</tr></thead>
       <tbody>
       {% for f in fuentes %}
-        <tr class="is-{{ f.estado }}">
-          <td><b>{{ f.nombre }}</b>{% if f.prioritaria %} <span class="gwa-ac-chip is-prioritaria">Prioritaria</span>{% endif %}
-            <br><small>{{ f.get_naturaleza_display }}{% if f.linea %} · {{ f.linea|capfirst }}{% endif %}{% if f.producto == 'todos' %} · Todos los productos{% endif %}</small>
+        <tr class="is-{{ f.estado_visible }}">
+          <td><b>{{ f.nombre }}</b>{% if f.prioritaria %} <span class="gwa-ac-chip is-prioritaria">Prioritaria</span>{% endif %}{% if f.idioma == 'en' %} <span class="gwa-ac-chip">En inglés</span>{% endif %}
+            <br><small>{{ f.get_naturaleza_display }} · {{ f.get_metodo_display }}{% if f.linea %} · {{ f.linea|capfirst }}{% endif %}{% if f.producto == 'todos' %} · Todos los productos{% endif %}{% if f.estricto %} · solo términos fuertes{% endif %}</small>
             <br><small>{{ f.relacion }}</small>
-            {% if f.url %}<br><small class="gwa-fu-url">{{ f.url }}</small>{% elif f.sitio_web %}<br><small class="gwa-fu-url">{{ f.sitio_web }}</small>{% endif %}</td>
-          <td>{{ f.get_metodo_display }}{% if f.condiciones %}<br><small>{{ f.condiciones }}</small>{% endif %}</td>
-          <td><span class="gu-badge gwa-fu-{{ f.estado }}">{% if f.pendiente_clave %}Pendiente de clave{% else %}{{ f.estado_legible }}{% endif %}</span></td>
-          <td>{% if f.ultima_lectura %}{{ f.ultima_lectura|date:"d/m/Y H:i" }}{% if f.items_leidos %}<br><small>{{ f.items_leidos }} leídas · {{ f.items_relevantes }} relacionadas · {{ f.items_nuevos }} nuevas</small>{% endif %}{% if f.ultimo_item %}<br><small>Última publicación: {{ f.ultimo_item|date:"d/m/Y" }}</small>{% endif %}{% else %}—{% endif %}</td>
-          <td><small>{% if f.ultimo_error and f.verificada %}<b>Última lectura:</b> {{ f.ultimo_error }}<br>{% endif %}{{ f.motivo|default:"Todavía no se probó." }}</small></td>
+            {% if f.url %}<br><small class="gwa-fu-url">{{ f.url }}{% if f.url_descubierta %} (encontrado en el sitio){% endif %}</small>{% elif f.sitio_web %}<br><small class="gwa-fu-url">{{ f.sitio_web }}</small>{% endif %}</td>
+          <td><span class="gwa-fu-estado is-{{ f.estado_visible }}">{% if f.pendiente_clave %}Desactivada{% else %}{{ f.estado_legible }}{% endif %}</span>
+            <br><small>{% if f.pendiente_clave %}Falta la clave de YouTube{% else %}{{ f.detalle_estado }}{% endif %}</small></td>
+          <td>{% if f.ultima_lectura %}{{ f.ultima_lectura|date:"d/m/Y H:i" }}{% if f.ultimo_item %}<br><small>Última publicación: {{ f.ultimo_item|date:"d/m/Y" }}</small>{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if f.ultima_lectura %}<b>{{ f.visibles }}</b> <small>en el administrador</small><br><small>Última lectura: {{ f.items_leidos }} leídas · {{ f.items_relevantes }} relacionadas · {{ f.items_nuevos }} nuevas</small>{% else %}—{% endif %}</td>
+          <td><small>{% if f.ultimo_error %}<b>{% if f.tipo_error == 'tecnico' %}Error:{% else %}Calidad:{% endif %}</b> {{ f.ultimo_error }}{% if f.verificada %}<br>{{ f.motivo }}{% endif %}{% else %}{{ f.motivo|default:"Todavía no se probó." }}{% endif %}</small></td>
           {% if puede_configurar %}<td class="gwa-fu-acc">
             {% if f.estado in "activa prueba pausada" %}
             <form method="post" action="{% url 'blog:fuente_accion' f.pk 'prioritaria' %}">{% csrf_token %}<input type="hidden" name="sitio" value="{{ sitio.clave }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">{% if f.prioritaria %}Quitar prioridad{% else %}Marcar prioritaria{% endif %}</button></form>
             {% endif %}
             {% if f.estado == "activa" or f.estado == "prueba" %}
             {% if not f.pendiente_clave %}<form method="post" action="{% url 'blog:fuente_accion' f.pk 'probar' %}">{% csrf_token %}<input type="hidden" name="sitio" value="{{ sitio.clave }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">Probar ahora</button></form>{% endif %}
-            <form method="post" action="{% url 'blog:fuente_accion' f.pk 'pausar' %}">{% csrf_token %}<input type="hidden" name="sitio" value="{{ sitio.clave }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">Pausar</button></form>
+            <form method="post" action="{% url 'blog:fuente_accion' f.pk 'pausar' %}">{% csrf_token %}<input type="hidden" name="sitio" value="{{ sitio.clave }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">Desactivar</button></form>
             {% elif f.estado == "pausada" %}
-            <form method="post" action="{% url 'blog:fuente_accion' f.pk 'reanudar' %}">{% csrf_token %}<input type="hidden" name="sitio" value="{{ sitio.clave }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">Reanudar</button></form>
+            <form method="post" action="{% url 'blog:fuente_accion' f.pk 'reanudar' %}">{% csrf_token %}<input type="hidden" name="sitio" value="{{ sitio.clave }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">Reactivar</button></form>
             {% endif %}
           </td>{% endif %}
         </tr>
+      {% empty %}<tr><td colspan="6">No hay fuentes en este estado.</td></tr>
       {% endfor %}
       </tbody>
     </table>
