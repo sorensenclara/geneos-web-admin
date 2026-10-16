@@ -22,11 +22,11 @@ def estado_blog(sitio, ultimo_ok=None):
         return "desactivado", "Desactivado", "El blog no aparece en la web."
     from publicacion.motor import conectado
     if not conectado(sitio):
-        return "aprobado", "Aprobado", "Aprobado. La web de este sitio todavía no está conectada al generador común."
+        return "aprobado", "Aprobado", "La web de este sitio todavía no está conectada al generador común."
     if ultimo_ok and c.last_published_at and c.last_published_at <= ultimo_ok.finalizado:
         detalle = "En la web." + (" Hay cambios de configuración sin aprobar." if c.has_unpublished_changes else "")
         return "publicado", "Publicado", detalle
-    return "aprobado", "Aprobado", "Aprobado: aparece en la web después de «Publicar en la web»."
+    return "aprobado", "Aprobado", "Se ve en la web después de «Publicar en la web»."
 
 
 def estado_editorial(a):
@@ -64,8 +64,14 @@ def estado_articulo_html(articulo):
     _ec, et = estado_editorial(articulo)
     _wc, wt = estado_web(articulo, bc, ultimo)
     fecha = ultimo.finalizado.strftime("%d/%m/%Y %H:%M") if ultimo else "nunca"
+    from django.urls import reverse
     return format_html(
         '<dl class="gwa-estado-art"><dt>Estado editorial</dt><dd>{}</dd><dt>En la web</dt><dd>{}</dd>'
-        '<dt>Blog de {}</dt><dd>{} · {}</dd><dt>Última publicación de la web</dt><dd>{}</dd></dl>'
-        '<p>La vista previa, el historial y la aprobación están en la barra de abajo y en el panel lateral del editor.</p>',
-        et, wt, sitio.nombre, bt, bd, fecha)
+        '<dt>Blog de {}</dt><dd>{}. {}</dd><dt>Última publicación de la web</dt><dd>{}</dd></dl>'
+        '<p class="gwa-estado-acc"><a class="gu-btn gu-btn-outline gu-btn-sm" href="{}" target="_blank" rel="noopener">Vista previa</a> '
+        '<a class="gu-btn gu-btn-ghost gu-btn-sm" href="{}">Historial</a> <a class="gu-btn gu-btn-ghost gu-btn-sm" href="{}">Volver al blog</a></p>'
+        '<p>Para aprobar: «Enviar a aprobación» (o «Publicar», si tenés permiso) en la barra de abajo. Aprobar no cambia la web: '
+        'el artículo aparece después de «Publicar en la web», si el blog del sitio está activo.</p>',
+        et, wt, sitio.nombre, bt, bd, fecha,
+        reverse("wagtailadmin_pages:view_draft", args=[articulo.pk]), reverse("wagtailadmin_pages:history", args=[articulo.pk]),
+        reverse("blog:index") + f"?sitio={sitio.clave}")

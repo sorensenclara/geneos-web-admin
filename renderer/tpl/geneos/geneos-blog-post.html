@@ -19,6 +19,12 @@
     {% if A.image %}<div class="bl-hero"><img src="{{ asset('img/' ~ A.image.src) }}" alt="{{ A.image.alt }}" width="{{ A.image.w }}" height="{{ A.image.h }}" fetchpriority="high"></div>{% endif %}
     <div class="container"><div class="pp-article-body bl-cuerpo">{{ A.body_html|replace("__ASSETS__/", asset("img/"))|replace('href="__RAIZ__/', 'href="' ~ url("/"))|safe }}</div>
       {% if A.tags %}<p class="bl-tags">{% for t in A.tags %}<span>#{{ t }}</span>{% endfor %}</p>{% endif %}</div>
+      {% if A.older or A.newer %}
+      <nav class="bl-navegacion" aria-label="Más artículos">
+        {% if A.older %}<a class="bl-nav-ant" href="{{ url('/' ~ A.older.path) }}" rel="prev"><small>← Anterior</small><span>{{ A.older.title }}</span></a>{% endif %}
+        {% if A.newer %}<a class="bl-nav-sig" href="{{ url('/' ~ A.newer.path) }}" rel="next"><small>Siguiente →</small><span>{{ A.newer.title }}</span></a>{% endif %}
+      </nav>
+      {% endif %}
   </article>
   {% if A.related %}
   <section class="section bl-relacionados"><div class="container">

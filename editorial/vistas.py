@@ -1,7 +1,7 @@
 """«Contenidos → Blog y noticias»: un solo administrador para los blogs de GENEOS, GERP, GEAGRO y GEMA.
 
 Arriba se elige el sitio (queda guardado en la sesión, igual que «Trabajar en», y lo usan Categorías y Autores).
-Debajo: encabezado del blog con su estado, «Tendencias e ideas de esta semana» y «Mis artículos».
+Debajo: encabezado del blog con su estado, «Actualidad e ideas para publicar» y «Mis artículos».
 Los artículos son páginas de Wagtail: edición, vista previa, historial, aprobación y permisos son los del editor de páginas.
 """
 from datetime import date
@@ -9,7 +9,9 @@ from datetime import date
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Max
+from datetime import timedelta
+
+from django.db.models import Max, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -23,7 +25,7 @@ from sitios.permisos import puede, sitios_permitidos
 from . import ia
 from .estado import estado_blog, estado_editorial, estado_web, ultimo_despliegue
 from .ideas import ErrorImportacion, actualizar_ideas, blog_general, crear_borrador, importar_trends, url_trends
-from .models import ConfigBlog, IdeaEditorial, ImportacionTendencias, config_actual
+from .models import TIPOS_FUENTE, ConfigBlog, IdeaEditorial, ImportacionTendencias, config_actual
 
 DESCRIPCION = {"geneos": "Cooperativismo, software libre y tecnología", "gerp": "Gestión empresarial y administración",
                "geagro": "Agricultura, cereales y viñedos", "gema": "Talleres de matafuegos y seguridad"}
@@ -93,13 +95,49 @@ def _filas(sitio, user, f, blog_clave, ultimo):
     return filas
 
 
-def _ideas(sitio, linea_id, todas=False):
-    qs = IdeaEditorial.objects.filter(sitio=sitio, estado__in=("sugerida", "guardada")).select_related("linea")
+ORDEN_TIPO = {"noticia": 0, "evento": 1, "tendencia": 2, "idea": 3}
+PERIODOS = [("7", "Últimos 7 días"), ("30", "Últimos 30 días")]
+CONTENIDOS = [("", "Todo"), ("noticia", "Noticias"), ("evento", "Eventos"), ("tendencia", "Tendencias de búsqueda"), ("idea", "Ideas editoriales")]
+
+
+def _filtros_actualidad(request):
+    f = {"periodo": request.GET.get("periodo") if request.GET.get("periodo") in ("7", "30") else "7",
+         "contenido": request.GET.get("contenido") if request.GET.get("contenido") in dict(CONTENIDOS) else "",
+         "fuente": request.GET.get("fuente") if request.GET.get("fuente") in dict(TIPOS_FUENTE) else ""}
+    return f
+
+
+def _ideas(sitio, linea_id, f=None, descartadas=False):
+    """Actualidad e ideas del sitio. Noticias, eventos y tendencias: solo del período elegido (por fecha original);
+    las ideas editoriales y lo guardado se mantienen hasta usarlas o descartarlas."""
+    f = f or {"periodo": "7", "contenido": "", "fuente": ""}
+    estados = ("descartada",) if descartadas else ("sugerida", "guardada")
+    qs = IdeaEditorial.objects.filter(sitio=sitio, estado__in=estados).select_related("linea")
     if linea_id:
-        qs = qs.filter(linea_id__in=[linea_id]) | qs.filter(linea__isnull=True)
-    orden = {"verificada": 0, "sectorial": 1, "ia": 2, "interna": 3}
-    ideas = sorted(qs, key=lambda i: (i.estado != "guardada", orden.get(i.tipo, 9), -i.consultado.toordinal(), -i.pk))
-    return ideas
+        qs = qs.filter(Q(linea_id=linea_id) | Q(linea__isnull=True))
+    if f["contenido"]:
+        qs = qs.filter(tipo=f["contenido"])
+    if f["fuente"]:
+        qs = qs.filter(fuente_tipo=f["fuente"])
+    desde = timezone.localdate() - timedelta(days=int(f["periodo"]))
+    res = []
+    for i in qs:
+        if i.tipo != "idea" and i.estado != "guardada" and i.fecha < desde:
+            continue  # noticia vieja: fuera del período
+        if i.tipo == "evento" and i.evento_fecha and i.evento_fecha < timezone.localdate():
+            continue  # evento que ya pasó
+        res.append(i)
+    return sorted(res, key=lambda i: (i.estado != "guardada", ORDEN_TIPO.get(i.tipo, 9), -i.fecha.toordinal(), -i.pk))
+
+
+def _ctx_actualidad(sitio, linea, f, ideas, limite=None):
+    ult_idea = IdeaEditorial.objects.filter(sitio=sitio).aggregate(m=Max("creada"))["m"]
+    ult_imp = ImportacionTendencias.objects.filter(sitio=sitio).first()
+    fechas = [d for d in (ult_idea, ult_imp.creado if ult_imp else None) if d]
+    return {"ideas": ideas[:limite] if limite else ideas, "ideas_total": len(ideas), "ideas_mas": max(0, len(ideas) - limite) if limite else 0,
+            "fa": f, "periodos": PERIODOS, "contenidos": CONTENIDOS, "fuentes_tipo": TIPOS_FUENTE,
+            "ultima_actualizacion": max(fechas) if fechas else None, "ult_imp": ult_imp, "ia": ia.estado(),
+            "trends_url": url_trends((linea.nombre if linea else "") or sitio.nombre)}
 
 
 def blog(request, clave=None):
@@ -118,22 +156,18 @@ def blog(request, clave=None):
     filas = _filas(sitio, request.user, f, bc, ultimo)
     total = len(_filas(sitio, request.user, {"q": "", "categoria": "", "linea": "", "estado": "", "web": ""}, bc, ultimo)) if any(f.values()) else len(filas)
     pag = Paginator(filas, 10).get_page(request.GET.get("p") or 1)
-    ideas = _ideas(sitio, linea.pk if linea else None)
-    ult_idea = IdeaEditorial.objects.filter(sitio=sitio).aggregate(m=Max("creada"))["m"]
-    ult_imp = ImportacionTendencias.objects.filter(sitio=sitio).first()
+    fa = _filtros_actualidad(request)
+    ideas = _ideas(sitio, linea.pk if linea else None, fa)
     productos = [{"s": s, "marca": s.marca, "desc": DESCRIPCION.get(s.clave, ""), "actual": s.pk == sitio.pk} for s in sitios]
     ctx = {
         "page_title": "Blog y noticias", "productos": productos, "sitio": sitio, "marca": sitio.marca, "config": config,
         "blog_estado": (bc, bt, bd), "lineas": lineas, "linea": linea, "f": f, "pag": pag, "total": total,
         "categorias": CategoriaBlog.objects.filter(sitio=sitio).order_by("nombre"),
-        "ideas": ideas[:4], "ideas_mas": max(0, len(ideas) - 4), "ideas_todas": ideas,
-        "ultima_actualizacion": max([d for d in (ult_idea, ult_imp.creado if ult_imp else None) if d] or [None]) if (ult_idea or ult_imp) else None,
-        "ult_imp": ult_imp, "ia": ia.estado(), "icono_linea": ICONO_LINEA,
+        **_ctx_actualidad(sitio, linea, fa, ideas, limite=6), "icono_linea": ICONO_LINEA,
         "puede_editar": puede(request.user, sitio.pk) or any(puede(request.user, sitio.pk, l.pk) for l in lineas),
         "puede_configurar": puede(request.user, sitio.pk),
         "titulo_blog": (config.titulo if config else f"Blog de {sitio.nombre}"),
         "descripcion_blog": (config.descripcion if config and config.descripcion else DESCRIPCION.get(sitio.clave, "")),
-        "trends_url": url_trends((linea.nombre if linea else "") or sitio.nombre),
         "filtros_activos": any(f[k] for k in ("q", "categoria", "estado", "web")),
         "estados_editoriales": [("borrador", "Borrador"), ("revision", "En revisión"), ("aprobado", "Aprobado")],
         "estados_web": [("web", "Publicado"), ("falta", "Falta publicar"), ("bloqueado", "Blog sin activar"), ("no", "No está en la web")],
@@ -149,7 +183,11 @@ def _sitio_post(request, clave, nivel=1):
     return sitio
 
 
-def _volver(sitio, linea=""):
+def _volver(sitio, linea="", request=None):
+    """Vuelve a donde estaba (portada del blog o «Ver todas»), con sus filtros."""
+    destino = request.POST.get("next", "") if request is not None else ""
+    if destino.startswith(reverse("blog:index")) and "//" not in destino:
+        return redirect(destino)
     return redirect(reverse("blog:index") + f"?sitio={sitio.clave}" + (f"&linea={linea}" if linea else ""))
 
 
@@ -165,8 +203,8 @@ def actualizar(request, clave):
             messages.warning(request, str(e))
         except Exception:  # noqa: BLE001
             messages.warning(request, "El proveedor de IA no respondió. Se actualizaron solo las ideas editoriales.")
-    messages.success(request, f"Ideas actualizadas: {n} nueva(s)." if n else "No hay ideas nuevas: los temas de tus contenidos ya tienen artículo o idea.")
-    return _volver(sitio, request.POST.get("linea", ""))
+    messages.success(request, f"Actualidad e ideas: {n} nueva(s)." if n else "No hay novedades: los temas de tus contenidos ya tienen artículo o idea.")
+    return _volver(sitio, request.POST.get("linea", ""), request)
 
 
 @require_POST
@@ -187,8 +225,9 @@ def idea_accion(request, pk, accion):
         raise PermissionDenied
     idea.estado = nuevos[accion]
     idea.save(update_fields=["estado", "actualizada"])
-    messages.success(request, {"guardar": "Idea guardada.", "descartar": "Idea descartada: no vuelve a sugerirse.", "restaurar": "Idea restaurada."}[accion])
-    return _volver(idea.sitio, request.POST.get("linea", ""))
+    messages.success(request, {"guardar": "Guardada: queda arriba hasta que la uses o la descartes.",
+                               "descartar": "Descartada: no vuelve a sugerirse.", "restaurar": "Restaurada."}[accion])
+    return _volver(idea.sitio, request.POST.get("linea", ""), request)
 
 
 def idea_detalle(request, pk):
@@ -245,3 +284,17 @@ def configurar(request, clave):
         c.save()
         c.save_revision(user=request.user, log_action=True)
     return redirect("wagtailsnippets_editorial_configblog:edit", c.pk)
+
+
+def actualidad(request, clave):
+    """«Ver todas»: toda la actualidad e ideas del sitio, con los mismos filtros (y las descartadas, para recuperarlas)."""
+    sitio = _sitio_post(request, clave)
+    lineas = list(LineaProducto.objects.filter(sitio=sitio).order_by("orden"))
+    linea = next((l for l in lineas if str(l.pk) == request.GET.get("linea", "")), None)
+    fa = _filtros_actualidad(request)
+    descartadas = request.GET.get("ver") == "descartadas"
+    ideas = _ideas(sitio, linea.pk if linea else None, fa, descartadas=descartadas)
+    ctx = {"page_title": f"Actualidad e ideas · {sitio.nombre}", "sitio": sitio, "marca": sitio.marca, "lineas": lineas, "linea": linea,
+           "descartadas": descartadas, "config": config_actual(sitio), "pagina_completa": True,
+           **_ctx_actualidad(sitio, linea, fa, ideas)}
+    return render(request, "editorial/actualidad.html", ctx)

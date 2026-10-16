@@ -106,7 +106,9 @@ def cuerpo_html(stream, files):
     out = []
     for b in stream:
         t, v = b.block_type, b.value
-        if t == "titulo":
+        if t in ("h2", "h3"):
+            out.append(f"<{t}>{escape(v)}</{t}>")
+        elif t == "titulo":  # formato anterior
             out.append(f"<{v['nivel']}>{escape(v['texto'])}</{v['nivel']}>")
         elif t == "parrafo":
             out.append(html_semantico(expand_db_html(v.source)))
@@ -293,7 +295,9 @@ def datos_blog(fuente, files):
                         "next": f"/{path}pagina/{num + 1}/" if num < len(grupos) else None,
                         "seo_title": seo_title if num == 1 else f"{seo_title} · página {num}",
                         "description": intro or f"Artículos de {sitio.nombre}",
-                        "robots": "noindex, follow" if (robots_base or num > 1) else None,
+                        # Las páginas 2, 3… se indexan con su propio canonical (recomendación de Google para la paginación):
+                        # así los enlaces a los artículos más viejos no quedan detrás de un noindex. No van al sitemap.
+                        "robots": "noindex, follow" if robots_base else None, "sitemap": num == 1,
                         "lastmod": max([_fecha(a.last_published_at) or a.fecha.isoformat() for a in posts] or [_fecha(config.last_published_at) or date.today().isoformat()])})
         return res
 
@@ -315,7 +319,9 @@ def datos_blog(fuente, files):
         idx += listado(ruta_linea(l), titulo, intro, propios, f, f"{titulo} | {sitio.nombre}", robots_base=(i and i.live and not i.indexar))
 
     posts = []
-    for a in articulos:
+    for n, a in enumerate(articulos):
+        nuevo = articulos[n - 1] if n > 0 else None      # artículo siguiente (más nuevo)
+        viejo = articulos[n + 1] if n + 1 < len(articulos) else None  # artículo anterior (más viejo)
         d = tarjeta(a)
         rel = []
         if config.mostrar_relacionados:
@@ -337,6 +343,8 @@ def datos_blog(fuente, files):
                   "related": [tarjeta(b) for b in rel],
                   "seo_title": a.seo_title or f"{a.title} | {sitio.nombre}", "description": a.search_description or a.resumen,
                   "robots": None if a.indexar else "noindex, follow", "canonical": a.canonical or None,
+                  "newer": {"path": f"{ruta}{nuevo.slug}/", "title": nuevo.title} if nuevo else None,
+                  "older": {"path": f"{ruta}{viejo.slug}/", "title": viejo.title} if viejo else None,
                   "og": og_img, "modified": _fecha(a.last_published_at) or a.fecha.isoformat(), "lastmod": _fecha(a.last_published_at) or a.fecha.isoformat()})
         schema = {"@context": "https://schema.org", "@type": "BlogPosting", "headline": a.title[:110], "description": a.resumen,
                   "datePublished": a.fecha.isoformat(), "dateModified": d["modified"], "url": url, "mainEntityOfPage": url, "inLanguage": "es-AR",

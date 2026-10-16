@@ -1,0 +1,48 @@
+{% load wagtailadmin_tags %}
+{# «Actualidad e ideas para publicar»: compacta (6 tarjetas) en la portada del blog; completa en «Ver todas». #}
+<section class="gu-card gwa-bl-panel gwa-acs" aria-labelledby="bl-actualidad">
+  <div class="gwa-bl-ptit">
+    {% icon name="newspaper" classname="gu-icon gwa-bl-ptit-ico" %}
+    <div>
+      <h3 id="bl-actualidad">Actualidad e ideas para publicar <span class="gwa-bl-geo">Argentina</span></h3>
+      <p>Noticias, eventos y tendencias del sector de {{ sitio.nombre }}{% if linea %} {{ linea.nombre }}{% endif %}, con artículos que podríamos escribir.</p>
+    </div>
+    <div class="gwa-bl-ptit-acc">
+      <span class="gwa-bl-upd">Actualizado: {% if ultima_actualizacion %}{{ ultima_actualizacion|date:"d/m/Y H:i" }}{% else %}nunca{% endif %}</span>
+      <form method="post" action="{% url 'blog:actualizar' sitio.clave %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="gu-btn gu-btn-outline gu-btn-sm" type="submit" data-actualizar>{% icon name="refresh-cw" classname="gu-icon" %}Actualizar ahora</button></form>
+      <span class="gu-btn-dropdown">
+        <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" data-gu-dropdown="ac-mas" aria-expanded="false" aria-haspopup="true" aria-label="Más opciones">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
+        <span class="gu-btn-dropdown-menu" id="ac-mas" hidden>
+          <a class="gu-btn-dropdown-item" href="{{ trends_url }}" target="_blank" rel="noopener">{% icon name="link-external" classname="gu-icon" %}Investigar en Google Trends</a>
+          <a class="gu-btn-dropdown-item" href="{% url 'blog:importar' sitio.clave %}">{% icon name="file-up" classname="gu-icon" %}Importar archivo de Google Trends</a>
+          <a class="gu-btn-dropdown-item" href="{% url 'blog:actualidad' sitio.clave %}?ver=descartadas">{% icon name="cross" classname="gu-icon" %}Ver descartadas</a>
+        </span>
+      </span>
+    </div>
+  </div>
+  <form class="gwa-ac-filtros" method="get" action="{% if pagina_completa %}{% url 'blog:actualidad' sitio.clave %}{% endif %}">
+    {% if not pagina_completa %}<input type="hidden" name="sitio" value="{{ sitio.clave }}">{% endif %}
+    {% if linea %}<input type="hidden" name="linea" value="{{ linea.pk }}">{% endif %}
+    {% if descartadas %}<input type="hidden" name="ver" value="descartadas">{% endif %}
+    <label><span class="w-sr-only">Período</span><select name="periodo" data-auto>{% for k, t in periodos %}<option value="{{ k }}"{% if fa.periodo == k %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+    <label><span class="w-sr-only">Contenido</span><select name="contenido" data-auto>{% for k, t in contenidos %}<option value="{{ k }}"{% if fa.contenido == k %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+    <label><span class="w-sr-only">Tipo de fuente</span><select name="fuente" data-auto><option value="">Todas las fuentes</option>{% for k, t in fuentes_tipo %}<option value="{{ k }}"{% if fa.fuente == k %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+    <noscript><button class="gu-btn gu-btn-outline gu-btn-sm" type="submit">Filtrar</button></noscript>
+    <span class="gwa-ac-leyenda" title="Qué significa cada tipo">
+      <span class="is-noticia">Noticia</span><span class="is-evento">Evento</span><span class="is-tendencia">Tendencia de búsqueda</span><span class="is-idea">Idea editorial</span>
+    </span>
+  </form>
+  {% if ideas %}
+  <div class="gwa-ac-grid{% if pagina_completa %} is-completa{% endif %}">
+    {% for i in ideas %}{% include "editorial/_tarjeta_actualidad.html" %}{% endfor %}
+  </div>
+  {% if ideas_mas %}<p class="gwa-ac-mas"><a class="gu-btn gu-btn-ghost gu-btn-sm" href="{% url 'blog:actualidad' sitio.clave %}?{% if linea %}linea={{ linea.pk }}&{% endif %}periodo={{ fa.periodo }}&contenido={{ fa.contenido }}&fuente={{ fa.fuente }}">Ver todas ({{ ideas_total }}){% icon name="arrow-right" classname="gu-icon" %}</a></p>{% endif %}
+  {% else %}
+  <div class="gwa-bl-vacio gwa-ac-vacio">
+    <b>{% if descartadas %}No hay descartadas.{% else %}No hay novedades para mostrar{% if fa.contenido or fa.fuente %} con estos filtros{% endif %}.{% endif %}</b>
+    {% if not descartadas %}<p>Tocá «Actualizar ahora» para sumar ideas a partir de las funcionalidades, sectores y preguntas aprobadas de {{ sitio.nombre }}.
+      Las noticias y eventos de fuentes públicas se suman con la lectura automática de fuentes (etapa siguiente). Sin datos reales no se muestran tendencias.</p>{% endif %}
+  </div>
+  {% endif %}
+</section>

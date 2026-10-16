@@ -141,6 +141,7 @@ class BlogViewSet(ViewSet):
             path("<slug:clave>/importar/", vistas.importar, name="importar"),
             path("<slug:clave>/nuevo/", vistas.nuevo, name="nuevo"),
             path("<slug:clave>/configurar/", vistas.configurar, name="configurar"),
+            path("<slug:clave>/actualidad/", vistas.actualidad, name="actualidad"),
             path("idea/<int:pk>/", vistas.idea_detalle, name="idea"),
             path("idea/<int:pk>/<slug:accion>/", vistas.idea_accion, name="idea_accion"),
         ]

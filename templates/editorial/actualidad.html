@@ -1,0 +1,23 @@
+{% extends "wagtailadmin/base.html" %}
+{% load static wagtailadmin_tags %}
+{% block titletag %}Actualidad e ideas · {{ sitio.nombre }}{% endblock %}
+{% block extra_js %}{{ block.super }}<script src="{% static 'gwa/blog.js' %}" defer></script>{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="newspaper" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><a href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Blog de {{ sitio.nombre }}</a>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">{% if descartadas %}Descartadas{% else %}Actualidad e ideas{% endif %}</span></nav>
+        <h1>{% if descartadas %}Actualidad e ideas descartadas{% else %}Actualidad e ideas para publicar{% endif %}</h1>
+      </div>
+    </div>
+  </div>
+  {% if lineas %}
+  <nav class="gwa-bl-lineas" aria-label="Línea de producto">
+    <a href="?{% if descartadas %}ver=descartadas{% endif %}"{% if not linea %} aria-current="page"{% endif %}>Todas</a>
+    {% for l in lineas %}<a href="?linea={{ l.pk }}{% if descartadas %}&ver=descartadas{% endif %}"{% if linea.pk == l.pk %} aria-current="page"{% endif %}>{{ l.nombre }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+  {% include "editorial/_actualidad.html" %}
+</div>
+{% endblock %}

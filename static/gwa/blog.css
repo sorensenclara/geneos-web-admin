@@ -171,3 +171,48 @@
 .gwa-bl-form label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--text-secondary); }
 .gwa-bl-form .gwa-bl-head-acc { grid-column: 1 / -1; justify-content: flex-end; }
 @container blog (max-width: 600px) { .gwa-bl-form { grid-template-columns: 1fr; } }
+
+/* ---------- Editor del artículo: ayudas y bloques ---------- */
+.gwa-volver-blog { margin: 0 0 6px; }
+.gwa-volver-blog a { color: var(--brand-green-ink); font-weight: 600; text-decoration: none; }
+.gwa-ayuda-bloques { margin: 0; color: var(--text-muted); font-size: .86rem; max-width: 70ch; }
+.gwa-estado-acc { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; }
+.gwa-bloque-h2 input { font-size: 1.35rem !important; font-weight: 700 !important; }
+.gwa-bloque-h3 input { font-size: 1.12rem !important; font-weight: 600 !important; }
+
+/* ---------- Actualidad e ideas para publicar (tarjetas compactas) ---------- */
+.gwa-ac-filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 12px; }
+.gwa-ac-filtros select { height: 32px; padding: 0 28px 0 10px !important; font-size: .82rem !important; min-width: 0; width: auto; }
+.gwa-ac-leyenda { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; font-size: .74rem; color: var(--text-muted); }
+.gwa-ac-leyenda span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; background: var(--ac); }
+.gwa-ac-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.is-noticia { --ac: #4f9dff; } .is-evento { --ac: #e8a33d; } .is-tendencia { --ac: #3fbf6b; } .is-idea { --ac: #a48cf5; }
+.gwa-ac { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--ac);
+  border-radius: var(--radius-sm); background: var(--surface-2); }
+.gwa-ac.is-guardada { background: color-mix(in srgb, #f6c56f 6%, var(--surface-2)); }
+.gwa-ac-top { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.gwa-ac-ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; flex: none; color: var(--ac);
+  background: color-mix(in srgb, var(--ac) 14%, transparent); }
+.gwa-ac-ico .gu-icon { width: 17px; height: 17px; }
+.gwa-ac-img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex: none; }
+.gwa-ac-meta { min-width: 0; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
+.gwa-ac-tipo { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ac); }
+.gwa-ac-linea { font-size: .68rem; font-weight: 700; color: var(--brand-green-ink); border: 1px solid color-mix(in srgb, var(--brand-green-ink) 40%, transparent); border-radius: 5px; padding: 0 6px; }
+.gwa-ac-guardada { color: #f6c56f; display: inline-flex; } .gwa-ac-guardada .gu-icon { width: 13px; height: 13px; }
+.gwa-ac-fuente { flex-basis: 100%; margin: 0; font-size: .74rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gwa-ac-tit { margin: 0; font-size: .95rem; line-height: 1.3; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gwa-ac p.gwa-ac-res, .gwa-ac p.gwa-ac-por, .gwa-ac p.gwa-ac-prop { margin: 0; font-size: .8rem; line-height: 1.4; color: var(--text-secondary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gwa-ac p.gwa-ac-prop { color: var(--text); }
+.gwa-ac-por b, .gwa-ac-prop b { color: var(--text-muted); font-weight: 600; }
+.gwa-ac-acc { display: flex; gap: 2px; align-items: center; margin-top: auto; padding-top: 4px; }
+.gwa-ac-acc form { margin: 0; }
+.gwa-ac-acc > form:first-child { margin-right: auto; }
+.gwa-ac-mas { margin: 8px 0 0; text-align: right; }
+.gwa-ac-vacio { padding: 16px; }
+.gwa-ac-grid.is-completa .gwa-ac-tit, .gwa-ac-grid.is-completa p.gwa-ac-res, .gwa-ac-grid.is-completa p.gwa-ac-por, .gwa-ac-grid.is-completa p.gwa-ac-prop { -webkit-line-clamp: unset; display: block; }
+@container blog (max-width: 1000px) { .gwa-ac-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container blog (max-width: 600px) { .gwa-ac-grid { grid-template-columns: 1fr; } .gwa-ac-leyenda { display: none; } .gwa-ac-filtros label { flex: 1 1 30%; } .gwa-ac-filtros select { width: 100%; } }
+
+.gwa-bl-filtros select, .gwa-bl-buscar input { font-size: .88rem !important; }
+.gwa-bl-filtros select { height: 36px; }

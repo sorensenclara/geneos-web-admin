@@ -70,6 +70,9 @@ def validar(sitio, carpeta, archivos):
             errores.append(f"/{ruta}: tiene que haber un solo título principal (H1)")
         if "<title></title>" in html:
             errores.append(f"/{ruta}: falta el título de la página")
+    for a in pd.get("blog", {}).get("posts", []):
+        if "[Completar" in a.get("body_html", "") or "[Completar" in a.get("summary", ""):
+            errores.append(f"/{a['path']}: el artículo todavía tiene consignas «[Completar…]» del borrador")
     home = (carpeta / "index.html").read_text() if (carpeta / "index.html").exists() else ""
     precios = []
     if sitio.clave == "gerp":

@@ -75,3 +75,10 @@
 .gw-blog a.bl-destacado, .gw-blog a.pp-blog-card { text-decoration: none; color: inherit; }
 .gw-blog .bl-destacado h2 { color: var(--pp-heading); }
 .gw-blog .bl-art-head, .gw-blog .bl-cuerpo, .gw-blog .bl-tags { max-width: 760px; }
+/* Navegación entre artículos */
+.bl-navegacion { max-width: 760px; margin: 36px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.bl-navegacion a { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--pp-border); border-radius: var(--radius-sm, 10px); color: var(--pp-heading); text-decoration: none; }
+.bl-navegacion a:hover { border-color: var(--pp-accent); }
+.bl-navegacion small { color: var(--pp-accent); font-weight: 700; font-size: .8rem; }
+.bl-nav-sig { grid-column: 2; text-align: right; }
+@media (max-width: 760px) { .bl-navegacion { grid-template-columns: 1fr; } .bl-nav-sig { grid-column: 1; } }

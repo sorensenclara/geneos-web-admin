@@ -38,11 +38,22 @@ def _marcar(items, mejor):
             it["has_active"] = any(c["active"] for c in it["children"])
 
 
+def _ruta_de_menu(ruta):
+    """Los artículos se editan con el editor de páginas de Wagtail, pero en el menú pertenecen a «Blog y noticias»."""
+    import re
+    m = re.match(r"^/admin/pages/(\d+)/", ruta)
+    es_articulo = ruta.startswith("/admin/pages/add/contenidos/articulopage/")
+    if m and not es_articulo:
+        from wagtail.models import Page
+        es_articulo = Page.objects.filter(pk=m.group(1), content_type__model="articulopage").exists()
+    return reverse("blog:index") if es_articulo else ruta
+
+
 @register.simple_tag(takes_context=True)
 def gwa_menu(context):
     """Menú principal y menú de ayuda, con el ítem activo marcado (la coincidencia de URL más larga)."""
     request = context["request"]
-    ruta = request.path
+    ruta = _ruta_de_menu(request.path)
     items = [_item(c, ruta) for c in admin_menu.render_component(request)]
     inicio = {"name": "inicio", "label": "Inicio", "icon": "home", "url": reverse("wagtailadmin_home"), "attrs": {}}
     inicio["peso"] = _activo(inicio["url"], ruta)

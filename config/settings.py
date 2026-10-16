@@ -102,6 +102,9 @@ WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "avif", "svg"]
 WAGTAILDOCS_EXTENSIONS = ["pdf", "zip", "docx", "xlsx", "pptx", "svg", "png", "jpg"]
 WAGTAILADMIN_RICH_TEXT_EDITORS = {"default": {"WIDGET": "wagtail.admin.rich_text.DraftailRichTextArea", "OPTIONS": {"features": ["bold", "italic", "link", "ol", "ul"]}}}
 WAGTAIL_ENABLE_UPDATE_CHECK = False
+# Fechas como se escriben en Argentina en todos los formularios del administrador
+WAGTAIL_DATE_FORMAT = "%d/%m/%Y"
+WAGTAIL_DATETIME_FORMAT = "%d/%m/%Y %H:%M"
 WAGTAILADMIN_COMMENTS_ENABLED = True
 
 # Motor de sitios y publicación

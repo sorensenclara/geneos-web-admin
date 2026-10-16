@@ -22,6 +22,7 @@
     c.innerHTML = `Título: <span class="${titulo.length > 60 ? "is-largo" : ""}">${titulo.length} / 60</span> · Descripción: <span class="${desc.length > 160 ? "is-largo" : ""}">${desc.length} / 160</span>`;
   }
   document.addEventListener("input", (e) => { if (["id_seo_title", "id_title", "id_search_description", "id_resumen", "id_slug"].includes(e.target.id)) actualizar(); });
-  actualizar();
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", actualizar) : setTimeout(actualizar, 0);
+  setTimeout(actualizar, 300);
 })();
 </script>

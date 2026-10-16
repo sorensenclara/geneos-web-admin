@@ -198,7 +198,7 @@ def export(key, P):
     home_nav = [(it[0], raiz(it[1])) + ((tuple((a, raiz(b)) for a, b in it[2]),) if len(it) > 2 else ()) for it in pages[0]["nav"]]
     for b in BLOG.get("indexes", []):
         pages.append(dict(tpl="blog-index.html", out=b["path"], crumb=b["title"], title=b["seo_title"], description=b["description"],
-                          og=P["pages"][0]["og"], nav=home_nav, robots=b.get("robots"), blog=b))
+                          og=P["pages"][0]["og"], nav=home_nav, robots=b.get("robots"), sitemap=b.get("sitemap", True), blog=b))
     for a in BLOG.get("posts", []):
         pages.append(dict(tpl="blog-post.html", out=a["path"], crumb=a["title"], title=a["seo_title"], description=a["description"],
                           og=P["pages"][0]["og"], og_file=(a.get("og") or {}).get("src"), og_alt=(a.get("og") or {}).get("alt"),
@@ -452,7 +452,7 @@ def export(key, P):
         lastmod = PD.get("lastmod") or {}
         defecto = PD.get("lastmod_default") or date.today().isoformat()
         urls = "".join(f'  <url><loc>{P["domain"]}/{pg["out"]}</loc><lastmod>{lastmod.get(pg["out"], defecto)}</lastmod></url>\n'
-                       for pg in P["pages"] if "noindex" not in (pg.get("robots") or "") and not pg.get("canonical"))
+                       for pg in P["pages"] if "noindex" not in (pg.get("robots") or "") and not pg.get("canonical") and pg.get("sitemap", True))
         (out / "sitemap.xml").write_text(
             f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}</urlset>\n')
     if not ARGS.no_project_files:

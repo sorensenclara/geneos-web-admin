@@ -116,12 +116,15 @@ def ruta_blog(sitio):
 
 
 # ------------------------------------------------------------------------------------------------ Tendencias e ideas
+# Qué es cada tarjeta de «Actualidad e ideas para publicar». Nunca se presenta una cosa como otra:
 TIPOS_IDEA = [
-    ("verificada", "Tendencia verificada"),   # dato externo importado (Google Trends CSV, Search Console, API autorizada)
-    ("sectorial", "Fuente sectorial"),        # informe o publicación sectorial con enlace
-    ("interna", "Idea editorial"),            # surge de nuestros contenidos aprobados; sin datos de búsqueda
-    ("ia", "Idea de IA"),                     # generada por un proveedor de IA; sin datos de búsqueda
+    ("noticia", "Noticia"),                   # publicada por una fuente identificable, con enlace y fecha
+    ("evento", "Evento"),                     # actividad real con fecha, lugar y organizador verificables
+    ("tendencia", "Tendencia de búsqueda"),   # respaldada por datos reales (Google Trends: RSS oficial o archivo exportado)
+    ("idea", "Idea editorial"),               # sugerencia propia: de noticias, funcionalidades, sectores, preguntas frecuentes o IA
 ]
+TIPOS_FUENTE = [("medio", "Medio periodístico"), ("oficial", "Organismo oficial"), ("evento", "Organizador de eventos"),
+                ("red_social", "Red social"), ("trends", "Google Trends"), ("interno", "Contenidos propios"), ("ia", "Inteligencia artificial")]
 ESTADOS_IDEA = [("sugerida", "Sugerida"), ("guardada", "Guardada"), ("descartada", "Descartada"), ("usada", "Con borrador")]
 
 
@@ -146,21 +149,35 @@ class ImportacionTendencias(models.Model):
 
 
 class IdeaEditorial(models.Model):
+    """Tarjeta de «Actualidad e ideas para publicar»: una noticia, un evento, una tendencia de búsqueda o una idea editorial,
+    con la propuesta de artículo que podríamos escribir. Se guarda la fecha original y la de consulta; nunca se copia el contenido."""
     sitio = models.ForeignKey(SitioWeb, on_delete=models.CASCADE, related_name="ideas")
     linea = models.ForeignKey(LineaProducto, null=True, blank=True, on_delete=models.SET_NULL)
     tipo = models.CharField(max_length=12, choices=TIPOS_IDEA)
-    titulo = models.CharField("Tema o título sugerido", max_length=160)
-    descripcion = models.TextField("Por qué conviene", blank=True)
+    fuente_tipo = models.CharField("Tipo de fuente", max_length=12, choices=TIPOS_FUENTE, default="interno")
+    titulo = models.CharField("Título de la noticia, evento o tema", max_length=200)
+    resumen = models.TextField("Resumen breve", blank=True)
+    descripcion = models.TextField("Por qué es relevante", blank=True)
+    propuesta = models.CharField("Artículo que podríamos escribir", max_length=200, blank=True)
     palabras_clave = models.CharField(max_length=250, blank=True)
     intencion = models.CharField("Intención de búsqueda", max_length=40, blank=True)
-    fuente = models.CharField(max_length=120)
-    fuente_url = models.URLField(blank=True, max_length=500)
+    fuente = models.CharField("Fuente original", max_length=120)
+    fuente_url = models.URLField(blank=True, max_length=600)
+    publicado = models.DateField("Fecha de publicación original", null=True, blank=True)
     dato = models.CharField("Dato de la fuente", max_length=60, blank=True,
-                            help_text="Valor tal como figura en la fuente importada (p. ej. «Aumento puntual» o «+250 %»). Nunca se calcula ni se estima.")
+                            help_text="Valor tal como figura en la fuente (p. ej. «Aumento puntual» o «+250 %»). Nunca se calcula ni se estima.")
     consultado = models.DateField("Fecha de consulta")
+    evento_fecha = models.DateField("Fecha del evento", null=True, blank=True)
+    evento_lugar = models.CharField("Lugar", max_length=120, blank=True)
+    organizador = models.CharField(max_length=120, blank=True)
+    imagen_url = models.URLField("Imagen", blank=True, max_length=600,
+                                 help_text="Solo si la fuente permite usarla (licencia libre o imagen propia). Por defecto no se muestran fotos de terceros.")
+    imagen_credito = models.CharField(max_length=160, blank=True)
+    generada_ia = models.BooleanField(default=False)
+    grupo = models.CharField(max_length=80, blank=True, help_text="Agrupa noticias sobre el mismo tema.")
     enlace_comercial = models.CharField("Página comercial relacionada", max_length=200, blank=True)
     estado = models.CharField(max_length=12, choices=ESTADOS_IDEA, default="sugerida")
-    clave = models.CharField(max_length=200, blank=True, help_text="Evita repetir la misma idea al actualizar.")
+    clave = models.CharField(max_length=200, blank=True, help_text="Evita repetir la misma noticia o idea al actualizar.")
     importacion = models.ForeignKey(ImportacionTendencias, null=True, blank=True, on_delete=models.CASCADE, related_name="ideas")
     articulo = models.ForeignKey("contenidos.ArticuloPage", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     creada = models.DateTimeField(auto_now_add=True)
@@ -168,15 +185,20 @@ class IdeaEditorial(models.Model):
 
     class Meta:
         ordering = ["-creada"]
-        verbose_name = "idea para publicar"
-        verbose_name_plural = "ideas para publicar"
+        verbose_name = "actualidad o idea para publicar"
+        verbose_name_plural = "actualidad e ideas para publicar"
 
     def __str__(self):
         return self.titulo
 
     @property
     def verificada(self):
-        return self.tipo in ("verificada", "sectorial")
+        """Noticias, eventos y tendencias vienen de una fuente externa identificable; las ideas no."""
+        return self.tipo in ("noticia", "evento", "tendencia")
+
+    @property
+    def fecha(self):
+        return self.publicado or self.consultado
 
 
 class ConsumoIA(models.Model):

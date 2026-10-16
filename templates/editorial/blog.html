@@ -54,66 +54,8 @@
   </nav>
   {% endif %}
 
-  {# ---------- Tendencias e ideas ---------- #}
-  <section class="gu-card gwa-bl-panel" aria-labelledby="bl-tendencias">
-    <div class="gwa-bl-ptit">
-      {% icon name="trending-up" classname="gu-icon gwa-bl-ptit-ico" %}
-      <div>
-        <h3 id="bl-tendencias">Tendencias e ideas de esta semana <span class="gwa-bl-geo">Argentina</span></h3>
-        <p>{% if config and config.temas %}{{ config.temas }}{% else %}{{ descripcion_blog }}{% endif %}</p>
-      </div>
-      <div class="gwa-bl-ptit-acc">
-        <span class="gwa-bl-upd">Última actualización: {% if ultima_actualizacion %}{{ ultima_actualizacion|date:"d/m/Y" }}{% else %}nunca{% endif %}</span>
-        <a class="gu-btn gu-btn-ghost" href="{% url 'blog:importar' sitio.clave %}">{% icon name="file-up" classname="gu-icon" %}Importar CSV de Trends</a>
-        <form method="post" action="{% url 'blog:actualizar' sitio.clave %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}">
-          <button class="gu-btn gu-btn-outline" type="submit" data-actualizar>{% icon name="refresh-cw" classname="gu-icon" %}Actualizar</button></form>
-      </div>
-    </div>
-    <p class="gwa-bl-fuentes">
-      <span><i class="gwa-bl-dot is-v"></i>Google Trends: {% if ult_imp %}CSV importado el {{ ult_imp.creado|date:"d/m/Y" }} (consulta del {{ ult_imp.consultado|date:"d/m/Y" }}){% else %}sin datos importados{% endif %}</span>
-      <span><i class="gwa-bl-dot is-ia"></i>IA: {{ ia.modo }}{% if ia.activa %} · US$ {{ ia.gasto|floatformat:2 }} de {{ ia.limite }} este mes{% endif %}</span>
-      <a href="{{ trends_url }}" target="_blank" rel="noopener">{% icon name="link-external" classname="gu-icon" %}Investigar en Google Trends</a>
-    </p>
-
-    {% if ideas %}
-    <div class="gwa-bl-ideas" data-ideas>
-      {% for i in ideas_todas %}
-      <article class="gwa-bl-idea is-{{ i.tipo }}"{% if forloop.counter > 4 %} hidden data-extra{% endif %}>
-        <div class="gwa-bl-idea-img">
-          {% if i.verificada %}<span class="gwa-bl-badge is-v">Tendencia verificada{% icon name="trending-up" classname="gu-icon" %}</span>
-          {% elif i.tipo == 'ia' %}<span class="gwa-bl-badge is-ia">Idea de IA{% icon name="sparkles" classname="gu-icon" %}</span>
-          {% else %}<span class="gwa-bl-badge is-int">Idea editorial{% icon name="lightbulb" classname="gu-icon" %}</span>{% endif %}
-          {% if i.linea.clave == 'cereales' %}{% icon name="f-wheat" classname="gu-icon gwa-bl-idea-motivo" %}{% elif i.linea.clave == 'vid' %}{% icon name="f-grape" classname="gu-icon gwa-bl-idea-motivo" %}{% elif i.verificada %}{% icon name="trending-up" classname="gu-icon gwa-bl-idea-motivo" %}{% else %}{% icon name="lightbulb" classname="gu-icon gwa-bl-idea-motivo" %}{% endif %}
-          {% if i.estado == 'guardada' %}<span class="gwa-bl-guardada" title="Guardada">{% icon name="bookmark" classname="gu-icon" %}</span>{% endif %}
-        </div>
-        <div class="gwa-bl-idea-txt">
-          {% if lineas %}<span class="gwa-bl-linea">{{ i.linea.nombre|default:"General" }}</span>{% endif %}
-          <h4>{{ i.titulo }}</h4>
-          <p>{{ i.descripcion }}</p>
-          <p class="gwa-bl-idea-fuente"><span>Fuente: {{ i.fuente }}</span><time datetime="{{ i.consultado|date:'Y-m-d' }}">{{ i.consultado|date:"d/m/Y" }}</time></p>
-        </div>
-        <div class="gwa-bl-idea-acc">
-          {% if i.fuente_url %}<a class="gu-btn gu-btn-outline gu-btn-sm" href="{{ i.fuente_url }}" target="_blank" rel="noopener">Ver fuente</a>
-          {% else %}<a class="gu-btn gu-btn-outline gu-btn-sm" href="{% url 'blog:idea' i.pk %}">Ver detalles</a>{% endif %}
-          <form method="post" action="{% url 'blog:idea_accion' i.pk 'borrador' %}">{% csrf_token %}<button class="gu-btn gu-btn-primary gu-btn-sm" type="submit">Crear borrador</button></form>
-        </div>
-        <div class="gwa-bl-idea-mas">
-          {% if i.estado != 'guardada' %}<form method="post" action="{% url 'blog:idea_accion' i.pk 'guardar' %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}"><button class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" type="submit" aria-label="Guardar «{{ i.titulo }}»" title="Guardar">{% icon name="bookmark" classname="gu-icon" %}</button></form>{% endif %}
-          <form method="post" action="{% url 'blog:idea_accion' i.pk 'descartar' %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}"><button class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" type="submit" aria-label="Descartar «{{ i.titulo }}»" title="Descartar">{% icon name="cross" classname="gu-icon" %}</button></form>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
-    {% if ideas_mas %}<button type="button" class="gu-btn gu-btn-ghost gwa-bl-vermas" data-ver-mas>Ver {{ ideas_mas }} idea{{ ideas_mas|pluralize }} más</button>{% endif %}
-    {% else %}
-    <div class="gwa-bl-vacio">
-      {% icon name="trending-up" classname="gu-icon" %}
-      <b>Todavía no hay tendencias ni ideas para {{ sitio.nombre }}{% if linea %} {{ linea.nombre }}{% endif %}</b>
-      <p>Importá un CSV de Google Trends o tocá «Actualizar» para sumar ideas a partir de las funcionalidades, sectores y preguntas aprobadas.
-         Sin datos externos no se muestran tendencias verificadas.</p>
-    </div>
-    {% endif %}
-  </section>
+  {# ---------- Actualidad e ideas para publicar ---------- #}
+  {% include "editorial/_actualidad.html" %}
 
   {# ---------- Mis artículos ---------- #}
   <section class="gu-card gwa-bl-panel" aria-labelledby="bl-articulos">

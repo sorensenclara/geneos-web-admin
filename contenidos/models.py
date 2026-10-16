@@ -12,7 +12,7 @@ from modelcluster.models import ClusterableModel
 from taggit.models import TaggedItemBase
 from wagtail import blocks
 from wagtail.admin.forms import WagtailAdminModelForm, WagtailAdminPageForm
-from wagtail.admin.panels import (FieldPanel, FieldRowPanel, HelpPanel, InlinePanel, MultiFieldPanel, ObjectList,
+from wagtail.admin.panels import (FieldPanel, FieldRowPanel, HelpPanel, InlinePanel, MultiFieldPanel, ObjectList, TitleFieldPanel,
                                   TabbedInterface)
 from wagtail.contrib.table_block.blocks import TableBlock
 from wagtail.fields import RichTextField, StreamField
@@ -28,6 +28,7 @@ from .iconos_funcionalidad import ICONOS as ICONOS_FUNCIONALIDAD
 SECCIONES = [("sectores", "Sectores"), ("comparar", "Comparador de planes"), ("clientes", "Logos de clientes"),
              ("testimonios", "Testimonios"), ("faq", "Preguntas frecuentes")]
 RICH_BASICO = ["bold", "italic", "link", "ol", "ul"]
+RICH_ARTICULO = ["h2", "h3", "bold", "italic", "link", "ol", "ul", "blockquote"]
 
 
 def site_de_pagina(page):
@@ -258,6 +259,27 @@ class ArticuloForm(WagtailAdminPageForm):
             self.fields["relacionados"].queryset = qs
 
 
+class VolverAlBlogPanel(HelpPanel):
+    """Arriba del editor: vuelta a «Blog y noticias» del sitio y cómo agregar contenido."""
+
+    class BoundPanel(HelpPanel.BoundPanel):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            from django.urls import reverse
+            from django.utils.html import format_html
+            page = self.instance if self.instance.pk else None
+            sitio = sitio_de_pagina(page) if page else None
+            if sitio is None:
+                parent = getattr(self.form, "parent_page", None)
+                sitio = sitio_de_pagina(parent) if parent is not None else None
+            url = reverse("blog:index") + (f"?sitio={sitio.clave}" if sitio else "")
+            self.content = format_html(
+                '<p class="gwa-volver-blog"><a href="{}">← Volver al Blog de {}</a></p>'
+                '<p class="gwa-ayuda-bloques">Escribí en los bloques «Texto» (admiten subtítulos, listas, enlaces y citas) y tocá <b>+</b> '
+                'para sumar imágenes, citas destacadas, tablas, videos o botones. Usá la vista previa (ícono del ojo) para ver cómo queda en la web.</p>',
+                url, sitio.nombre if sitio else "")
+
+
 class EstadoArticuloPanel(HelpPanel):
     """Pestaña «Publicación»: estado editorial y si el artículo está efectivamente en la web."""
 
@@ -268,8 +290,8 @@ class EstadoArticuloPanel(HelpPanel):
             self.content = estado_articulo_html(self.instance)
 
 
-ORIGENES = [("", "Escrito desde cero"), ("verificada", "Tendencia verificada"), ("sectorial", "Fuente sectorial"),
-            ("interna", "Idea editorial (contenidos propios)"), ("ia", "Idea de IA")]
+ORIGENES = [("", "Escrito desde cero"), ("noticia", "Desde una noticia"), ("evento", "Desde un evento"),
+            ("tendencia", "Desde una tendencia de búsqueda"), ("idea", "Desde una idea editorial"), ("ia", "Con ayuda de IA")]
 
 
 class ArticuloPage(SeoMixin, Page):
@@ -287,35 +309,48 @@ class ArticuloPage(SeoMixin, Page):
     categorias = ParentalManyToManyField(CategoriaBlog, verbose_name="Categorías", blank=True)
     tags = ClusterTaggableManager("Etiquetas", through=ArticuloTag, blank=True)
     cuerpo = StreamField([
-        ("titulo", blocks.StructBlock([("nivel", blocks.ChoiceBlock(choices=[("h2", "Título (H2)"), ("h3", "Subtítulo (H3)"), ("h4", "Subtítulo menor (H4)")], default="h2")),
-                                        ("texto", blocks.CharBlock())], icon="title", label="Título")),
-        ("parrafo", blocks.RichTextBlock(features=RICH_BASICO, label="Párrafo")),
-        ("imagen", blocks.StructBlock([("imagen", ImageChooserBlock()), ("pie", blocks.CharBlock(required=False, label="Epígrafe")),
-                                       ("alt", blocks.CharBlock(required=False, label="Texto alternativo", help_text="Vacío: se usa la descripción de la imagen."))],
+        # Bloques en el orden en que se ofrecen al tocar «+». «Texto» es el bloque principal (como en WordPress):
+        # admite subtítulos, negrita, cursiva, enlaces, listas y citas sin cambiar de bloque.
+        ("parrafo", blocks.RichTextBlock(features=RICH_ARTICULO, label="Texto", icon="pilcrow")),
+        ("h2", blocks.CharBlock(label="Subtítulo", icon="h2", form_classname="gwa-bloque-h2")),
+        ("h3", blocks.CharBlock(label="Subtítulo menor", icon="h3", form_classname="gwa-bloque-h3")),
+        ("imagen", blocks.StructBlock([("imagen", ImageChooserBlock(label="Imagen", help_text="Elegí una de la biblioteca o subí una nueva desde la ventana.")),
+                                       ("pie", blocks.CharBlock(required=False, label="Epígrafe")),
+                                       ("alt", blocks.CharBlock(required=False, label="Texto alternativo", help_text="Qué muestra la imagen. Vacío: se usa la descripción de la imagen."))],
                                       icon="image", label="Imagen")),
-        ("cita", blocks.StructBlock([("texto", blocks.TextBlock()), ("autor", blocks.CharBlock(required=False))], icon="openquote", label="Cita")),
-        ("destacado", blocks.RichTextBlock(features=RICH_BASICO, icon="pick", label="Bloque destacado")),
+        ("cita", blocks.StructBlock([("texto", blocks.TextBlock(label="Cita")), ("autor", blocks.CharBlock(required=False, label="Autor de la cita"))], icon="openquote", label="Cita destacada")),
+        ("destacado", blocks.RichTextBlock(features=RICH_BASICO, icon="pick", label="Recuadro destacado")),
         ("tabla", TableBlock(label="Tabla", table_options={"contextMenu": ["row_above", "row_below", "col_left", "col_right", "remove_row", "remove_col"]})),
-        ("boton", blocks.StructBlock([("texto", blocks.CharBlock()), ("enlace", blocks.CharBlock(help_text="#demo, /lite/ o una URL"))], icon="link", label="Botón (CTA)")),
-        ("video", blocks.URLBlock(icon="media", label="Video de YouTube o Vimeo")),
+        ("video", blocks.URLBlock(icon="media", label="Video", help_text="Enlace de YouTube o Vimeo.")),
+        ("boton", blocks.StructBlock([("texto", blocks.CharBlock(label="Texto del botón")), ("enlace", blocks.CharBlock(label="Enlace", help_text="#demo, /lite/ o una URL"))], icon="link", label="Botón")),
     ], verbose_name="Contenido", use_json_field=True)
     relacionados = ParentalManyToManyField("self", verbose_name="Artículos relacionados", blank=True, symmetrical=False)
     copia_de = models.ForeignKey("self", verbose_name="Adaptado de", null=True, blank=True, on_delete=models.SET_NULL, related_name="copias",
                                  help_text="Si es una copia adaptada de un artículo de otro sitio. Reescribí el texto: no publiques textos idénticos en dos dominios.")
 
-    content_panels = Page.content_panels + [
-        FieldPanel("resumen"), FieldPanel("imagen"), FieldRowPanel([FieldPanel("autor"), FieldPanel("fecha")]), FieldPanel("cuerpo"),
+    content_panels = [
+        VolverAlBlogPanel(),
+        TitleFieldPanel("title", heading="Título", placeholder="Título del artículo", help_text="Claro y concreto: es lo primero que se ve en la portada y en Google."),
+        FieldPanel("resumen", heading="Bajada", help_text="Dos o tres líneas que cuentan de qué trata. También se usa en las tarjetas y en Google."),
+        FieldPanel("imagen", heading="Imagen destacada", help_text="Horizontal, idealmente 1600×900 o más. Se recorta sola para la portada y las redes."),
+        FieldRowPanel([FieldPanel("autor"), FieldPanel("fecha")]),
+        FieldPanel("cuerpo", heading="Contenido"),
     ]
     organizacion_panels = [
         FieldPanel("lineas", widget=forms.CheckboxSelectMultiple), FieldPanel("categorias", widget=forms.CheckboxSelectMultiple),
-        FieldPanel("tags"), FieldPanel("relacionados"), FieldPanel("copia_de"),
-        MultiFieldPanel([FieldPanel("origen"), FieldPanel("fuentes"), FieldPanel("palabras_clave")], "Origen del artículo (uso interno)"),
+        FieldPanel("tags", help_text="Palabras sueltas, separadas por coma."),
+        FieldPanel("relacionados", widget=forms.CheckboxSelectMultiple, help_text="Opcional. Si no elegís ninguno, se muestran los de la misma categoría o línea."),
+        MultiFieldPanel([FieldPanel("origen"), FieldPanel("fuentes"), FieldPanel("palabras_clave"), FieldPanel("copia_de")],
+                        "Origen y fuentes (uso interno)", classname="collapsed"),
     ]
     seo_panels_articulo = [
-        MultiFieldPanel([FieldPanel("seo_title"), FieldPanel("search_description")], "Resultado en buscadores",
-                        help_text="Título: hasta 60 caracteres. Descripción: hasta 160. Vacíos: se usan el título y el resumen del artículo."),
-        FieldPanel("slug"), FieldPanel("imagen_og"), FieldRowPanel([FieldPanel("indexar"), FieldPanel("canonical")]),
+        MultiFieldPanel([FieldPanel("seo_title", heading="Título para Google", help_text="Hasta 60 caracteres. Vacío: se usa el título del artículo."),
+                         FieldPanel("search_description", heading="Descripción para Google", help_text="Hasta 160 caracteres. Vacío: se usa la bajada.")],
+                        "Resultado en buscadores"),
         HelpPanel(template="editorial/panel_google.html", heading="Así podría verse en Google"),
+        FieldPanel("slug", heading="Dirección (URL)", help_text="Se completa sola con el título. Cambiarla en un artículo publicado deja una redirección 301."),
+        FieldPanel("imagen_og", help_text="Vacío: se usa la imagen destacada."),
+        MultiFieldPanel([FieldRowPanel([FieldPanel("indexar"), FieldPanel("canonical")])], "Opciones avanzadas", classname="collapsed"),
     ]
     publicacion_panels = [EstadoArticuloPanel(heading="Estado")]
     promote_panels = []

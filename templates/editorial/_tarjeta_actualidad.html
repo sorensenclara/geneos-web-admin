@@ -1,0 +1,30 @@
+{% load wagtailadmin_tags %}
+{# Tarjeta compacta de «Actualidad e ideas para publicar». i = IdeaEditorial. Nunca muestra fotos de terceros sin permiso (imagen_url vacío por defecto). #}
+<article class="gwa-ac is-{{ i.tipo }}{% if i.estado == 'guardada' %} is-guardada{% endif %}">
+  <div class="gwa-ac-top">
+    {% if i.imagen_url %}<img class="gwa-ac-img" src="{{ i.imagen_url }}" alt="" loading="lazy" width="64" height="64" title="{{ i.imagen_credito }}">
+    {% else %}<span class="gwa-ac-ico" aria-hidden="true">{% if i.tipo == 'noticia' %}{% icon name="newspaper" classname="gu-icon" %}{% elif i.tipo == 'evento' %}{% icon name="calendar" classname="gu-icon" %}{% elif i.tipo == 'tendencia' %}{% icon name="trending-up" classname="gu-icon" %}{% elif i.generada_ia %}{% icon name="sparkles" classname="gu-icon" %}{% else %}{% icon name="lightbulb" classname="gu-icon" %}{% endif %}</span>{% endif %}
+    <div class="gwa-ac-meta">
+      <span class="gwa-ac-tipo">{{ i.get_tipo_display }}{% if i.generada_ia %} · IA{% endif %}</span>
+      {% if i.linea %}<span class="gwa-ac-linea">{{ i.linea.nombre }}</span>{% elif lineas %}<span class="gwa-ac-linea">General</span>{% endif %}
+      {% if i.estado == 'guardada' %}<span class="gwa-ac-guardada" title="Guardada">{% icon name="bookmark" classname="gu-icon" %}</span>{% endif %}
+      <p class="gwa-ac-fuente"><span>{{ i.fuente }}</span> · <time datetime="{{ i.fecha|date:'Y-m-d' }}">{% if i.tipo == 'evento' and i.evento_fecha %}{{ i.evento_fecha|date:"d/m/Y" }}{% if i.evento_lugar %} · {{ i.evento_lugar }}{% endif %}{% else %}{{ i.fecha|date:"d/m/Y" }}{% endif %}</time></p>
+    </div>
+  </div>
+  <h4 class="gwa-ac-tit">{{ i.titulo }}</h4>
+  {% if i.resumen %}<p class="gwa-ac-res">{{ i.resumen }}</p>{% endif %}
+  {% if i.descripcion %}<p class="gwa-ac-por"><b>Por qué:</b> {{ i.descripcion }}</p>{% endif %}
+  {% if i.propuesta and i.propuesta != i.titulo %}<p class="gwa-ac-prop"><b>Artículo posible:</b> {{ i.propuesta }}</p>{% endif %}
+  <div class="gwa-ac-acc">
+    <form method="post" action="{% url 'blog:idea_accion' i.pk 'borrador' %}">{% csrf_token %}<button class="gu-btn gu-btn-primary gu-btn-sm" type="submit">{% icon name="file-plus" classname="gu-icon" %}Crear borrador</button></form>
+    {% if i.fuente_url %}<a class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" href="{{ i.fuente_url }}" target="_blank" rel="noopener" title="Ver fuente" aria-label="Ver fuente de «{{ i.titulo }}»">{% icon name="link-external" classname="gu-icon" %}</a>
+    {% else %}<a class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" href="{% url 'blog:idea' i.pk %}" title="Ver detalles" aria-label="Detalles de «{{ i.titulo }}»">{% icon name="info-circle" classname="gu-icon" %}</a>{% endif %}
+    <a class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" href="https://www.google.com/search?q={{ i.titulo|urlencode }}&hl=es-419&gl=ar" target="_blank" rel="noopener" title="Investigar en Google" aria-label="Investigar «{{ i.titulo }}»">{% icon name="search" classname="gu-icon" %}</a>
+    {% if i.estado == 'descartada' %}
+    <form method="post" action="{% url 'blog:idea_accion' i.pk 'restaurar' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="gu-btn gu-btn-ghost gu-btn-sm" type="submit">Restaurar</button></form>
+    {% else %}
+    {% if i.estado != 'guardada' %}<form method="post" action="{% url 'blog:idea_accion' i.pk 'guardar' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" type="submit" title="Guardar" aria-label="Guardar «{{ i.titulo }}»">{% icon name="bookmark" classname="gu-icon" %}</button></form>{% endif %}
+    <form method="post" action="{% url 'blog:idea_accion' i.pk 'descartar' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" type="submit" title="Descartar" aria-label="Descartar «{{ i.titulo }}»">{% icon name="cross" classname="gu-icon" %}</button></form>
+    {% endif %}
+  </div>
+</article>

@@ -1,10 +1,10 @@
-"""Tendencias e ideas para publicar sin servicios pagos.
+"""«Actualidad e ideas para publicar» sin servicios pagos.
 
-- Tendencias verificadas: se importan desde el CSV que exporta Google Trends (consultas relacionadas «principales» y «en aumento»).
-  Se guarda el valor tal como figura en el archivo, con la fecha y la región de la consulta. Nada se calcula ni se estima.
-- Ideas editoriales: surgen de los contenidos aprobados del sitio (funcionalidades, sectores, preguntas frecuentes, servicios)
-  que todavía no tienen un artículo. No llevan datos de búsqueda y se muestran como tales.
-- Ideas de IA: solo si se habilita un proveedor (editorial/ia.py). Siempre identificadas como «Idea de IA».
+Cuatro tipos que nunca se confunden (editorial.models.TIPOS_IDEA):
+- Noticia y Evento: de fuentes públicas identificables, con enlace y fecha (lectura automática de RSS: etapa siguiente).
+- Tendencia de búsqueda: solo con datos reales de Google Trends (RSS oficial o archivo exportado). Los valores se copian tal cual.
+- Idea editorial: surge de los contenidos aprobados del sitio (funcionalidades, sectores, preguntas frecuentes, servicios)
+  que todavía no tienen un artículo, de una noticia, o de la IA si se habilita. No lleva datos de búsqueda.
 """
 import csv
 import io
@@ -73,7 +73,8 @@ def candidatas_internas(sitio):
     for f in Funcionalidad.objects.filter(sitio=sitio, live=True, visible=True).order_by("grupo", "orden"):
         linea = lineas.get(f.linea_id)
         res.append(dict(clave=f"funcionalidad:{f.pk}", termino=f.etiqueta, linea_id=f.linea_id,
-                        titulo=f"{f.etiqueta}: qué es y cómo organizarlo",
+                        titulo=f.etiqueta, propuesta=f"{f.etiqueta}: qué es y cómo organizarlo",
+                        resumen=f.descripcion or "", 
                         descripcion=f"Funcionalidad aprobada de {sitio.nombre}{' ' + linea.nombre if linea else ''} que todavía no tiene un artículo.",
                         fuente="Funcionalidades aprobadas", intencion="Informativa", enlace_comercial=enlace(f.linea_id), consultado=hoy))
     for s in Sector.objects.filter(sitio=sitio, live=True, visible=True):
@@ -81,18 +82,21 @@ def candidatas_internas(sitio):
         if not nombre:
             continue
         res.append(dict(clave=f"sector:{s.pk}", termino=nombre, linea_id=s.linea_id,
-                        titulo=f"{sitio.nombre} para {nombre[0].lower() + nombre[1:]}",
+                        titulo=nombre, propuesta=f"{sitio.nombre} para {nombre[0].lower() + nombre[1:]}",
+                        resumen=s.texto or "",
                         descripcion="Sector comercial aprobado sin ningún artículo que lo presente.",
                         fuente="Sectores aprobados", intencion="Comercial", enlace_comercial=enlace(s.linea_id), consultado=hoy))
     for q in PreguntaFrecuente.objects.filter(sitio=sitio, live=True, visible=True).order_by("ubicacion", "orden"):
         if FAQ_COMERCIAL.search(normalizar(q.pregunta)):
             continue  # condiciones comerciales (precio, prueba, baja…): no son temas de artículo
         res.append(dict(clave=f"faq:{q.pk}", termino=q.pregunta.strip("¿?"), linea_id=q.linea_id, titulo=q.pregunta,
+                        propuesta=q.pregunta, resumen="",
                         descripcion="Pregunta frecuente publicada en la web: un artículo puede responderla con más detalle.",
                         fuente="Preguntas frecuentes aprobadas", intencion="Informativa", enlace_comercial="/" + (q.ubicacion or "") + "#faq", consultado=hoy))
     if sitio.motor == "institucional" and sitio.site:
         for p in PaginaWeb.objects.live().descendant_of(sitio.site.root_page).filter(depth__gt=sitio.site.root_page.depth + 1):
-            res.append(dict(clave=f"pagina:{p.pk}", termino=p.title, linea_id=None, titulo=f"Novedades: {p.title}",
+            res.append(dict(clave=f"pagina:{p.pk}", termino=p.title, linea_id=None, titulo=p.title,
+                            propuesta=f"Novedades: {p.title}", resumen=p.search_description or "",
                             descripcion="Servicio publicado en la web de GENEOS sin noticias que lo acompañen.",
                             fuente="Páginas publicadas", intencion="Informativa", enlace_comercial="/" + (p.ruta_publica or ""), consultado=hoy))
     tipos = {}
@@ -112,7 +116,8 @@ def actualizar_ideas(sitio, maximo=12):
             break
         if c["clave"] in existentes or _cubierto(c["termino"], titulos) or _excluida(c["titulo"], config):
             continue
-        IdeaEditorial.objects.create(sitio=sitio, linea_id=c["linea_id"], tipo="interna", titulo=c["titulo"][:160], descripcion=c["descripcion"],
+        IdeaEditorial.objects.create(sitio=sitio, linea_id=c["linea_id"], tipo="idea", fuente_tipo="interno", titulo=c["titulo"][:200],
+                                     propuesta=c["propuesta"][:200], resumen=c["resumen"], descripcion=c["descripcion"],
                                      palabras_clave=c["termino"][:250], intencion=c["intencion"], fuente=c["fuente"],
                                      enlace_comercial=c["enlace_comercial"], consultado=c["consultado"], clave=c["clave"])
         nuevas += 1
@@ -176,10 +181,11 @@ def importar_trends(sitio, texto, consultado, usuario=None, linea=None, termino=
         desc = ("Consulta en aumento" if seccion == "en_aumento" else "Consulta principal") + \
                f" relacionada con «{termino or 'el término consultado'}» en {region}{(', ' + periodo) if periodo else ''}. Valor en el archivo: {texto_dato}."
         idea, nueva = IdeaEditorial.objects.update_or_create(
-            sitio=sitio, clave=clave, tipo="verificada",
-            defaults=dict(linea=linea, titulo=consulta[:160], descripcion=desc, palabras_clave=consulta[:250],
-                          fuente="Google Trends (CSV)", fuente_url=url_trends(consulta), dato=texto_dato,
-                          consultado=consultado, importacion=imp))
+            sitio=sitio, clave=clave, tipo="tendencia",
+            defaults=dict(linea=linea, fuente_tipo="trends", titulo=consulta[:200], descripcion=desc, palabras_clave=consulta[:250],
+                          propuesta=f"Qué hay que saber sobre {consulta}"[:200],
+                          fuente="Google Trends (archivo exportado)", fuente_url=url_trends(consulta), dato=texto_dato,
+                          publicado=consultado, consultado=consultado, importacion=imp))
         if nueva:
             creadas += 1
     imp.filas = creadas
@@ -205,34 +211,68 @@ def blog_general(sitio, crear=True):
     return idx
 
 
-ESQUEMA = [("h2", "Por qué importa: {tema}"), ("h2", "Cómo se resuelve en la práctica"), ("h3", "Paso a paso"),
-           ("h3", "Errores frecuentes"), ("h2", "Cómo ayuda {producto}")]
+# Esquema del borrador: subtítulos genéricos (no repiten el titular de la fuente) y debajo de cada uno una consigna entre corchetes.
+# La web no se publica mientras quede alguna consigna «[Completar…]» (publicacion.motor.validar).
+ESQUEMA = [("h2", "Qué está pasando", "[Completar: contá el tema con tus palabras y datos verificados. Citá la fuente; no copies el texto.]"),
+           ("h2", "Por qué importa", "[Completar: a quién afecta y qué decisiones cambia para {publico}.]"),
+           ("h2", "Cómo se resuelve en la práctica", ""),
+           ("h3", "Paso a paso", "[Completar: pasos concretos.]"),
+           ("h3", "Errores frecuentes", "[Completar: errores habituales y cómo evitarlos.]"),
+           ("h2", "Cómo ayuda {producto}", "[Completar: solo funcionalidades reales del producto (ver «Origen y fuentes» en Organización).]")]
+PUBLICO = {"geneos": "las organizaciones", "gerp": "las pymes", "geagro": "los productores", "gema": "los talleres"}
+PALABRAS_VACIAS = {"para", "como", "cómo", "que", "qué", "con", "los", "las", "del", "una", "uno", "por", "sobre", "entre", "desde", "cuando", "hacer"}
+
+
+def funcionalidades_relacionadas(sitio, texto, maximo=3):
+    """Funcionalidades aprobadas del producto que comparten palabras con el tema (para revisar a mano, no se afirma nada)."""
+    palabras = {w for w in re.findall(r"\w{4,}", normalizar(texto)) if w not in PALABRAS_VACIAS}
+    res = []
+    for f in Funcionalidad.objects.filter(sitio=sitio, live=True, visible=True):
+        if palabras & set(re.findall(r"\w{4,}", normalizar(f"{f.etiqueta} {f.descripcion}"))):
+            res.append(f)
+    return res[:maximo]
 
 
 def crear_borrador(idea, usuario):
-    """Artículo en borrador a partir de una idea: sitio y línea elegidos, título, resumen propuesto, esquema H2/H3,
-    fuentes y palabras clave. Queda para revisión humana; nunca se publica solo."""
+    """Artículo en borrador a partir de una noticia, evento, tendencia o idea: sitio y línea elegidos, título sugerido,
+    resumen propuesto, esquema H2/H3, palabras clave, fuentes originales enlazadas y funcionalidades que podrían relacionarse.
+    No copia texto ni fotos de la fuente. Queda para revisión humana; nunca se publica solo."""
     sitio = idea.sitio
     padre = blog_general(sitio)
     if padre is None:
         raise ValueError(f"{sitio.nombre} no tiene sitio de Wagtail asociado.")
+    from django.utils.html import escape
     from django.utils.text import slugify
-    base = slugify(idea.titulo)[:70].strip("-") or "articulo"
+    titulo = (idea.propuesta or idea.titulo).strip()
+    base = slugify(titulo)[:70].strip("-") or "articulo"
     slug, n = base, 2
     while padre.get_children().filter(slug=slug).exists():
         slug, n = f"{base}-{n}", n + 1
-    tema = idea.titulo.rstrip(".")
-    cuerpo = [("titulo", {"nivel": nivel, "texto": texto.format(tema=tema, producto=sitio.nombre)}) for nivel, texto in ESQUEMA]
-    fuentes = f"{idea.get_tipo_display()} · {idea.fuente} · consultado el {idea.consultado:%d/%m/%Y}"
+    cuerpo = []
+    for nivel, texto, consigna in ESQUEMA:
+        cuerpo.append((nivel, texto.format(producto=sitio.nombre)))
+        if consigna:
+            cuerpo.append(("parrafo", f"<p>{escape(consigna.format(publico=PUBLICO.get(sitio.clave, 'tus clientes')))}</p>"))
+    funcs = funcionalidades_relacionadas(sitio, f"{idea.titulo} {idea.propuesta} {idea.palabras_clave}")
+    fecha = idea.publicado or idea.consultado
+    lineas = [f"{idea.get_tipo_display()} · {idea.fuente} · {fecha:%d/%m/%Y} (consultado el {idea.consultado:%d/%m/%Y})"]
     if idea.dato:
-        fuentes += f" · valor en la fuente: {idea.dato}"
+        lineas.append(f"Valor en la fuente: {idea.dato}")
     if idea.fuente_url:
-        fuentes += f"\n{idea.fuente_url}"
+        lineas.append(idea.fuente_url)
+    if funcs:
+        lineas.append("Funcionalidades que podrían relacionarse (verificar): " + ", ".join(f.etiqueta for f in funcs))
     if not idea.verificada:
-        fuentes += "\nSin datos de búsqueda: verificar el tema antes de escribir."
-    art = ArticuloPage(title=idea.titulo[:255], slug=slug, live=False, has_unpublished_changes=True, owner=usuario,
-                       resumen=f"Borrador para revisar: {tema}. Completar con información verificada sobre {sitio.nombre}."[:300],
-                       fecha=timezone.localdate(), cuerpo=cuerpo, origen=idea.tipo, fuentes=fuentes, palabras_clave=idea.palabras_clave)
+        lineas.append("Idea editorial sin datos de búsqueda: verificar el tema antes de escribir.")
+    lineas.append("Escribir un texto propio: no copiar párrafos ni fotos de la fuente.")
+    if idea.fuente_url and idea.tipo in ("noticia", "evento"):
+        # Cita de la fuente al final del artículo: título y medio, con enlace (sin reproducir el contenido)
+        cuerpo += [("h3", "Fuentes"), ("parrafo", f'<ul><li><a href="{escape(idea.fuente_url)}">{escape(idea.titulo)}</a> — {escape(idea.fuente)}, '
+                                                  f'{fecha:%d/%m/%Y}</li></ul>')]
+    resumen = f"Borrador para revisar: {titulo}. Completar con información verificada y propia de {sitio.nombre}."[:300]
+    art = ArticuloPage(title=titulo[:255], slug=slug, live=False, has_unpublished_changes=True, owner=usuario,
+                       resumen=resumen, fecha=timezone.localdate(), cuerpo=cuerpo, origen="ia" if idea.generada_ia else idea.tipo,
+                       fuentes="\n".join(lineas), palabras_clave=(idea.palabras_clave or idea.titulo)[:250])
     padre.add_child(instance=art)
     if idea.linea_id:
         art.lineas = [idea.linea_id]

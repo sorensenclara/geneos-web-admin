@@ -75,7 +75,7 @@ class BlogUniversal(TestCase):
     def articulo(self, sitio, titulo, lineas=(), publicar=True, **campos):
         padre = blog_general(sitio)
         a = ArticuloPage(title=titulo, slug=titulo.lower().replace(" ", "-"), resumen=f"Resumen de {titulo}", fecha=datetime.date(2026, 10, 1), live=False,
-                         cuerpo=[("titulo", {"nivel": "h2", "texto": "Subtítulo"}), ("parrafo", "<p>Texto de prueba.</p>")], **campos)
+                         cuerpo=[("h2", "Subtítulo"), ("parrafo", "<p>Texto de prueba.</p>")], **campos)
         padre.add_child(instance=a)
         if lineas:
             a.lineas = list(lineas)
@@ -180,7 +180,8 @@ class BlogUniversal(TestCase):
         blog = archivos["gerp.admin.json"]["blog"]
         self.assertEqual([b["path"] for b in blog["indexes"]], ["blog/", "blog/pagina/2/", "blog/pagina/3/"])
         self.assertIsNone(blog["indexes"][0]["robots"])
-        self.assertEqual(blog["indexes"][1]["robots"], "noindex, follow")
+        self.assertIsNone(blog["indexes"][1]["robots"])  # la paginación se indexa, con canonical propio
+        self.assertEqual([b["sitemap"] for b in blog["indexes"]], [True, False, False])  # pero no va al sitemap
         self.assertTrue(blog["indexes"][0]["featured"])
         self.assertFalse(blog["indexes"][1]["featured"])
         self.assertEqual(len(blog["indexes"][0]["index"]), 5)  # el buscador abarca todas las páginas
@@ -222,7 +223,7 @@ class BlogUniversal(TestCase):
         for clave in ("geneos", "gerp", "geagro", "gema"):
             self.assertIn(f"gwa/marca/{clave}-isologo", html)
         self.assertIn("Blog de GEAGRO", html)
-        self.assertIn("Tendencias e ideas de esta semana", html)
+        self.assertIn("Actualidad e ideas para publicar", html)
         self.assertIn("todavía no tiene artículos", html)
         self.assertIn('aria-current="page">Todas</a>', html)  # filtro por línea de GEAGRO
         self.assertEqual(self.client.session["gwa_blog_sitio"], "geagro")
@@ -275,7 +276,7 @@ class BlogUniversal(TestCase):
         imp, creadas, descartadas = importar_trends(self.geagro, CSV_CLASICO, datetime.date(2026, 10, 14), self.clara, termino="cultivos")
         self.assertEqual((creadas, descartadas), (4, 1))
         idea = IdeaEditorial.objects.get(sitio=self.geagro, titulo="poda de vid")
-        self.assertEqual((idea.tipo, idea.dato, idea.consultado), ("verificada", "+250%", datetime.date(2026, 10, 14)))
+        self.assertEqual((idea.tipo, idea.dato, idea.consultado), ("tendencia", "+250%", datetime.date(2026, 10, 14)))
         self.assertIn("trends.google.com", idea.fuente_url)
         self.assertEqual(IdeaEditorial.objects.get(titulo="fertilización de maíz").dato, "Aumento puntual")
         # Desde la pantalla
@@ -285,13 +286,14 @@ class BlogUniversal(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(IdeaEditorial.objects.get(titulo="riego por goteo en viñedos").linea, self.vid)
         html = self.client.get(BLOG + "?sitio=geagro").content.decode()
-        self.assertIn("Tendencia verificada", html)
+        self.assertIn("Tendencia de búsqueda", html)
+        self.assertIn("Actualidad e ideas para publicar", html)
 
     def test_ideas_editoriales_sin_repetir(self):
         n = actualizar_ideas(self.gema)
         self.assertGreater(n, 0)
         tipos = set(IdeaEditorial.objects.filter(sitio=self.gema).values_list("tipo", flat=True))
-        self.assertEqual(tipos, {"interna"})  # sin datos externos: ninguna se presenta como tendencia
+        self.assertEqual(tipos, {"idea"})  # sin datos externos: ninguna se presenta como tendencia
         titulos = list(IdeaEditorial.objects.filter(sitio=self.gema).values_list("titulo", flat=True))
         self.assertFalse(any("probar" in t.lower() or "pago" in t.lower() for t in titulos))  # preguntas comerciales fuera
         idea = IdeaEditorial.objects.filter(sitio=self.gema).first()
@@ -305,17 +307,67 @@ class BlogUniversal(TestCase):
         idea = IdeaEditorial.objects.get(titulo="siembra de soja")
         self.client.force_login(self.clara)
         r = self.client.post(f"{BLOG}idea/{idea.pk}/borrador/")
-        a = ArticuloPage.objects.get(title="siembra de soja")
+        a = ArticuloPage.objects.get(title="Qué hay que saber sobre siembra de soja")
         self.assertEqual(r["Location"], f"/admin/pages/{a.pk}/edit/")
         self.assertFalse(a.live)  # nunca se publica sola
         v = a.get_latest_revision_as_object()
         self.assertEqual([l.pk for l in v.lineas.all()], [self.cereales.pk])
-        self.assertEqual([b.value["nivel"] for b in v.cuerpo], ["h2", "h2", "h3", "h3", "h2"])
-        self.assertIn("Google Trends (CSV)", v.fuentes)
-        self.assertEqual(v.origen, "verificada")
+        tipos = [b.block_type for b in v.cuerpo]
+        self.assertEqual([t for t in tipos if t != "parrafo"], ["h2", "h2", "h2", "h3", "h3", "h2"])
+        self.assertIn("[Completar", v.cuerpo[1].value.source)  # consignas para el redactor
+        self.assertIn("Google Trends (archivo exportado)", v.fuentes)
+        self.assertEqual(v.origen, "tendencia")
         self.assertEqual(v.palabras_clave, "siembra de soja")
         idea.refresh_from_db()
         self.assertEqual((idea.estado, idea.articulo_id), ("usada", a.pk))
+
+    def test_actualidad_tipos_periodo_y_borrador_desde_noticia(self):
+        hoy = datetime.date.today()
+        def nueva(**kw):
+            base = dict(sitio=self.geagro, fuente="Medio de prueba", consultado=hoy, fuente_tipo="medio", tipo="noticia")
+            base.update(kw)
+            return IdeaEditorial.objects.create(**base)
+        reciente = nueva(titulo="Avanza la siembra de maíz", publicado=hoy - datetime.timedelta(days=2), fuente_url="https://ejemplo.com/nota",
+                         resumen="Resumen propio.", descripcion="Relacionado con la planificación de campaña.", propuesta="Cómo planificar la siembra de maíz",
+                         linea=self.cereales)
+        vieja = nueva(titulo="Nota de hace un mes", publicado=hoy - datetime.timedelta(days=20))
+        nueva(titulo="Feria que ya pasó", tipo="evento", fuente_tipo="evento", publicado=hoy - datetime.timedelta(days=3), evento_fecha=hoy - datetime.timedelta(days=1))
+        idea = nueva(titulo="Tema propio", tipo="idea", fuente_tipo="interno", publicado=None, consultado=hoy - datetime.timedelta(days=60))
+        self.client.force_login(self.clara)
+        html = self.client.get(BLOG + "?sitio=geagro").content.decode()
+        self.assertIn("Avanza la siembra de maíz", html)
+        self.assertIn("Tema propio", html)  # las ideas editoriales no vencen
+        self.assertNotIn("Nota de hace un mes", html)  # fuera de los últimos 7 días
+        self.assertNotIn("Feria que ya pasó", html)
+        html30 = self.client.get(BLOG + "?sitio=geagro&periodo=30").content.decode()
+        self.assertIn("Nota de hace un mes", html30)
+        solo_ideas = self.client.get(BLOG + "?sitio=geagro&contenido=idea").content.decode()
+        self.assertNotIn("Avanza la siembra de maíz", solo_ideas)
+        todas = self.client.get(f"{BLOG}geagro/actualidad/?periodo=30").content.decode()
+        self.assertIn("Nota de hace un mes", todas)
+        # Descartar vuelve a la página de origen
+        r = self.client.post(f"{BLOG}idea/{vieja.pk}/descartar/", {"next": f"{BLOG}geagro/actualidad/?periodo=30"})
+        self.assertEqual(r["Location"], f"{BLOG}geagro/actualidad/?periodo=30")
+        self.assertNotIn("Nota de hace un mes", self.client.get(f"{BLOG}geagro/actualidad/?periodo=30").content.decode())
+        # Borrador desde una noticia: título propuesto, línea, fuente enlazada al final; sin copiar el texto de la nota
+        r = self.client.post(f"{BLOG}idea/{reciente.pk}/borrador/")
+        a = ArticuloPage.objects.get(title="Cómo planificar la siembra de maíz")
+        v = a.get_latest_revision_as_object()
+        self.assertFalse(a.live)
+        self.assertEqual([l.pk for l in v.lineas.all()], [self.cereales.pk])
+        tipos = [b.block_type for b in v.cuerpo]
+        self.assertEqual(tipos[-2:], ["h3", "parrafo"])
+        self.assertIn('href="https://ejemplo.com/nota"', v.cuerpo[-1].value.source)
+        self.assertIn("https://ejemplo.com/nota", v.fuentes)
+        self.assertEqual(v.origen, "noticia")
+        self.assertNotIn("Avanza la siembra", " ".join(b.value for b in v.cuerpo if b.block_type in ("h2", "h3")))  # no repite el titular
+        # Un borrador con consignas sin completar no puede salir a la web
+        self.activar(self.geagro)
+        v.save_revision(user=self.clara).publish(user=self.clara)
+        carpeta, datos = self.generar(self.geagro)
+        self.assertTrue(any("[Completar" in e for e in validar(self.geagro, carpeta, datos)))
+        idea.refresh_from_db()
+        self.assertEqual(idea.estado, "sugerida")
 
     # ---------------------------------------------------------------------------------------------- IA
     def test_ia_desactivada_por_defecto(self):
@@ -334,7 +386,7 @@ class BlogUniversal(TestCase):
         with mock.patch.dict(os.environ, env):
             ideas = ia.sugerir_ideas(self.gema, enviar=lambda c: respuesta)
             self.assertEqual([i.titulo for i in ideas], ["Cómo organizar los vencimientos del taller"])  # la cifra se descarta
-            self.assertEqual(ideas[0].tipo, "ia")
+            self.assertEqual((ideas[0].tipo, ideas[0].generada_ia), ("idea", True))
             consumo = ConsumoIA.objects.get()
             self.assertEqual((consumo.tokens_entrada, consumo.tokens_salida), (1000, 500))
             ConsumoIA.objects.create(proveedor="anthropic", modelo="x", tarea="x", costo_usd=1)

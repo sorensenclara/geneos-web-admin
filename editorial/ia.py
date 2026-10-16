@@ -7,7 +7,7 @@ tendencias importadas e ideas editoriales de los contenidos propios, sin ninguna
 
 Antes de cada pedido se verifica que el gasto estimado no supere el límite del mes; después se registra el consumo real
 informado por el proveedor (ConsumoIA). Las respuestas se validan: se descartan las ideas con cifras, porcentajes o
-volúmenes, y todas se guardan como «Idea de IA».
+volúmenes, y todas se guardan como «Idea editorial» marcada como generada por IA.
 """
 import json
 import os
@@ -130,7 +130,8 @@ def sugerir_ideas(sitio, usuario=None, linea=None, cantidad=10, enviar=None):
         titulo, motivo = str(it.get("titulo", ""))[:160], str(it.get("motivo", ""))
         if not titulo or CIFRAS.search(titulo + " " + motivo) or _excluida(titulo + " " + motivo, config):
             continue
-        creadas.append(IdeaEditorial.objects.create(sitio=sitio, linea=linea, tipo="ia", titulo=titulo, descripcion=motivo[:600],
+        creadas.append(IdeaEditorial.objects.create(sitio=sitio, linea=linea, tipo="idea", fuente_tipo="ia", generada_ia=True,
+                                                    titulo=titulo, propuesta=titulo, descripcion=motivo[:600],
                                                     palabras_clave=str(it.get("palabras_clave", ""))[:250], intencion=str(it.get("intencion", ""))[:40],
                                                     fuente="Sugerencia de IA · sin datos de búsqueda", consultado=hoy,
                                                     clave=f"ia:{titulo.lower()[:180]}"))
