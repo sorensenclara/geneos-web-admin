@@ -1,19 +1,25 @@
 {% load wagtailadmin_tags %}
 {# «Actualidad e ideas para publicar»: compacta (6 tarjetas) en la portada del blog; completa en «Ver todas». #}
-<section class="gu-card gwa-bl-panel gwa-acs" aria-labelledby="bl-actualidad">
+<section class="gu-card gwa-bl-panel gwa-acs" aria-labelledby="bl-actualidad" data-estado="{% url 'blog:lectura_estado' %}" data-leyendo="{{ leyendo|yesno:'1,0' }}">
   <div class="gwa-bl-ptit">
     {% icon name="newspaper" classname="gu-icon gwa-bl-ptit-ico" %}
     <div>
       <h3 id="bl-actualidad">Actualidad e ideas para publicar <span class="gwa-bl-geo">Argentina</span></h3>
-      <p>Noticias, eventos y tendencias del sector de {{ sitio.nombre }}{% if linea %} {{ linea.nombre }}{% endif %}, con artículos que podríamos escribir.</p>
+      <p>Noticias, publicaciones oficiales, eventos y tendencias del sector de {{ sitio.nombre }}{% if linea %} {{ linea.nombre }}{% endif %}, con artículos que podríamos escribir.</p>
+      <p class="gwa-ac-estado">
+        <span>Última lectura de fuentes: {% if ultima_lectura and ultima_lectura.fin %}{{ ultima_lectura.fin|date:"d/m/Y H:i" }}{% if ultima_lectura.estado == "parcial" %} (algunas fuentes fallaron){% elif ultima_lectura.estado == "error" %} (con errores){% endif %}{% else %}todavía no se leyeron{% endif %}</span>
+        <span class="gwa-ac-leyendo" data-leyendo{% if not leyendo %} hidden{% endif %} role="status">{% icon name="refresh-cw" classname="gu-icon" %}Leyendo fuentes…</span>
+        <a href="{% url 'blog:fuentes' sitio.clave %}">{{ fuentes_activas }} fuente{{ fuentes_activas|pluralize }} activa{{ fuentes_activas|pluralize }}{% if fuentes_error %} · {{ fuentes_error }} con error{% endif %}{% if fuentes_prueba %} · {{ fuentes_prueba }} en prueba{% endif %}</a>
+      </p>
     </div>
     <div class="gwa-bl-ptit-acc">
-      <span class="gwa-bl-upd">Actualizado: {% if ultima_actualizacion %}{{ ultima_actualizacion|date:"d/m/Y H:i" }}{% else %}nunca{% endif %}</span>
       <form method="post" action="{% url 'blog:actualizar' sitio.clave %}">{% csrf_token %}<input type="hidden" name="linea" value="{{ linea.pk|default:'' }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
         <button class="gu-btn gu-btn-outline gu-btn-sm" type="submit" data-actualizar>{% icon name="refresh-cw" classname="gu-icon" %}Actualizar ahora</button></form>
       <span class="gu-btn-dropdown">
         <button type="button" class="gu-btn gu-btn-ghost gu-btn-icon gu-btn-sm" data-gu-dropdown="ac-mas" aria-expanded="false" aria-haspopup="true" aria-label="Más opciones">{% icon name="dots-horizontal" classname="gu-icon" %}</button>
         <span class="gu-btn-dropdown-menu" id="ac-mas" hidden>
+          <a class="gu-btn-dropdown-item" href="{% url 'blog:novedad_oficial' sitio.clave %}">{% icon name="file-plus" classname="gu-icon" %}Cargar novedad oficial</a>
+          <a class="gu-btn-dropdown-item" href="{% url 'blog:fuentes' sitio.clave %}">{% icon name="list" classname="gu-icon" %}Estado de las fuentes</a>
           <a class="gu-btn-dropdown-item" href="{{ trends_url }}" target="_blank" rel="noopener">{% icon name="link-external" classname="gu-icon" %}Investigar en Google Trends</a>
           <a class="gu-btn-dropdown-item" href="{% url 'blog:importar' sitio.clave %}">{% icon name="file-up" classname="gu-icon" %}Importar archivo de Google Trends</a>
           <a class="gu-btn-dropdown-item" href="{% url 'blog:actualidad' sitio.clave %}?ver=descartadas">{% icon name="cross" classname="gu-icon" %}Ver descartadas</a>
@@ -30,7 +36,7 @@
     <label><span class="w-sr-only">Tipo de fuente</span><select name="fuente" data-auto><option value="">Todas las fuentes</option>{% for k, t in fuentes_tipo %}<option value="{{ k }}"{% if fa.fuente == k %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
     <noscript><button class="gu-btn gu-btn-outline gu-btn-sm" type="submit">Filtrar</button></noscript>
     <span class="gwa-ac-leyenda" title="Qué significa cada tipo">
-      <span class="is-noticia">Noticia</span><span class="is-evento">Evento</span><span class="is-tendencia">Tendencia de búsqueda</span><span class="is-idea">Idea editorial</span>
+      <span class="is-oficial">Publicación oficial</span><span class="is-noticia">Noticia periodística</span><span class="is-evento">Evento</span><span class="is-tendencia">Tendencia de búsqueda</span><span class="is-idea">Idea editorial</span>
     </span>
   </form>
   {% if ideas %}
@@ -41,8 +47,16 @@
   {% else %}
   <div class="gwa-bl-vacio gwa-ac-vacio">
     <b>{% if descartadas %}No hay descartadas.{% else %}No hay novedades para mostrar{% if fa.contenido or fa.fuente %} con estos filtros{% endif %}.{% endif %}</b>
-    {% if not descartadas %}<p>Tocá «Actualizar ahora» para sumar ideas a partir de las funcionalidades, sectores y preguntas aprobadas de {{ sitio.nombre }}.
-      Las noticias y eventos de fuentes públicas se suman con la lectura automática de fuentes (etapa siguiente). Sin datos reales no se muestran tendencias.</p>{% endif %}
+    {% if not descartadas %}<p>No se rellenan tarjetas con información vieja o poco relacionada. Las noticias aparecen cuando una fuente verificada publica algo
+      relacionado con {{ sitio.nombre }}; «Actualizar ahora» también suma ideas editoriales a partir de las funcionalidades, sectores y preguntas aprobadas.</p>{% endif %}
+  </div>
+  {% endif %}
+  {% if por_confirmar %}
+  <div class="gwa-ac-confirmar">
+    <h4>Eventos por confirmar <small>(no se muestran como próximos hasta que el organizador confirme la fecha)</small></h4>
+    <ul>{% for e in por_confirmar %}<li><a href="{{ e.fuente_url }}" target="_blank" rel="noopener">{{ e.titulo }}</a>
+      {% if e.evento_fecha %}· {{ e.evento_fecha|date:"d/m/Y" }}{% if e.evento_fin and e.evento_fin != e.evento_fecha %} al {{ e.evento_fin|date:"d/m/Y" }}{% endif %}{% endif %}
+      {% if e.evento_lugar %}· {{ e.evento_lugar }}{% endif %} <small>— {{ e.fecha_fuente }}</small></li>{% endfor %}</ul>
   </div>
   {% endif %}
 </section>

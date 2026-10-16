@@ -22,10 +22,10 @@ from contenidos.models import ArticuloPage, CategoriaBlog
 from sitios.models import LineaProducto, SitioWeb
 from sitios.permisos import puede, sitios_permitidos
 
-from . import ia
+from . import ia, lector
 from .estado import estado_blog, estado_editorial, estado_web, ultimo_despliegue
 from .ideas import ErrorImportacion, actualizar_ideas, blog_general, crear_borrador, importar_trends, url_trends
-from .models import TIPOS_FUENTE, ConfigBlog, IdeaEditorial, ImportacionTendencias, config_actual
+from .models import TIPOS_FUENTE, ActualizacionActualidad, ConfigBlog, FuenteActualidad, IdeaEditorial, ImportacionTendencias, config_actual
 
 DESCRIPCION = {"geneos": "Cooperativismo, software libre y tecnología", "gerp": "Gestión empresarial y administración",
                "geagro": "Agricultura, cereales y viñedos", "gema": "Talleres de matafuegos y seguridad"}
@@ -97,7 +97,8 @@ def _filas(sitio, user, f, blog_clave, ultimo):
 
 ORDEN_TIPO = {"noticia": 0, "evento": 1, "tendencia": 2, "idea": 3}
 PERIODOS = [("7", "Últimos 7 días"), ("30", "Últimos 30 días")]
-CONTENIDOS = [("", "Todo"), ("noticia", "Noticias"), ("evento", "Eventos"), ("tendencia", "Tendencias de búsqueda"), ("idea", "Ideas editoriales")]
+CONTENIDOS = [("", "Todo"), ("noticia", "Noticias y publicaciones oficiales"), ("oficial", "Solo publicaciones oficiales"), ("evento", "Eventos"),
+              ("tendencia", "Tendencias de búsqueda"), ("idea", "Ideas editoriales")]
 
 
 def _filtros_actualidad(request):
@@ -115,26 +116,57 @@ def _ideas(sitio, linea_id, f=None, descartadas=False):
     qs = IdeaEditorial.objects.filter(sitio=sitio, estado__in=estados).select_related("linea")
     if linea_id:
         qs = qs.filter(Q(linea_id=linea_id) | Q(linea__isnull=True))
-    if f["contenido"]:
+    # Lo leído automáticamente se muestra solo si su fuente pasó los controles y sigue activa
+    qs = qs.filter(Q(fuente_actualidad__isnull=True) | Q(fuente_actualidad__estado="activa", fuente_actualidad__verificada__isnull=False))
+    if f["contenido"] == "oficial":
+        qs = qs.filter(tipo="noticia", naturaleza="oficial")
+    elif f["contenido"]:
         qs = qs.filter(tipo=f["contenido"])
     if f["fuente"]:
         qs = qs.filter(fuente_tipo=f["fuente"])
-    desde = timezone.localdate() - timedelta(days=int(f["periodo"]))
+    hoy = timezone.localdate()
+    desde = hoy - timedelta(days=int(f["periodo"]))
     res = []
     for i in qs:
-        if i.tipo != "idea" and i.estado != "guardada" and i.fecha < desde:
-            continue  # noticia vieja: fuera del período
-        if i.tipo == "evento" and i.evento_fecha and i.evento_fecha < timezone.localdate():
-            continue  # evento que ya pasó
+        if i.tipo == "evento":
+            # Próximos: solo con fecha confirmada por una fuente confiable y que no hayan terminado
+            if not (i.fecha_confirmada and i.evento_fecha and (i.evento_fin or i.evento_fecha) >= hoy):
+                continue
+        elif i.tipo != "idea" and i.estado != "guardada" and i.fecha < desde:
+            continue  # noticia o tendencia fuera del período
         res.append(i)
-    return sorted(res, key=lambda i: (i.estado != "guardada", ORDEN_TIPO.get(i.tipo, 9), -i.fecha.toordinal(), -i.pk))
+
+    def orden(i):
+        cuando = i.evento_fecha.toordinal() if i.tipo == "evento" else -i.fecha.toordinal()
+        return (i.estado != "guardada", ORDEN_TIPO.get(i.tipo, 9), not (i.prioritaria or i.naturaleza == "oficial"), cuando, -i.pk)
+    return sorted(res, key=orden)
+
+
+def eventos_por_confirmar(sitio, linea_id=None):
+    """Eventos guardados sin fecha confirmada: se listan aparte, nunca como próximos."""
+    qs = IdeaEditorial.objects.filter(sitio=sitio, tipo="evento", fecha_confirmada=False).exclude(estado="descartada")
+    if linea_id:
+        qs = qs.filter(Q(linea_id=linea_id) | Q(linea__isnull=True))
+    hoy = timezone.localdate()
+    return [e for e in qs.order_by("evento_fecha", "titulo") if not e.evento_fecha or (e.evento_fin or e.evento_fecha) >= hoy]
+
+
+def estado_lectura(sitio=None):
+    """Fecha de la última lectura, si hay una en curso y cómo están las fuentes del producto."""
+    u = lector.ultima()
+    fuentes = FuenteActualidad.objects.filter(producto__in=[sitio.clave, "todos"]) if sitio else FuenteActualidad.objects.all()
+    activas = [x for x in fuentes if x.muestra_resultados]
+    return {"ultima_lectura": u, "leyendo": lector.en_curso(),
+            "fuentes_activas": len(activas), "fuentes_error": sum(1 for x in activas if x.ultimo_error),
+            "fuentes_prueba": sum(1 for x in fuentes if x.estado == "prueba")}
 
 
 def _ctx_actualidad(sitio, linea, f, ideas, limite=None):
     ult_idea = IdeaEditorial.objects.filter(sitio=sitio).aggregate(m=Max("creada"))["m"]
     ult_imp = ImportacionTendencias.objects.filter(sitio=sitio).first()
     fechas = [d for d in (ult_idea, ult_imp.creado if ult_imp else None) if d]
-    return {"ideas": ideas[:limite] if limite else ideas, "ideas_total": len(ideas), "ideas_mas": max(0, len(ideas) - limite) if limite else 0,
+    return {**estado_lectura(sitio),
+            "ideas": ideas[:limite] if limite else ideas, "ideas_total": len(ideas), "ideas_mas": max(0, len(ideas) - limite) if limite else 0,
             "fa": f, "periodos": PERIODOS, "contenidos": CONTENIDOS, "fuentes_tipo": TIPOS_FUENTE,
             "ultima_actualizacion": max(fechas) if fechas else None, "ult_imp": ult_imp, "ia": ia.estado(),
             "trends_url": url_trends((linea.nombre if linea else "") or sitio.nombre)}
@@ -193,7 +225,12 @@ def _volver(sitio, linea="", request=None):
 
 @require_POST
 def actualizar(request, clave):
+    """«Actualizar ahora»: lee las fuentes en segundo plano (la pantalla no espera) y suma ideas editoriales propias."""
     sitio = _sitio_post(request, clave)
+    if lector.iniciar("boton", request.user, forzar=True):
+        messages.info(request, "Leyendo las fuentes en segundo plano. Las novedades aparecen en esta sección cuando termina.")
+    elif lector.en_curso():
+        messages.info(request, "Ya hay una lectura de fuentes en curso.")
     n = actualizar_ideas(sitio)
     st = ia.estado()
     if st["disponible"]:
@@ -203,7 +240,8 @@ def actualizar(request, clave):
             messages.warning(request, str(e))
         except Exception:  # noqa: BLE001
             messages.warning(request, "El proveedor de IA no respondió. Se actualizaron solo las ideas editoriales.")
-    messages.success(request, f"Actualidad e ideas: {n} nueva(s)." if n else "No hay novedades: los temas de tus contenidos ya tienen artículo o idea.")
+    if n:
+        messages.success(request, f"Ideas editoriales: {n} nueva(s) a partir de tus contenidos aprobados.")
     return _volver(sitio, request.POST.get("linea", ""), request)
 
 
@@ -296,5 +334,89 @@ def actualidad(request, clave):
     ideas = _ideas(sitio, linea.pk if linea else None, fa, descartadas=descartadas)
     ctx = {"page_title": f"Actualidad e ideas · {sitio.nombre}", "sitio": sitio, "marca": sitio.marca, "lineas": lineas, "linea": linea,
            "descartadas": descartadas, "config": config_actual(sitio), "pagina_completa": True,
+           "por_confirmar": [] if descartadas else eventos_por_confirmar(sitio, linea.pk if linea else None),
            **_ctx_actualidad(sitio, linea, fa, ideas)}
     return render(request, "editorial/actualidad.html", ctx)
+
+
+# ------------------------------------------------------------------------------------------------ Lectura automática
+@require_POST
+def lectura_automatica(request):
+    """Al ingresar al administrador: si pasaron más de 24 horas desde la última lectura, arranca una en segundo plano."""
+    from django.http import JsonResponse
+    if not _sitios(request.user):
+        return JsonResponse({"iniciada": False})
+    iniciada = lector.iniciar("ingreso", request.user)
+    return JsonResponse({"iniciada": iniciada, "leyendo": lector.en_curso()})
+
+
+def lectura_estado(request):
+    from django.http import JsonResponse
+    u = lector.ultima()
+    return JsonResponse({"leyendo": lector.en_curso(), "ultima": timezone.localtime(u.fin).strftime("%d/%m/%Y %H:%M") if u and u.fin else None,
+                         "nuevos": u.nuevos if u else 0})
+
+
+ORDEN_ESTADO = {"activa": 0, "prueba": 1, "pausada": 2, "experimental": 3, "sin_canal": 4, "descartada": 5}
+
+
+def fuentes(request, clave):
+    """Estado de las fuentes del producto: cuáles funcionan, cuáles fallan y por qué."""
+    sitio = _sitio_post(request, clave)
+    lista = sorted(FuenteActualidad.objects.filter(producto__in=[sitio.clave, "todos"]),
+                   key=lambda x: (ORDEN_ESTADO.get(x.estado, 9), not x.prioritaria, x.orden))
+    for x in lista:
+        x.pendiente_clave = x.metodo == "youtube" and not lector.youtube_configurado()
+    return render(request, "editorial/fuentes.html", {
+        "page_title": f"Fuentes de actualidad · {sitio.nombre}", "sitio": sitio, "marca": sitio.marca, "fuentes": lista,
+        "actualizaciones": ActualizacionActualidad.objects.all()[:8], "youtube": lector.youtube_configurado(),
+        "puede_configurar": puede(request.user, sitio.pk), **estado_lectura(sitio)})
+
+
+@require_POST
+def fuente_accion(request, pk, accion):
+    f = get_object_or_404(FuenteActualidad, pk=pk)
+    sitio = get_object_or_404(SitioWeb, clave=request.POST.get("sitio", ""))
+    if not puede(request.user, sitio.pk) or f.producto not in (sitio.clave, "todos"):
+        raise PermissionDenied
+    if accion == "prioritaria":
+        f.prioritaria = not f.prioritaria
+        f.save(update_fields=["prioritaria"])
+        f.items.filter(estado__in=("sugerida", "guardada")).update(prioritaria=f.prioritaria)
+        messages.success(request, f"«{f.nombre}»: {'prioritaria' if f.prioritaria else 'sin prioridad'}.")
+    elif accion == "pausar" and f.estado in ("activa", "prueba"):
+        f.estado = "pausada"
+        f.save(update_fields=["estado"])
+        messages.success(request, f"«{f.nombre}» pausada: no se lee y sus resultados no se muestran.")
+    elif accion == "reanudar" and f.estado == "pausada":
+        f.estado = "activa" if f.verificada else "prueba"
+        f.save(update_fields=["estado"])
+        messages.success(request, f"«{f.nombre}» reanudada.")
+    elif accion == "probar" and f.estado in ("activa", "prueba"):
+        if lector.iniciar("boton", request.user, forzar=True, claves=[f.clave]):
+            messages.info(request, f"Probando «{f.nombre}» en segundo plano.")
+        else:
+            messages.warning(request, "Ya hay una lectura en curso o la fuente no se puede leer todavía.")
+    else:
+        raise PermissionDenied
+    return redirect("blog:fuentes", sitio.clave)
+
+
+def novedad_oficial(request, clave):
+    """Carga manual (complementaria) de una publicación oficial por su enlace: resolución, comunicado, norma…"""
+    from .oficial import DOCUMENTOS, ErrorNovedad, crear_novedad
+    sitio = _sitio_post(request, clave)
+    lineas = list(LineaProducto.objects.filter(sitio=sitio).order_by("orden"))
+    datos = {"url": "", "titulo": "", "organismo": "", "documento": "", "publicado": "", "resumen": "", "linea": ""}
+    if request.method == "POST":
+        datos = {k: request.POST.get(k, "").strip() for k in datos}
+        try:
+            idea = crear_novedad(sitio, datos, request.user, lineas)
+            messages.success(request, ("Publicación oficial cargada." if idea.naturaleza == "oficial" else
+                                       "Cargada como noticia: el enlace no es de un sitio oficial reconocido.") +
+                             " Antes de escribir, revisá el documento: no afirmes vigencia ni obligaciones sin leerlo.")
+            return redirect(reverse("blog:index") + f"?sitio={sitio.clave}")
+        except ErrorNovedad as e:
+            messages.error(request, str(e))
+    return render(request, "editorial/novedad.html", {"page_title": "Cargar novedad oficial", "sitio": sitio, "marca": sitio.marca,
+                                                      "lineas": lineas, "d": datos, "documentos": DOCUMENTOS})

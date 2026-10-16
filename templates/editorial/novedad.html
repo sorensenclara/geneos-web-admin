@@ -1,0 +1,34 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags %}
+{% block titletag %}Cargar novedad oficial · {{ sitio.nombre }}{% endblock %}
+{% block content %}
+<div class="gwa-pagina gwa-bl" style="--gwa-producto: {{ marca.color }}">
+  <div class="gu-page-head">
+    <div class="gu-page-title">{% icon name="file-plus" classname="gu-icon" %}
+      <div>
+        <nav class="gwa-migas" aria-label="Ubicación"><a href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Blog de {{ sitio.nombre }}</a>{% icon name="arrow-right" classname="gu-icon" %}<span aria-current="page">Cargar novedad oficial</span></nav>
+        <h1>Cargar novedad oficial</h1>
+        <p>Complementa la lectura automática para organismos sin RSS ni API (INAES, ARCA, Boletín Oficial, SRT). Pegá el enlace de la publicación y completá sus datos:
+          no se descarga ni se copia la página.</p>
+      </div>
+    </div>
+  </div>
+  <section class="gu-card gwa-bl-panel">
+    <ul class="gwa-bl-pasos">
+      <li>Si el enlace es de un sitio oficial reconocido (.gob.ar, IRAM, Bomberos Voluntarios…), la tarjeta dice «Publicación oficial» y queda como prioritaria.</li>
+      <li>Si no, se carga como «Noticia periodística».</li>
+      <li>Ninguna tarjeta afirma que una norma está vigente ni qué obligaciones crea: eso se verifica en el documento antes de escribir.</li>
+    </ul>
+    <form method="post" class="gwa-bl-form">{% csrf_token %}
+      <label>Enlace de la publicación<input type="url" name="url" value="{{ d.url }}" maxlength="600" required placeholder="https://www.argentina.gob.ar/…"></label>
+      <label>Título tal como figura<input type="text" name="titulo" value="{{ d.titulo }}" maxlength="200" required></label>
+      <label>Organismo que la publicó<input type="text" name="organismo" value="{{ d.organismo }}" maxlength="120" required placeholder="Ej.: ARCA"></label>
+      <label>Tipo de documento<select name="documento">{% for x in documentos %}<option{% if d.documento == x %} selected{% endif %}>{{ x }}</option>{% endfor %}</select></label>
+      <label>Fecha de publicación<input type="date" name="publicado" value="{{ d.publicado }}" required></label>
+      {% if lineas %}<label>Línea<select name="linea"><option value="">General</option>{% for l in lineas %}<option value="{{ l.pk }}"{% if d.linea == l.pk|stringformat:'s' %} selected{% endif %}>{{ l.nombre }}</option>{% endfor %}</select></label>{% endif %}
+      <label>Resumen con tus palabras (opcional)<textarea name="resumen" rows="3" maxlength="600">{{ d.resumen }}</textarea></label>
+      <div class="gwa-bl-head-acc"><a class="gu-btn gu-btn-ghost" href="{% url 'blog:index' %}?sitio={{ sitio.clave }}">Cancelar</a><button class="gu-btn gu-btn-primary" type="submit">Cargar</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

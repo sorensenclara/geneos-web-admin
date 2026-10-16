@@ -1,7 +1,7 @@
 """«Actualidad e ideas para publicar» sin servicios pagos.
 
 Cuatro tipos que nunca se confunden (editorial.models.TIPOS_IDEA):
-- Noticia y Evento: de fuentes públicas identificables, con enlace y fecha (lectura automática de RSS: etapa siguiente).
+- Noticia y Evento: de fuentes públicas identificables, con enlace y fecha (lectura automática: editorial.lector).
 - Tendencia de búsqueda: solo con datos reales de Google Trends (RSS oficial o archivo exportado). Los valores se copian tal cual.
 - Idea editorial: surge de los contenidos aprobados del sitio (funcionalidades, sectores, preguntas frecuentes, servicios)
   que todavía no tienen un artículo, de una noticia, o de la IA si se habilita. No lleva datos de búsqueda.
@@ -264,6 +264,16 @@ def crear_borrador(idea, usuario):
         lineas.append("Funcionalidades que podrían relacionarse (verificar): " + ", ".join(f.etiqueta for f in funcs))
     if not idea.verificada:
         lineas.append("Idea editorial sin datos de búsqueda: verificar el tema antes de escribir.")
+    if idea.tipo == "noticia" and idea.naturaleza == "oficial":
+        lineas.append("Publicación oficial: leer el documento completo. No afirmar vigencia ni obligaciones sin verificarlo.")
+    elif idea.menciona_normativa:
+        lineas.append("Noticia periodística que menciona una normativa: buscar y leer el documento oficial antes de escribir. "
+                      "No afirmar vigencia ni obligaciones sin verificarlo.")
+    if idea.tipo == "evento" and idea.evento_fecha:
+        fin = f" al {idea.evento_fin:%d/%m/%Y}" if idea.evento_fin and idea.evento_fin != idea.evento_fecha else ""
+        lineas.append(f"Evento: {idea.evento_fecha:%d/%m/%Y}{fin} · {idea.evento_lugar} · fecha: {idea.fecha_fuente}")
+    if idea.relacion:
+        lineas.append(f"Relación con el producto: {idea.relacion}")
     lineas.append("Escribir un texto propio: no copiar párrafos ni fotos de la fuente.")
     if idea.fuente_url and idea.tipo in ("noticia", "evento"):
         # Cita de la fuente al final del artículo: título y medio, con enlace (sin reproducir el contenido)

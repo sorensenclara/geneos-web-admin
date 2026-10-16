@@ -123,8 +123,13 @@ TIPOS_IDEA = [
     ("tendencia", "Tendencia de búsqueda"),   # respaldada por datos reales (Google Trends: RSS oficial o archivo exportado)
     ("idea", "Idea editorial"),               # sugerencia propia: de noticias, funcionalidades, sectores, preguntas frecuentes o IA
 ]
-TIPOS_FUENTE = [("medio", "Medio periodístico"), ("oficial", "Organismo oficial"), ("evento", "Organizador de eventos"),
-                ("red_social", "Red social"), ("trends", "Google Trends"), ("interno", "Contenidos propios"), ("ia", "Inteligencia artificial")]
+TIPOS_FUENTE = [("medio", "Medio periodístico"), ("oficial", "Organismo o institución"), ("gdelt", "Búsqueda de noticias (GDELT)"),
+                ("evento", "Organizador de eventos"), ("red_social", "Red social"), ("trends", "Google Trends"), ("interno", "Contenidos propios"),
+                ("ia", "Inteligencia artificial")]
+# Naturaleza de lo que se muestra, para no confundir una publicación oficial con una nota que la menciona.
+NATURALEZAS = [("oficial", "Publicación oficial"),             # publicada por el organismo o la institución en su propio canal
+               ("periodistica", "Noticia periodística"),       # medio o búsqueda de noticias; puede mencionar una norma, pero no es la norma
+               ("evento", "Evento"), ("tendencia", "Tendencia de búsqueda"), ("idea", "Idea editorial")]
 ESTADOS_IDEA = [("sugerida", "Sugerida"), ("guardada", "Guardada"), ("descartada", "Descartada"), ("usada", "Con borrador")]
 
 
@@ -180,6 +185,20 @@ class IdeaEditorial(models.Model):
     clave = models.CharField(max_length=200, blank=True, help_text="Evita repetir la misma noticia o idea al actualizar.")
     importacion = models.ForeignKey(ImportacionTendencias, null=True, blank=True, on_delete=models.CASCADE, related_name="ideas")
     articulo = models.ForeignKey("contenidos.ArticuloPage", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    # Lectura automática y carga manual
+    fuente_actualidad = models.ForeignKey("FuenteActualidad", null=True, blank=True, on_delete=models.SET_NULL, related_name="items",
+                                          verbose_name="Fuente leída")
+    naturaleza = models.CharField(max_length=12, choices=NATURALEZAS, blank=True)
+    menciona_normativa = models.BooleanField(default=False, help_text="Menciona una ley, resolución o norma: verificar el documento oficial.")
+    relacion = models.CharField("Relación con el producto", max_length=300, blank=True)
+    prioritaria = models.BooleanField(default=False)
+    cargada_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    # Eventos
+    evento_fin = models.DateField("Finaliza", null=True, blank=True)
+    modalidad = models.CharField(max_length=20, blank=True, help_text="Presencial, virtual o híbrido.")
+    fecha_confirmada = models.BooleanField("Fecha confirmada", default=False,
+                                           help_text="Solo los eventos con fecha confirmada por una fuente confiable se muestran como próximos.")
+    fecha_fuente = models.CharField("De dónde sale la fecha", max_length=160, blank=True)
     creada = models.DateTimeField(auto_now_add=True)
     actualizada = models.DateTimeField(auto_now=True)
 
@@ -199,6 +218,107 @@ class IdeaEditorial(models.Model):
     @property
     def fecha(self):
         return self.publicado or self.consultado
+
+    @property
+    def es_oficial(self):
+        return self.naturaleza == "oficial"
+
+    @property
+    def etiqueta(self):
+        """Lo que dice la tarjeta arriba: nunca presenta una nota periodística como publicación oficial."""
+        if self.tipo == "noticia":
+            return "Publicación oficial" if self.naturaleza == "oficial" else "Noticia periodística"
+        return self.get_tipo_display()
+
+
+# ------------------------------------------------------------------------------------------------ Lectura automática
+PRODUCTOS = [("geneos", "GENEOS"), ("gerp", "GERP"), ("geagro", "GEAGRO"), ("gema", "GEMA"), ("todos", "Todos los productos")]
+METODOS = [("rss", "RSS / Atom"), ("gdelt", "GDELT (API de búsqueda de noticias)"), ("youtube", "YouTube Data API"),
+           ("trends", "Google Trends (RSS)"), ("google_news", "Google News RSS (experimental)"), ("ninguno", "Sin canal legible")]
+ESTADOS_FUENTE = [("prueba", "En prueba"), ("activa", "Activa"), ("pausada", "Pausada"), ("descartada", "Descartada"),
+                  ("sin_canal", "Sin canal automático"), ("experimental", "Experimental, desactivada")]
+
+
+class FuenteActualidad(models.Model):
+    """Fuente pública que lee «Actualidad e ideas para publicar». Solo se muestran resultados de fuentes verificadas:
+    accesibles desde el servidor, permitidas (robots.txt y condiciones), con publicaciones reales (título, fecha y enlace)
+    y con contenido relacionado con el producto."""
+    clave = models.SlugField(max_length=60, unique=True)
+    producto = models.CharField(max_length=8, choices=PRODUCTOS)
+    linea = models.CharField("Línea", max_length=20, blank=True, help_text="GEAGRO: cereales o vid. Vacío: se clasifica por tema.")
+    nombre = models.CharField(max_length=120)
+    organizacion = models.CharField("Organización", max_length=120, blank=True)
+    fuente_tipo = models.CharField(max_length=12, choices=TIPOS_FUENTE, default="medio")
+    naturaleza = models.CharField(max_length=12, choices=NATURALEZAS, default="periodistica")
+    tipo = models.CharField(max_length=12, choices=TIPOS_IDEA, default="noticia")
+    metodo = models.CharField(max_length=12, choices=METODOS, default="rss")
+    url = models.URLField("Dirección del feed o canal", max_length=600, blank=True)
+    consulta = models.CharField(max_length=400, blank=True, help_text="GDELT: términos de búsqueda. YouTube: id del canal (UC…).")
+    sitio_web = models.URLField(blank=True, max_length=300)
+    relacion = models.CharField("Relación con el producto", max_length=300)
+    terminos = models.TextField("Términos de relevancia", blank=True,
+                                help_text="Separados por coma. Vacío: los del producto. Una publicación sin ninguno no se muestra.")
+    filtrar = models.BooleanField("Filtrar por términos", default=True)
+    condiciones = models.CharField("Condiciones de uso", max_length=300, blank=True)
+    estado = models.CharField(max_length=12, choices=ESTADOS_FUENTE, default="prueba")
+    prioritaria = models.BooleanField(default=False, help_text="Sus novedades actuales y relevantes aparecen antes que las demás.")
+    orden = models.PositiveSmallIntegerField(default=0)
+    # Resultado de la verificación y de la última lectura
+    verificada = models.DateTimeField(null=True, blank=True, help_text="Cuándo pasó por primera vez todos los controles.")
+    motivo = models.CharField("Resultado", max_length=300, blank=True)
+    ultima_lectura = models.DateTimeField(null=True, blank=True)
+    ultimo_ok = models.DateTimeField(null=True, blank=True)
+    ultimo_error = models.CharField(max_length=300, blank=True)
+    items_leidos = models.PositiveIntegerField(default=0)
+    items_relevantes = models.PositiveIntegerField(default=0)
+    items_nuevos = models.PositiveIntegerField(default=0)
+    ultimo_item = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["producto", "orden", "nombre"]
+        verbose_name = "fuente de actualidad"
+        verbose_name_plural = "fuentes de actualidad"
+
+    def __str__(self):
+        return self.nombre
+
+    @property
+    def muestra_resultados(self):
+        return self.estado == "activa" and self.verificada is not None
+
+    @property
+    def estado_legible(self):
+        if self.estado == "activa" and self.ultimo_error:
+            return "Activa · última lectura con error"
+        if self.estado == "prueba" and self.ultima_lectura:
+            return "En prueba · no pasó los controles"
+        return self.get_estado_display()
+
+
+ORIGENES_ACTUALIZACION = [("ingreso", "Al ingresar al administrador"), ("boton", "«Actualizar ahora»"), ("comando", "Comando o tarea programada")]
+
+
+class ActualizacionActualidad(models.Model):
+    """Cada lectura de fuentes. Se muestra la fecha de la última y su resultado."""
+    inicio = models.DateTimeField(auto_now_add=True)
+    fin = models.DateTimeField(null=True, blank=True)
+    estado = models.CharField(max_length=10, default="corriendo")  # corriendo, ok, parcial, error
+    origen = models.CharField(max_length=8, choices=ORIGENES_ACTUALIZACION)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    fuentes_ok = models.PositiveSmallIntegerField(default=0)
+    fuentes_error = models.PositiveSmallIntegerField(default=0)
+    nuevos = models.PositiveIntegerField(default=0)
+    detalle = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-inicio"]
+        verbose_name = "actualización de fuentes"
+        verbose_name_plural = "actualizaciones de fuentes"
+
+
+class CerrojoActualidad(models.Model):
+    """Una sola fila: evita dos lecturas al mismo tiempo (UPDATE atómico sobre «hasta»)."""
+    hasta = models.DateTimeField()
 
 
 class ConsumoIA(models.Model):

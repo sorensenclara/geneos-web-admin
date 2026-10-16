@@ -142,6 +142,11 @@ class BlogViewSet(ViewSet):
             path("<slug:clave>/nuevo/", vistas.nuevo, name="nuevo"),
             path("<slug:clave>/configurar/", vistas.configurar, name="configurar"),
             path("<slug:clave>/actualidad/", vistas.actualidad, name="actualidad"),
+            path("<slug:clave>/fuentes/", vistas.fuentes, name="fuentes"),
+            path("<slug:clave>/novedad-oficial/", vistas.novedad_oficial, name="novedad_oficial"),
+            path("fuente/<int:pk>/<slug:accion>/", vistas.fuente_accion, name="fuente_accion"),
+            path("lectura/auto/", vistas.lectura_automatica, name="lectura_auto"),
+            path("lectura/estado/", vistas.lectura_estado, name="lectura_estado"),
             path("idea/<int:pk>/", vistas.idea_detalle, name="idea"),
             path("idea/<int:pk>/<slug:accion>/", vistas.idea_accion, name="idea_accion"),
         ]

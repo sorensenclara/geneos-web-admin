@@ -121,3 +121,8 @@ GWA_FORM_MAX_POR_HORA = int(env("GWA_FORM_MAX_POR_HORA", "5"))
 
 (BASE_DIR / "var").mkdir(exist_ok=True)
 WAGTAIL_GRAVATAR_PROVIDER_URL = None
+
+# «Actualidad e ideas para publicar»: clave de YouTube Data API v3 (solo en el servidor, nunca en el navegador).
+# Sin clave, los canales de YouTube quedan «pendientes de configurar» y no se consultan.
+YOUTUBE_API_KEY = env("YOUTUBE_API_KEY", "")
+ACTUALIDAD_EN_SEGUNDO_PLANO = True  # la lectura de fuentes no bloquea la pantalla

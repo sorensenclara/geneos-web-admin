@@ -1,3 +1,6 @@
+from django.templatetags.static import static
+from django.urls import reverse
+from django.utils.html import format_html
 from wagtail import hooks
 from wagtail.signals import published
 from wagtail.snippets.models import register_snippet
@@ -47,3 +50,9 @@ def _config_publicada(sender, instance, **kwargs):
 
 
 published.connect(_config_publicada)
+
+
+@hooks.register("insert_global_admin_js")
+def lectura_al_ingresar():
+    """Al ingresar al administrador se pide (sin esperar) la lectura de fuentes; el servidor decide si pasaron 24 horas."""
+    return format_html('<script src="{}" data-url="{}" defer></script>', static("gwa/actualidad.js"), reverse("blog:lectura_auto"))
