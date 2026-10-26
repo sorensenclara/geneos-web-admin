@@ -213,7 +213,8 @@ class BlogUniversal(TestCase):
         self.assertLess(menu.index(">Noticias<"), menu.index(">Contacto<"))
         nota = (carpeta / "noticias/primera-noticia/index.html").read_text()
         self.assertIn('property="og:type" content="article"', nota)
-        self.assertIn('class="site-header head-claro"', nota)  # encabezado y pie de la web de GENEOS (claro: predeterminado)
+        self.assertIn('class="site-header"', nota)  # encabezado y pie de la web de GENEOS
+        self.assertIn('data-tema="claro"', nota)  # apariencia predeterminada: clara
         self.assertIn("/noticias/primera-noticia/</loc>", (carpeta / "sitemap.xml").read_text())
 
     def test_geneos_apariencia_del_encabezado(self):
@@ -223,7 +224,7 @@ class BlogUniversal(TestCase):
         geneos = SitioWeb.objects.get(clave="geneos")
         self.assertEqual(geneos.encabezado, "claro")
         carpeta, _ = self.generar(geneos)
-        self.assertIn('class="site-header head-claro"', (carpeta / "index.html").read_text())
+        self.assertIn('data-tema="claro"', (carpeta / "index.html").read_text())
         geneos.encabezado = "oscuro"
         geneos.save()
         raiz = geneos.site.root_page.specific
@@ -231,8 +232,8 @@ class BlogUniversal(TestCase):
         raiz.add_child(instance=pagina)
         pagina.save_revision().publish()
         carpeta, datos = self.generar(geneos)
-        self.assertIn('class="site-header head-oscuro"', (carpeta / "index.html").read_text())
-        self.assertIn('class="site-header head-claro"', (carpeta / "staff-augmentation/index.html").read_text())
+        self.assertIn('data-tema="oscuro"', (carpeta / "index.html").read_text())
+        self.assertIn('data-tema="claro"', (carpeta / "staff-augmentation/index.html").read_text())
         # El campo solo aparece en las páginas de GENEOS
         Form = PaginaWeb.get_edit_handler().get_form_class()
         self.assertIn("encabezado", Form(instance=pagina, parent_page=raiz, for_user=self.admin if hasattr(self, "admin") else None).fields)

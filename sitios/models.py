@@ -21,9 +21,10 @@ class SitioWeb(models.Model):
                              help_text="En GENEOS, GERP, GEAGRO y GEMA el administrador usa el color de su isologo oficial.")
     motor = models.CharField("Generador", max_length=20, choices=MOTORES, default="comercial")
     ENCABEZADOS = [("claro", "Claro (blanco)"), ("oscuro", "Oscuro (negro)")]
-    encabezado = models.CharField("Apariencia del encabezado", max_length=10, choices=ENCABEZADOS, default="claro",
-                                  help_text="Solo en la web institucional de GENEOS. Se aplica a todas sus páginas; "
-                                            "una página puede elegir otra en su pestaña «Contenido» → «Apariencia».")
+    encabezado = models.CharField("Apariencia predeterminada", max_length=10, choices=ENCABEZADOS, default="claro",
+                                  help_text="Solo en la web institucional de GENEOS: modo con el que se abre la web (encabezado y hero de la home). "
+                                            "Si el visitante elige otro con el botón sol/luna, se respeta su elección en su navegador. "
+                                            "No cambia la apariencia de este administrador.")
     orden = models.PositiveSmallIntegerField(default=0)
 
     usa_blog = models.BooleanField("Blog", default=True)

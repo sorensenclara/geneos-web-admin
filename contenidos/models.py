@@ -139,9 +139,9 @@ class PaginaWeb(SeoMixin, Page):
     boton2_texto = models.CharField("Botón secundario: texto", max_length=60, blank=True)
     boton2_enlace = models.CharField("Botón secundario: enlace", max_length=200, blank=True)
     secciones_ocultas = models.JSONField(default=list, blank=True)
-    encabezado = models.CharField("Encabezado", max_length=10, blank=True, default="",
+    encabezado = models.CharField("Apariencia predeterminada de esta página", max_length=10, blank=True, default="",
                                   choices=[("", "Heredar configuración global"), ("claro", "Claro (blanco)"), ("oscuro", "Oscuro (negro)")],
-                                  help_text="Solo en la web institucional de GENEOS. «Heredar» usa la apariencia elegida en Sitios y contacto.")
+                                  help_text="Solo en la web institucional de GENEOS. «Heredar» usa la apariencia predeterminada de Sitios y contacto. La elección del visitante tiene prioridad.")
     notas = models.TextField("Notas internas", blank=True, help_text="No se publican.")
 
     base_form_class = PaginaForm
