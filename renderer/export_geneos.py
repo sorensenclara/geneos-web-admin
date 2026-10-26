@@ -108,6 +108,15 @@ def generar(out_root):
         nav.insert(pos - 1 if 0 < pos <= len(nav) else len(nav), item)
         return nav
 
+    # Apariencia del encabezado (claro u oscuro): global del sitio y, si una página la define, la de esa página.
+    if hasattr(B, "SITIO"):
+        if PD.get("header") in ("claro", "oscuro"):
+            B.SITIO["encabezado"] = PD["header"]
+        paginas = PD.get("pages") or {}
+        for p in B.PAGES:
+            h = (paginas.get(p["out"]) or {}).get("header")
+            if h in ("claro", "oscuro"):
+                p["encabezado"] = h
     B.FileSystemLoader = cargador
     B.Environment = Entorno
     if activo:

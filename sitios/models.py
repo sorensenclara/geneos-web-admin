@@ -20,6 +20,10 @@ class SitioWeb(models.Model):
     color = models.CharField("Color del sitio", max_length=7, default="#128237",
                              help_text="En GENEOS, GERP, GEAGRO y GEMA el administrador usa el color de su isologo oficial.")
     motor = models.CharField("Generador", max_length=20, choices=MOTORES, default="comercial")
+    ENCABEZADOS = [("claro", "Claro (blanco)"), ("oscuro", "Oscuro (negro)")]
+    encabezado = models.CharField("Apariencia del encabezado", max_length=10, choices=ENCABEZADOS, default="claro",
+                                  help_text="Solo en la web institucional de GENEOS. Se aplica a todas sus páginas; "
+                                            "una página puede elegir otra en su pestaña «Contenido» → «Apariencia».")
     orden = models.PositiveSmallIntegerField(default=0)
 
     usa_blog = models.BooleanField("Blog", default=True)
@@ -56,6 +60,7 @@ class SitioWeb(models.Model):
 
     panels_general = [
         MultiFieldPanel([FieldPanel("nombre"), FieldPanel("clave", read_only=True), FieldRowPanel([FieldPanel("dominio"), FieldPanel("dominio_confirmado")]), FieldPanel("color")], "Sitio"),
+        MultiFieldPanel([FieldPanel("encabezado")], "Apariencia"),
         MultiFieldPanel([FieldRowPanel([FieldPanel("usa_blog"), FieldPanel("usa_planes"), FieldPanel("usa_comparador")]),
                          FieldRowPanel([FieldPanel("usa_testimonios"), FieldPanel("usa_formularios")])], "Módulos del sitio"),
         HelpPanel("<p>Los precios, la moneda, el IVA y la leyenda de vigencia se cargan en cada plan (Oferta comercial → Planes y precios).</p>"),

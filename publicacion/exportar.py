@@ -166,6 +166,8 @@ def datos_paginas(fuente, faqs_por_ruta, excluir_faqs=()):
             d["hero"] = hero
         if p.secciones_ocultas:
             d["hidden"] = list(p.secciones_ocultas)
+        if p.encabezado:
+            d["header"] = p.encabezado  # claro u oscuro; vacío = heredar la configuración del sitio
         pages[p.ruta_publica] = d
     for ruta, items in faqs_por_ruta.items():
         if ruta not in excluir_faqs:
@@ -567,6 +569,8 @@ def datos_sitio(sitio, overrides=None):
         if reds:
             pd["redirects"] = [[r.origen, r.destino] for r in reds]
     pd["identity"] = datos_identidad(fuente, files)
+    if sitio.clave == "geneos":
+        pd["header"] = sitio.encabezado  # apariencia del encabezado de la web institucional
     if sitio.usa_formularios:
         pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento}
     archivos = {"contacto.json": contacto(sitio), f"{sitio.clave}.admin.json": pd}

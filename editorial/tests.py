@@ -213,8 +213,32 @@ class BlogUniversal(TestCase):
         self.assertLess(menu.index(">Noticias<"), menu.index(">Contacto<"))
         nota = (carpeta / "noticias/primera-noticia/index.html").read_text()
         self.assertIn('property="og:type" content="article"', nota)
-        self.assertIn('class="site-header"', nota)  # encabezado y pie de la web de GENEOS
+        self.assertIn('class="site-header head-claro"', nota)  # encabezado y pie de la web de GENEOS (claro: predeterminado)
         self.assertIn("/noticias/primera-noticia/</loc>", (carpeta / "sitemap.xml").read_text())
+
+    def test_geneos_apariencia_del_encabezado(self):
+        """La apariencia elegida en Sitios y contacto se aplica a todas las páginas; una página puede usar otra."""
+        from contenidos.models import PaginaWeb
+        from sitios.models import SitioWeb
+        geneos = SitioWeb.objects.get(clave="geneos")
+        self.assertEqual(geneos.encabezado, "claro")
+        carpeta, _ = self.generar(geneos)
+        self.assertIn('class="site-header head-claro"', (carpeta / "index.html").read_text())
+        geneos.encabezado = "oscuro"
+        geneos.save()
+        raiz = geneos.site.root_page.specific
+        pagina = PaginaWeb(title="Staff Augmentation", slug="staff-prueba-encabezado", ruta_publica="staff-augmentation/", encabezado="claro")
+        raiz.add_child(instance=pagina)
+        pagina.save_revision().publish()
+        carpeta, datos = self.generar(geneos)
+        self.assertIn('class="site-header head-oscuro"', (carpeta / "index.html").read_text())
+        self.assertIn('class="site-header head-claro"', (carpeta / "staff-augmentation/index.html").read_text())
+        # El campo solo aparece en las páginas de GENEOS
+        Form = PaginaWeb.get_edit_handler().get_form_class()
+        self.assertIn("encabezado", Form(instance=pagina, parent_page=raiz, for_user=self.admin if hasattr(self, "admin") else None).fields)
+        otra = PaginaWeb.objects.exclude(pk=pagina.pk).exclude(path__startswith=raiz.path).first()
+        if otra is not None:
+            self.assertNotIn("encabezado", Form(instance=otra, parent_page=otra.get_parent(), for_user=None).fields)
 
     # ---------------------------------------------------------------------------------------------- Pantalla Blog y noticias
     def test_pantalla_selector_y_estado_vacio(self):

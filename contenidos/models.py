@@ -84,6 +84,11 @@ class PaginaForm(WagtailAdminPageForm):
         super().__init__(*args, **kwargs)
         if "secciones_ocultas_sel" in self.fields:
             self.fields["secciones_ocultas_sel"].initial = self.instance.secciones_ocultas or []
+        if "encabezado" in self.fields:  # la apariencia del encabezado solo existe en la web institucional de GENEOS
+            ref = self.instance if getattr(self.instance, "path", "") else getattr(self, "parent_page", None)
+            sw = sitio_de_pagina(ref) if ref is not None else None
+            if sw is not None and sw.clave != "geneos":
+                del self.fields["encabezado"]
 
     def save(self, commit=True):
         self.instance.secciones_ocultas = self.cleaned_data.get("secciones_ocultas_sel") or []
@@ -134,6 +139,9 @@ class PaginaWeb(SeoMixin, Page):
     boton2_texto = models.CharField("Botón secundario: texto", max_length=60, blank=True)
     boton2_enlace = models.CharField("Botón secundario: enlace", max_length=200, blank=True)
     secciones_ocultas = models.JSONField(default=list, blank=True)
+    encabezado = models.CharField("Encabezado", max_length=10, blank=True, default="",
+                                  choices=[("", "Heredar configuración global"), ("claro", "Claro (blanco)"), ("oscuro", "Oscuro (negro)")],
+                                  help_text="Solo en la web institucional de GENEOS. «Heredar» usa la apariencia elegida en Sitios y contacto.")
     notas = models.TextField("Notas internas", blank=True, help_text="No se publican.")
 
     base_form_class = PaginaForm
@@ -143,6 +151,7 @@ class PaginaWeb(SeoMixin, Page):
                          FieldRowPanel([FieldPanel("boton1_texto"), FieldPanel("boton1_enlace")]),
                          FieldRowPanel([FieldPanel("boton2_texto"), FieldPanel("boton2_enlace")])], "Encabezado (hero)"),
         FieldPanel("secciones_ocultas_sel"),
+        MultiFieldPanel([FieldPanel("encabezado")], "Apariencia"),
         FieldPanel("linea"), FieldPanel("notas"),
     ]
     promote_panels = []
