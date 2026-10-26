@@ -1,6 +1,6 @@
 /* GENEOS UI · tokens del tema claro de GENEOS Web Admin (antes oscuro).
    Mismos nombres de variables y misma paleta clara que GELECTRIC (core/static/core/css/dashboard.css):
-   fondo gris azulado muy claro, tarjetas blancas, menú lateral azul y verde para lo principal.
+   fondo gris azulado muy claro, tarjetas blancas, menú lateral negro y verde para lo principal.
    Los colores de cada producto salen de su isologo oficial (sitios/marca.py). */
 /* Tipografía de GENEOS (la misma que GELECTRIC), servida desde el administrador: licencia OFL en fuentes/ */
 @font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 400; font-display: swap; src: url("fuentes/titillium-web-latin-400-normal.woff2") format("woff2"); }
@@ -22,9 +22,10 @@
   --text-muted: #8991a8;
   --shadow: 0 1px 2px rgba(20, 26, 58, .05), 0 8px 24px rgba(20, 26, 58, .06);
 
-  --sidebar-bg: #244c97;
-  --sidebar-brand-bg: #0c3a84;
-  --sidebar-bg-active: #0c3a84;
+  /* Menú lateral negro (el azul se reserva para los productos) */
+  --sidebar-bg: #0b0d0c;
+  --sidebar-brand-bg: #000;
+  --sidebar-bg-active: color-mix(in srgb, var(--brand-green) 22%, #0b0d0c);
   --sidebar-text: rgba(255, 255, 255, .85);
   --sidebar-text-muted: rgba(255, 255, 255, .55);
   --sidebar-text-active: #fff;
@@ -35,7 +36,7 @@
   --brand-green-hover: #14925f;
   --brand-green-active: #0f7f52;
   --brand-green-ink: #0d7a53;           /* verde para texto e íconos sobre fondo claro */
-  --brand-accent-bg: color-mix(in srgb, var(--sidebar-bg) 11%, white);
+  --brand-accent-bg: color-mix(in srgb, var(--brand-green) 10%, white);
   --brand-blue: #2e6fe0;
 
   --status-good: #17a672;

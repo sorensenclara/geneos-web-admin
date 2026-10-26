@@ -245,3 +245,21 @@
 .gu-switch input:checked + span[aria-hidden]::after { transform: translateX(16px); background: #fff; }
 .gu-switch input:focus-visible + span[aria-hidden] { outline: 2px solid var(--brand-green-ink); outline-offset: 2px; }
 .gu-switch input:disabled + span[aria-hidden] { opacity: .5; }
+
+/* ---------- Buscador del menú lateral (como GELETRIC) ---------- */
+.gu-sidebar-search { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, .08); border: 1px solid var(--sidebar-border);
+  border-radius: 999px; padding: 7px 11px; color: var(--sidebar-text-muted); cursor: text; }
+.gu-sidebar-search:focus-within { border-color: var(--brand-green); background: rgba(255, 255, 255, .12); }
+.gu-sidebar-search .gu-icon { width: 15px; height: 15px; flex-shrink: 0; }
+.gu-sidebar-search input { border: 0 !important; background: none !important; outline: none !important; box-shadow: none !important; padding: 0;
+  min-height: 0; height: auto; font-size: 13px; color: var(--sidebar-text-active) !important; width: 100%; font-family: var(--font-body); }
+.gu-sidebar-search input::placeholder { color: var(--sidebar-text-muted); }
+.gu-sidebar-search-clear { background: none; border: 0; padding: 2px; margin: 0; display: flex; color: var(--sidebar-text-muted); cursor: pointer; }
+.gu-sidebar-search-clear:hover { color: var(--sidebar-text-active); }
+.gu-sidebar-search-clear[hidden] { display: none; }
+.gu-sidebar-results { display: flex; flex-direction: column; gap: 2px; }
+.gu-sidebar-results[hidden], #gu-sidebar-nav[hidden], .gu-sidebar-foot[hidden] { display: none; }
+.gu-search-hit .gu-nav-label { display: flex; flex-direction: column; line-height: 1.25; }
+.gu-search-hit .gu-nav-label small { font-size: 11.5px; color: var(--sidebar-text-muted); }
+.gu-sidebar-empty { margin: 4px 10px; font-size: 13px; color: var(--sidebar-text-muted); }
+@media (min-width: 861px) { .gu-sidebar:not(.pinned) .gu-sidebar-search-wrap, .gu-sidebar:not(.pinned) .gu-sidebar-results { display: none; } }

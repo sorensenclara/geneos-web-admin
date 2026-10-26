@@ -75,9 +75,12 @@ class PanelResumen(Component):
         from contenidos.models import Plan
         planes = Plan.objects.filter(sitio__in=sitios, live=True, visible=True).select_related("sitio")
         vencen = [p for p in planes if p.vigente_hasta and (p.vigente_hasta - hoy).days <= 30]
-        return {"estados": [estado_sitio(s) for s in sitios], "vencen": vencen, "hoy": hoy,
+        activo = self.request.session.get("gwa_sitio", "")
+        visibles = [x for x in sitios if x.clave == activo] or sitios  # «Trabajar en»: solo el sitio elegido
+        # El formulario de «Trabajar en» necesita el request y el token CSRF (el componente no hereda el contexto de la página)
+        return {"estados": [estado_sitio(s) for s in visibles], "vencen": vencen, "hoy": hoy,
                 "pedidos": SolicitudDemo.objects.filter(sitio__in=sitios, estado="nuevo").count(),
-                "activo": self.request.session.get("gwa_sitio", ""), "sitios": sitios}
+                "activo": activo, "sitios": sitios, "request": self.request, "csrf_token": parent_context.get("csrf_token")}
 
 
 @hooks.register("construct_homepage_panels")
