@@ -1,6 +1,6 @@
-/* GENEOS UI · tokens del tema oscuro de GENEOS Web Admin.
-   Mismos nombres de variables que GELECTRIC (core/static/core/css/dashboard.css), con la paleta oscura
-   de GENEOS: fondo casi negro, tarjetas apenas más claras, bordes sutiles y verde GENEOS para lo principal.
+/* GENEOS UI · tokens del tema claro de GENEOS Web Admin (antes oscuro).
+   Mismos nombres de variables y misma paleta clara que GELECTRIC (core/static/core/css/dashboard.css):
+   fondo gris azulado muy claro, tarjetas blancas, menú lateral azul y verde para lo principal.
    Los colores de cada producto salen de su isologo oficial (sitios/marca.py). */
 /* Tipografía de GENEOS (la misma que GELECTRIC), servida desde el administrador: licencia OFL en fuentes/ */
 @font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 400; font-display: swap; src: url("fuentes/titillium-web-latin-400-normal.woff2") format("woff2"); }
@@ -8,40 +8,41 @@
 @font-face { font-family: "Titillium Web"; font-style: normal; font-weight: 700; font-display: swap; src: url("fuentes/titillium-web-latin-700-normal.woff2") format("woff2"); }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --bg: #0b0d0c;
-  --surface: #151917;
-  --surface-2: #101311;
-  --surface-3: #1c211e;
-  --border: #252b28;
-  --border-strong: #343c38;
-  --text: #eef2ef;
-  --text-secondary: #b7c0bb;
-  --text-muted: #85908a;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .35);
+  /* Paleta clara de GELETRIC (core/static/core/css/dashboard.css) */
+  --bg: #f7fafe;
+  --surface: #ffffff;
+  --surface-2: #f5f7fc;
+  --surface-3: #eef1f8;
+  --border: #e3e7f2;
+  --border-strong: #cad0e3;
+  --text: #141b3c;
+  --text-secondary: #4c5573;
+  --text-muted: #8991a8;
+  --shadow: 0 1px 2px rgba(20, 26, 58, .05), 0 8px 24px rgba(20, 26, 58, .06);
 
-  --sidebar-bg: #0f1211;
-  --sidebar-brand-bg: #000;
-  --sidebar-bg-active: color-mix(in srgb, var(--brand-green) 24%, #0f1211);
-  --sidebar-text: rgba(255, 255, 255, .82);
-  --sidebar-text-muted: rgba(255, 255, 255, .5);
+  --sidebar-bg: #244c97;
+  --sidebar-brand-bg: #0c3a84;
+  --sidebar-bg-active: #0c3a84;
+  --sidebar-text: rgba(255, 255, 255, .85);
+  --sidebar-text-muted: rgba(255, 255, 255, .55);
   --sidebar-text-active: #fff;
-  --sidebar-border: rgba(255, 255, 255, .08);
+  --sidebar-border: rgba(255, 255, 255, .09);
 
-  /* Verde GENEOS (isologotipo) para acciones principales y navegación activa */
-  --brand-green: #128237;
-  --brand-green-hover: #169a42;
-  --brand-green-active: #0e6a2d;
-  --brand-green-ink: #4cc276;           /* verde para texto e íconos sobre fondo oscuro */
-  --brand-accent-bg: color-mix(in srgb, var(--brand-green) 16%, var(--surface));
-  --brand-blue: #2e5faa;                /* azul del isologotipo de GENEOS */
+  /* Verde para acciones principales y estados (como GELETRIC) */
+  --brand-green: #17a672;
+  --brand-green-hover: #14925f;
+  --brand-green-active: #0f7f52;
+  --brand-green-ink: #0d7a53;           /* verde para texto e íconos sobre fondo claro */
+  --brand-accent-bg: color-mix(in srgb, var(--sidebar-bg) 11%, white);
+  --brand-blue: #2e6fe0;
 
-  --status-good: #3fbf6b;
-  --status-warning: #e8a33d;
-  --status-critical: #f0646a;
-  --status-neutral: #85908a;
-  --status-info: #6f9be0;
+  --status-good: #17a672;
+  --status-warning: #e0972b;
+  --status-critical: #e5484d;
+  --status-neutral: #8991a8;
+  --status-info: #1d4fa8;
 
   /* Productos (isologos oficiales) */
   --gerp: #1b4b8c;

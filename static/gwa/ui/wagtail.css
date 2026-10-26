@@ -1,9 +1,9 @@
 /* GENEOS UI sobre Wagtail: el panel de Wagtail toma los tokens del tema oscuro de GENEOS y los
    componentes de GELECTRIC (botones, campos, tablas, desplegables, estados). Solo estilos: no cambia
-   ningún comportamiento de Wagtail. El tema queda oscuro aunque la cuenta tenga elegido otro. */
+   ningún comportamiento de Wagtail. El tema queda claro (como GELETRIC) aunque la cuenta tenga elegido otro. */
 
 :root.w-theme-light, :root.w-theme-dark, :root.w-theme-system {
-  color-scheme: dark;
+  color-scheme: light;
   --w-font-sans: var(--font-body);
 
   /* Paleta base de Wagtail → verde GENEOS (botones, casillas, solapas, foco) */
@@ -11,7 +11,7 @@
   --w-color-secondary-400: var(--brand-green-hover);
   --w-color-secondary-600: var(--brand-green-active);
   --w-color-secondary-100: var(--brand-green-ink);
-  --w-color-secondary-75: color-mix(in srgb, var(--brand-green-ink) 70%, #fff);
+  --w-color-secondary-75: color-mix(in srgb, var(--brand-green) 40%, #fff);
   --w-color-secondary-50: color-mix(in srgb, var(--brand-green) 18%, var(--surface));
   --w-color-primary: var(--sidebar-bg);
   --w-color-primary-200: var(--surface-3);
@@ -40,7 +40,7 @@
   --w-color-text-meta: var(--text-muted);
   --w-color-text-placeholder: var(--text-muted);
   --w-color-text-link-default: var(--brand-green-ink);
-  --w-color-text-link-hover: color-mix(in srgb, var(--brand-green-ink) 75%, #fff);
+  --w-color-text-link-hover: var(--brand-green-active);
   --w-color-text-button-outline-default: var(--brand-green-ink);
   --w-color-text-button-outline-hover: var(--brand-green-ink);
   --w-color-text-highlight: var(--brand-green-ink);
@@ -63,7 +63,7 @@
   --w-color-border-button-outline-default: var(--brand-green);
   --w-color-border-button-outline-hover: var(--brand-green-hover);
   --w-color-focus: var(--brand-green-ink);
-  --w-color-box-shadow-md: rgba(0, 0, 0, .5);
+  --w-color-box-shadow-md: rgba(20, 26, 58, .14);
 }
 
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
@@ -167,3 +167,7 @@ body.login .content-wrapper { background: var(--surface); border: 1px solid var(
 @media (max-width: 49.9375em) {
   .gu-main .w-pl-slim-header { padding-inline-start: 1rem; }
 }
+
+/* Barra inferior de guardado del editor: blanca, como el resto del panel claro */
+.footer, footer.footer { background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -6px 18px rgba(20, 26, 58, .06); }
+.footer__container, .actions--primary { background: var(--surface); }

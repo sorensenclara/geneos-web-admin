@@ -59,7 +59,7 @@
 
 /* ---------- Topbar ---------- */
 .gu-topbar { position: sticky; top: 0; z-index: 110; display: flex; align-items: center; gap: 14px; padding: 12px 24px; min-height: var(--gu-topbar-h);
-  background: var(--sidebar-bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .gu-menu-btn { display: flex; background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 36px; height: 36px;
   align-items: center; justify-content: center; color: var(--text-secondary); cursor: pointer; flex-shrink: 0; padding: 0; }
 .gu-menu-btn:hover { background: var(--surface); color: var(--text); }
@@ -216,7 +216,7 @@
 /* ---------- Tablet y celular: el sidebar es un cajón que abre la hamburguesa ---------- */
 @media (max-width: 860px) {
   .gu-sidebar { position: fixed; left: 0; top: 0; z-index: 120; transform: translateX(-100%); visibility: hidden; transition: transform .25s ease, visibility 0s linear .25s; }
-  .gu-sidebar.open { transform: translateX(0); visibility: visible; box-shadow: 20px 0 60px rgba(0, 0, 0, .5); transition: transform .25s ease; }
+  .gu-sidebar.open { transform: translateX(0); visibility: visible; box-shadow: 20px 0 60px rgba(20, 26, 58, .25); transition: transform .25s ease; }
   .gu-search kbd { display: none; }
   .gu-user-chip { padding: 3px; }
   .gu-user-chip .gu-who, .gu-logout-label { display: none; }
@@ -225,7 +225,7 @@
   .gu-topbar-spacer { display: none; }
   .gu-page-head h1 { font-size: 23px; }
 }
-.gu-scrim { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 115; }
+.gu-scrim { display: none; position: fixed; inset: 0; background: rgba(20, 26, 58, .45); z-index: 115; }
 .gu-scrim.open { display: block; }
 
 @media (prefers-reduced-motion: reduce) {
