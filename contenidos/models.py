@@ -23,7 +23,11 @@ from wagtail.search import index
 
 from sitios.models import LineaProducto, SitioWeb
 
+from . import geneos as G
 from .iconos_funcionalidad import ICONOS as ICONOS_FUNCIONALIDAD
+
+BLOQUES_SECCION = G.BLOQUES_SECCION
+BLOQUES_DESTACADOS = [("destacado", G.DestacadoBlock())]
 
 SECCIONES = [("sectores", "Sectores"), ("comparar", "Comparador de planes"), ("clientes", "Logos de clientes"),
              ("testimonios", "Testimonios"), ("faq", "Preguntas frecuentes")]
@@ -84,11 +88,40 @@ class PaginaForm(WagtailAdminPageForm):
         super().__init__(*args, **kwargs)
         if "secciones_ocultas_sel" in self.fields:
             self.fields["secciones_ocultas_sel"].initial = self.instance.secciones_ocultas or []
-        if "encabezado" in self.fields:  # la apariencia del encabezado solo existe en la web institucional de GENEOS
-            ref = self.instance if getattr(self.instance, "path", "") else getattr(self, "parent_page", None)
-            sw = sitio_de_pagina(ref) if ref is not None else None
-            if sw is not None and sw.clave != "geneos":
-                del self.fields["encabezado"]
+        ref = self.instance if getattr(self.instance, "path", "") else getattr(self, "parent_page", None)
+        sw = sitio_de_pagina(ref) if ref is not None else None
+        self.es_geneos = sw is not None and sw.clave == "geneos"
+        if sw is not None and not self.es_geneos:  # apariencia y contenido por sección: solo la web institucional de GENEOS
+            for campo in ("encabezado", "hero_antetitulo", "hero_destacados", "secciones"):
+                self.fields.pop(campo, None)
+        if self.es_geneos and "secciones_ocultas_sel" in self.fields:
+            propias = [(s["clave"], s["nombre"]) for s in G.secciones_de(self.instance.ruta_publica or "") if s["ocultar"]]
+            if propias or self.instance.ruta_publica == "":
+                self.fields["secciones_ocultas_sel"].choices = propias
+
+    def clean(self):
+        datos = super().clean()
+        if getattr(self, "es_geneos", False) and "secciones" in self.fields:
+            ruta = datos.get("ruta_publica", self.instance.ruta_publica) or ""
+            vistas = set()
+            for bloque in datos.get("secciones") or []:
+                clave = bloque.value.get("clave")
+                s = G.seccion(ruta, clave)
+                if s is None:
+                    self.add_error("secciones", f"La sección «{clave}» no existe en esta página.")
+                elif clave in vistas:
+                    self.add_error("secciones", f"La sección «{s['nombre']}» está repetida.")
+                elif bloque.block_type != (s["tipo"] or "posicion"):
+                    self.add_error("secciones", f"«{s['nombre']}» no se edita con este tipo de bloque.")
+                vistas.add(clave)
+            ocultas = datos.get("secciones_ocultas_sel") or []
+            for n in (1, 2):  # un botón del encabezado no puede apuntar a una sección oculta
+                enlace = (datos.get(f"boton{n}_enlace") or "").strip()
+                if enlace.startswith("#") and enlace[1:] in ocultas:
+                    self.add_error("secciones_ocultas_sel", f"El botón {n} del encabezado lleva a «{enlace}», que está oculta.")
+            if ruta == "" and not (datos.get("boton1_enlace") or "").strip() and "soluciones" in ocultas:
+                self.add_error("secciones_ocultas_sel", "El botón principal del encabezado lleva a «#soluciones»: cambiá su enlace antes de ocultarla.")
+        return datos
 
     def save(self, commit=True):
         self.instance.secciones_ocultas = self.cleaned_data.get("secciones_ocultas_sel") or []
@@ -139,6 +172,13 @@ class PaginaWeb(SeoMixin, Page):
     boton2_texto = models.CharField("Botón secundario: texto", max_length=60, blank=True)
     boton2_enlace = models.CharField("Botón secundario: enlace", max_length=200, blank=True)
     secciones_ocultas = models.JSONField(default=list, blank=True)
+    # Solo web institucional de GENEOS (el formulario los quita en los otros sitios)
+    hero_antetitulo = models.CharField("Antetítulo", max_length=80, blank=True, help_text="Texto chico sobre el título. Vacío: se mantiene el actual.")
+    hero_destacados = StreamField(BLOQUES_DESTACADOS, verbose_name="Destacados del encabezado", blank=True, use_json_field=True,
+                                  help_text="Beneficios o etiquetas debajo del encabezado. Vacío: se mantienen los actuales.")
+    secciones = StreamField(BLOQUES_SECCION, verbose_name="Contenido por sección", blank=True, use_json_field=True,
+                            help_text="Textos, imágenes y enlaces de cada sección, en el orden en que se muestran. "
+                                      "Los campos vacíos mantienen el texto actual de la web.")
     encabezado = models.CharField("Apariencia predeterminada de esta página", max_length=10, blank=True, default="",
                                   choices=[("", "Heredar configuración global"), ("claro", "Claro (blanco)"), ("oscuro", "Oscuro (negro)")],
                                   help_text="Solo en la web institucional de GENEOS. «Heredar» usa la apariencia predeterminada de Sitios y contacto. La elección del visitante tiene prioridad.")
@@ -147,9 +187,11 @@ class PaginaWeb(SeoMixin, Page):
     base_form_class = PaginaForm
     content_panels = Page.content_panels + [
         HelpPanel("<p>Los campos vacíos mantienen el texto actual de la web. El diseño, los colores y la estructura no cambian.</p>"),
-        MultiFieldPanel([FieldPanel("hero_titulo"), FieldPanel("hero_bajada"),
+        MultiFieldPanel([FieldPanel("hero_antetitulo"), FieldPanel("hero_titulo"), FieldPanel("hero_bajada"),
                          FieldRowPanel([FieldPanel("boton1_texto"), FieldPanel("boton1_enlace")]),
-                         FieldRowPanel([FieldPanel("boton2_texto"), FieldPanel("boton2_enlace")])], "Encabezado (hero)"),
+                         FieldRowPanel([FieldPanel("boton2_texto"), FieldPanel("boton2_enlace")]),
+                         FieldPanel("hero_destacados")], "Encabezado (hero)"),
+        FieldPanel("secciones"),
         FieldPanel("secciones_ocultas_sel"),
         MultiFieldPanel([FieldPanel("encabezado")], "Apariencia"),
         FieldPanel("linea"), FieldPanel("notas"),
@@ -689,6 +731,69 @@ class Testimonio(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, C
     def publicable(self):
         return (self.estado == "autorizado" and bool(self.texto.strip()) and bool(self.cliente.strip())
                 and bool(self.autorizado_por.strip()) and self.autorizado_el is not None and self.visible)
+
+
+class LogoCliente(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, ContenidoSitio):
+    """Logo de una organización cliente en la web institucional de GENEOS.
+    Los logos que ya están en la web (archivo_web) se conservan siempre: importarlos o autorizarlos no cambia la web.
+    Un logo nuevo se publica solo si está autorizado, visible, publicado y con imagen."""
+    ESTADOS = Testimonio.ESTADOS
+    organizacion = models.CharField("Organización", max_length=120)
+    imagen = models.ForeignKey("wagtailimages.Image", verbose_name="Logo", null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+                               help_text="PNG o SVG con fondo transparente.")
+    enlace = models.URLField("Enlace", blank=True, help_text="Opcional. Web o red de la organización.")
+    paginas = models.JSONField("Páginas", default=list, blank=True)
+    archivo_web = models.CharField("Archivo en la web actual", max_length=200, blank=True,
+                                   help_text="Solo para los logos que ya estaban publicados. No se edita: identifica el logo en la web.")
+    estado = models.CharField("Autorización", max_length=12, choices=ESTADOS, default="pendiente")
+    autorizado_por = models.CharField("Autorizado por", max_length=80, blank=True)
+    autorizado_el = models.DateField("Fecha de autorización", null=True, blank=True)
+    orden = models.PositiveSmallIntegerField("Orden", default=0)
+    visible = models.BooleanField("Visible", default=True)
+    nota = models.CharField("Nota interna", max_length=200, blank=True)
+
+    panels = [HelpPanel("<p>Los logos que <b>ya están en la web</b> se conservan tal cual mientras dure la migración. "
+                        "Los <b>nuevos</b> se publican solo si están autorizados, con quién autorizó y la fecha.</p>"),
+              FieldRowPanel([FieldPanel("sitio"), FieldPanel("organizacion")]), FieldPanel("imagen"), FieldPanel("enlace"),
+              FieldPanel("paginas_sel"), FieldRowPanel([FieldPanel("estado"), FieldPanel("autorizado_por"), FieldPanel("autorizado_el")]),
+              FieldRowPanel([FieldPanel("orden"), FieldPanel("visible")]), FieldPanel("archivo_web", read_only=True), FieldPanel("nota")]
+
+    class Meta:
+        verbose_name = "logo de cliente"
+        verbose_name_plural = "logos de clientes"
+        ordering = ["orden", "organizacion"]
+
+    def __str__(self):
+        return self.organizacion
+
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        if self.estado == "autorizado":
+            faltan = [n for n, v in (("autorizado_por", self.autorizado_por.strip()), ("autorizado_el", self.autorizado_el)) if not v]
+            if faltan:
+                raise ValidationError({f: "Obligatorio para marcarlo como autorizado." for f in faltan})
+
+    @property
+    def publicable(self):
+        return (self.estado == "autorizado" and self.visible and self.imagen_id is not None
+                and bool(self.autorizado_por.strip()) and self.autorizado_el is not None)
+
+
+class LogoClienteForm(FormPorSitio):
+    paginas_sel = forms.MultipleChoiceField(label="Páginas donde aparece", required=False, widget=forms.CheckboxSelectMultiple,
+                                            choices=G.PAGINAS_LOGOS)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["paginas_sel"].initial = self.instance.paginas or []
+
+    def save(self, commit=True):
+        self.instance.paginas = self.cleaned_data.get("paginas_sel") or []
+        return super().save(commit)
+
+
+LogoCliente.base_form_class = LogoClienteForm
 
 
 class SectorForm(FormPorSitio):

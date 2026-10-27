@@ -9,7 +9,8 @@ from sitios.permisos import ProtegerObjetos, SitioPermissionPolicy
 from django.urls import path
 from wagtail.admin.viewsets.base import ViewSet
 
-from .models import AutorBlog, IdentidadSitio, CategoriaBlog, Funcionalidad, Plan, PreguntaFrecuente, Recurso, Redireccion, Sector, Testimonio
+from .models import (AutorBlog, IdentidadSitio, CategoriaBlog, Funcionalidad, LogoCliente, Plan, PreguntaFrecuente, Recurso, Redireccion, Sector,
+                     Testimonio)
 
 
 class PorSitio(ProtegerObjetos, SnippetViewSet):
@@ -119,6 +120,14 @@ class TestimonioViewSet(PorSitio):
     list_filter = ["sitio", "estado"]
 
 
+class LogoClienteViewSet(PorSitio):
+    model = LogoCliente
+    icon = "image"
+    menu_label = "Logos de clientes"
+    list_display = ["organizacion", columna_sitio(), "estado", "orden", "visible", "live"]
+    list_filter = ["sitio", "estado"]
+
+
 class RecursoViewSet(PorSitio):
     model = Recurso
     icon = "doc-full"
@@ -200,7 +209,8 @@ class ContenidosGroup(SnippetViewSetGroup):
     menu_label = "Contenidos"
     menu_icon = "folder-inverse"
     menu_order = 220
-    items = (BlogViewSet, CategoriaViewSet, AutorViewSet, IdentidadViewSet, FAQViewSet, TestimonioViewSet, RecursoViewSet, RedireccionViewSet)
+    items = (BlogViewSet, CategoriaViewSet, AutorViewSet, IdentidadViewSet, FAQViewSet, TestimonioViewSet, LogoClienteViewSet, RecursoViewSet,
+             RedireccionViewSet)
 
 
 register_snippet(ComercialGroup)
