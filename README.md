@@ -172,7 +172,7 @@ isologo y la cantidad cargada, y dos vistas de los mismos datos:
   Mostrarlas en esas webs requiere sumar la sección a sus plantillas.
 
 Comparador de GERP: los valores «A confirmar» quedan en el administrador, pero en la web la celda queda vacía,
-y las filas se muestran siempre, aunque todas sus celdas estén vacías (hoy: «Facturación electrónica ARCA (AFIP)»).
+y las filas se muestran siempre, aunque todas sus celdas estén vacías.
 
 ## Sectores
 

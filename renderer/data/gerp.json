@@ -131,7 +131,6 @@
     {"group": "basic", "label": "Inventario", "values": {"lite": true, "core": true, "plus": true}},
     {"group": "basic", "label": "Compras y ventas", "values": {"lite": "Módulo integrado", "core": "Módulos separados", "plus": "Módulos separados"}},
     {"group": "basic", "label": "Facturación y contabilidad", "values": {"lite": "Módulo integrado", "core": "Módulos separados", "plus": "Módulos separados"}},
-    {"group": "basic", "label": "Facturación electrónica ARCA (AFIP)", "values": {"lite": null, "core": null, "plus": null}},
     {"group": "basic", "label": "CRM: oportunidades comerciales", "values": {"lite": false, "core": false, "plus": true}},
     {"group": "basic", "label": "Producción (MRP)", "values": {"lite": false, "core": false, "plus": true}},
     {"group": "advanced", "label": "Circuito completo de compras, con autorización", "values": {"lite": null, "core": true, "plus": true}},
