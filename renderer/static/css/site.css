@@ -9,6 +9,8 @@
 .standalone.pp-theme-gerp, .standalone .pp-theme-gerp { --pp-btn: #99146a; --pp-btn-hover: #7a0f55; --pp-btn2: #99146a; --pp-btn2-text: #fff; }
 .pp-theme-geagro { --hd-link: #0b3422; --hd-hover: #148238; --hd-line: #148238; --hd-btn: #1e7d3b; --hd-btn-hover: #0b3422; }
 .pp-theme-gema   { --hd-link: #0e2646; --hd-hover: #1455a0; --hd-line: #ec6c05; --hd-btn: #1455a0; --hd-btn-hover: #0e2646; }
+/* GEMA: acentos del footer (títulos, íconos de contacto y hover de los enlaces) en el naranja de la marca */
+.standalone.pp-theme-gema .site-footer { --green-bright: #f36b21; }
 
 :root { --header-h: 72px; }
 
