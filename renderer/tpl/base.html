@@ -78,11 +78,11 @@
           {# Desplegable: todo «Planes» (texto y flecha) es un único botón que abre y cierra el submenú #}
           {% set sub_id = "submenu-" ~ loop.index %}
           {% set subitems = item[2] %}
-          {% set rama = namespace(actual=false) %}{% for _l, h in subitems %}{% if PG.out and h.lstrip('/') == PG.out %}{% set rama.actual = true %}{% endif %}{% endfor %}
+          {% set rama = namespace(actual=false) %}{% for s in subitems %}{% if PG.out and s[1].lstrip('/') == PG.out %}{% set rama.actual = true %}{% endif %}{% endfor %}
           <li class="nav-dd{% if rama.actual %} is-current{% endif %}" data-dd>
             <button type="button" class="nav-dd-btn" aria-expanded="false" aria-controls="{{ sub_id }}">{{ label }}{{ icon('ui-chevron') }}</button>
             <ul class="nav-dd-menu" id="{{ sub_id }}">
-              {% for slabel, shref in subitems if show(shref.lstrip("/#") if shref.startswith("#") else "") %}<li><a href="{{ page_url(shref) }}"{% if shref.lstrip('/') == PG.out and PG.out %} aria-current="page"{% endif %}>{{ slabel }}</a></li>{% endfor %}
+              {% for s in subitems if show(s[1].lstrip("/#") if s[1].startswith("#") else "") %}{% set slabel, shref = s[0], s[1] %}<li><a href="{{ page_url(shref) }}"{% if s|length > 2 %} class="nav-dd-plan" style="--plan-color: {{ s[2] }}"{% endif %}{% if shref.lstrip('/') == PG.out and PG.out %} aria-current="page"{% endif %}>{% if s|length > 3 %}<img src="{{ asset(s[3]) }}" alt="" width="26" height="25">{% endif %}{{ slabel }}</a></li>{% endfor %}
             </ul>
           </li>
           {% else %}<li><a href="{{ page_url(href) }}"{% if href.lstrip('/') == PG.out and PG.out %} aria-current="page"{% endif %}>{{ label }}</a></li>{% endif %}
