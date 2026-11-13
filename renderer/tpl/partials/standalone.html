@@ -9,18 +9,13 @@
         items: [{icon, title, text}]} #}
 {% macro steps(s) -%}
 <section class="pp-section pp-steps{% if s.wave_next %} pp-wave{% endif %}"{% if s.id %} id="{{ s.id }}"{% endif %} style="{% if s.img %}--pp-steps-img: url('{{ asset(s.img) }}');{% elif s.wave_next %}--pp-steps-pb: clamp(100px, 12vw, 170px); --pp-steps-pb-sm: 96px;{% else %}--pp-steps-pb: clamp(64px, 8vw, 104px); --pp-steps-pb-sm: 64px;{% endif %}{% if s.bg %} --pp-soft-2: {{ s.bg }};{% endif %}{% if s.wave_next %} --pp-wave-next: {{ s.wave_next }};{% endif %}{% if s.wave_back %} --pp-wave-back: {{ s.wave_back }};{% endif %}">
-  <div class="pp-container pp-steps-grid">
+  {# Con «solves»: fila 1 título + pasos; fila 2 «Qué resuelve» a todo el ancho y el enlace debajo (estilos .has-solves en site.css) #}
+  <div class="pp-container pp-steps-grid{% if s.solves %} has-solves{% endif %}">
     <div class="pp-steps-head">
       <p class="pp-eyebrow pp-eyebrow-2">{{ s.eyebrow }}</p>
       <h2>{{ s.title }}{% if s.dot %}<span class="pp-dot">.</span>{% endif %}</h2>
       <p class="pp-steps-lead">{{ s.lead|safe }}</p>
-      {% if s.solves %}
-      <p class="pp-solves-title">{{ s.solves_title or "Qué resuelve" }}</p>
-      <ul class="pp-solves">
-        {% for ic, t, x in s.solves %}<li>{{ icon(ic, 'icon bi') }}<b>{{ t }}</b><span>{{ x }}</span></li>{% endfor %}
-      </ul>
-      {% endif %}
-      {% if s.more %}<a href="{{ s.more.href }}" class="pp-more">{{ s.more.label }} {{ icon('bi-arrow-right', 'icon bi') }}</a>{% endif %}
+      {% if s.more and not s.solves %}<a href="{{ s.more.href }}" class="pp-more">{{ s.more.label }} {{ icon('bi-arrow-right', 'icon bi') }}</a>{% endif %}
     </div>
     <ol class="pp-steps-list{% if s['items']|length == 5 %} pp-steps-5{% endif %}">
       {% for it in s["items"] %}
@@ -32,6 +27,15 @@
       </li>
       {% endfor %}
     </ol>
+    {% if s.solves %}
+    <div class="pp-solves-block">
+      <p class="pp-solves-title">{{ s.solves_title or "Qué resuelve" }}</p>
+      <ul class="pp-solves">
+        {% for ic, t, x in s.solves %}<li>{{ icon(ic, 'icon bi') }}<b>{{ t }}</b><span>{{ x }}</span></li>{% endfor %}
+      </ul>
+      {% if s.more %}<a href="{{ s.more.href }}" class="pp-more">{{ s.more.label }} {{ icon('bi-arrow-right', 'icon bi') }}</a>{% endif %}
+    </div>
+    {% endif %}
   </div>
 </section>
 {%- endmacro %}

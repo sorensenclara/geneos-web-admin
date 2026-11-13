@@ -288,3 +288,50 @@
 .pp-plan-x.is-link .pp-plan-more:focus-visible { outline: none; }
 .pp-plan-x.is-link:has(.pp-plan-more:focus-visible) { outline: 3px solid var(--pp-plan-color); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { .pp-plan-x.is-link, .pp-plan-x.is-link:hover { transition: none; transform: none; } }
+
+/* ---------- «Cómo funciona» con «Qué resuelve» (home de GEAGRO) ----------
+   Fila 1: título y bajada | cuatro pasos en horizontal. Fila 2: «Qué resuelve» a todo el ancho en 3 columnas
+   y «Conocer las versiones» debajo. Menos aire al pie sobre el fondo ilustrado. */
+.pp-steps:has(.has-solves) { --pp-steps-pb: clamp(96px, 9vw, 150px); --pp-steps-pb-sm: 96px; }
+.pp-steps-grid.has-solves { grid-template-columns: minmax(360px, 1fr) 2fr; gap: 36px 48px; align-items: center; }
+.has-solves .pp-steps-head { gap: 14px; padding-right: 40px; border-right: 1px solid var(--pp-line-3, #e3e6ea); }
+.has-solves .pp-steps-list { gap: 28px; }
+.has-solves .pp-steps-ico { width: 76px; height: 76px; margin-bottom: 14px; }
+.has-solves .pp-steps-ico .icon { width: 34px; height: 34px; }
+.has-solves .pp-steps-list h3 { font-size: 1.25rem; }
+.has-solves .pp-steps-list li:not(:last-child)::after { top: 26px; left: calc((76px + 100% + 28px) / 2 - 10px); }
+.pp-solves-block { grid-column: 1 / -1; display: grid; gap: 18px; padding-top: 32px; border-top: 1px solid var(--pp-line-3, #e3e6ea); }
+.pp-solves-block .pp-solves-title { font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pp-accent); }
+.pp-solves-block .pp-solves { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0 !important; }
+.pp-solves-block .pp-solves li { grid-template-columns: 48px 1fr; grid-template-rows: auto 1fr; gap: 2px 16px; padding: 20px 28px; }
+.pp-solves-block .pp-solves li:nth-child(3n + 1) { padding-left: 0; }
+.pp-solves-block .pp-solves li:not(:nth-child(3n + 1)) { border-left: 1px solid var(--pp-line-3, #e3e6ea); }
+.pp-solves-block .pp-solves li:nth-child(n + 4) { border-top: 1px solid var(--pp-line-3, #e3e6ea); }
+.pp-solves-block .pp-solves .icon { box-sizing: content-box; width: 24px; height: 24px; padding: 12px; margin: 0; border-radius: 12px; background: var(--pp-icon-bg, #e7f4ec); }
+.pp-solves-block .pp-solves b { font-size: 1.08rem; }
+.pp-solves-block .pp-more { justify-self: start; margin-top: 4px; }
+/* Tablet: bajada arriba, pasos en 4 columnas, beneficios en 2 */
+@media (max-width: 1080px) {
+  .pp-steps-grid.has-solves { grid-template-columns: 1fr; gap: 32px; align-items: start; }
+  .has-solves .pp-steps-head { padding-right: 0; border-right: 0; }
+  .has-solves .pp-steps-lead { max-width: 52ch; }
+  .pp-solves-block .pp-solves { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pp-solves-block .pp-solves li { padding: 18px 24px; border-left: 0 !important; border-top: 0 !important; }
+  .pp-solves-block .pp-solves li:nth-child(3n + 1) { padding-left: 24px; }
+  .pp-solves-block .pp-solves li:nth-child(odd) { padding-left: 0; }
+  .pp-solves-block .pp-solves li:nth-child(even) { border-left: 1px solid var(--pp-line-3, #e3e6ea) !important; }
+  .pp-solves-block .pp-solves li:nth-child(n + 3) { border-top: 1px solid var(--pp-line-3, #e3e6ea) !important; }
+}
+/* Celular: pasos en 2 columnas (o 1), beneficios en una columna */
+@media (max-width: 720px) {
+  .has-solves .pp-steps-list { row-gap: 28px; }
+  .pp-solves-block { padding-top: 24px; gap: 12px; }
+  .pp-solves-block .pp-solves { grid-template-columns: 1fr; }
+  .pp-solves-block .pp-solves li:nth-child(n) { padding: 16px 0 !important; border-left: 0 !important; }
+  .pp-solves-block .pp-solves li:nth-child(n + 2) { border-top: 1px solid var(--pp-line-3, #e3e6ea) !important; }
+}
+@media (max-width: 420px) {
+  .has-solves .pp-steps-ico { width: 64px; height: 64px; margin: 0; }
+  .has-solves .pp-steps-ico .icon { width: 30px; height: 30px; }
+  .has-solves .pp-steps-list li { grid-template-columns: 64px 1fr; }
+}
