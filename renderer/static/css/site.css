@@ -3,9 +3,14 @@
 
 /* ---------- Colores del header por producto (identidad existente) ----------
    --hd-link: enlaces · --hd-hover: hover y página actual · --hd-line: subrayado · --hd-btn: botón "Solicitar demo" */
-.pp-theme-gerp   { --hd-link: #3b485a; --hd-hover: #99146a; --hd-line: #99146a; --hd-btn: #0b6b33; --hd-btn-hover: #065223; }
+.pp-theme-gerp   { --hd-link: #3b485a; --hd-hover: #99146a; --hd-line: #99146a; --hd-btn: #99146a; --hd-btn-hover: #7a0f55; }
+/* GERP: botones generales en el púrpura de la marca. Los de cada plan (tarjetas, comparador, landings Lite/Core/Plus)
+   llevan su color en style="" y no cambian. Gana sobre product.css por especificidad. */
+.standalone.pp-theme-gerp, .standalone .pp-theme-gerp { --pp-btn: #99146a; --pp-btn-hover: #7a0f55; --pp-btn2: #99146a; --pp-btn2-text: #fff; }
 .pp-theme-geagro { --hd-link: #0b3422; --hd-hover: #148238; --hd-line: #148238; --hd-btn: #1e7d3b; --hd-btn-hover: #0b3422; }
 .pp-theme-gema   { --hd-link: #0e2646; --hd-hover: #1455a0; --hd-line: #ec6c05; --hd-btn: #1455a0; --hd-btn-hover: #0e2646; }
+/* GEMA: acentos del footer (títulos, íconos de contacto y hover de los enlaces) en el naranja de la marca */
+.standalone.pp-theme-gema .site-footer { --green-bright: #f36b21; }
 
 :root { --header-h: 72px; }
 
@@ -264,6 +269,12 @@
   .nav-dd.is-open > .nav-dd-menu { display: block; }
   .standalone .site-nav .nav-dd-menu a { font-size: 17px; padding: 12px 10px; white-space: normal; }
 }
+/* Cada plan con su color: texto, barra lateral, fondo al pasar y página actual */
+.standalone .site-nav .nav-dd-menu a.nav-dd-plan { display: flex; align-items: center; gap: 10px; color: var(--plan-color); box-shadow: inset 3px 0 0 var(--plan-color); }
+.standalone .site-nav .nav-dd-menu a.nav-dd-plan img { width: 24px; height: auto; flex: none; }
+.standalone .site-nav .nav-dd-menu a.nav-dd-plan:hover, .standalone .site-nav .nav-dd-menu a.nav-dd-plan:focus-visible,
+.standalone .site-nav .nav-dd-menu a.nav-dd-plan[aria-current="page"] { color: var(--plan-color); background: color-mix(in srgb, var(--plan-color) 9%, #fff); }
+.standalone .site-nav .nav-dd-menu li + li { margin-top: 2px; }
 @media (prefers-reduced-motion: reduce) { .nav-dd-menu, .nav-dd-btn svg, .nav-dd-btn::after { transition: none; } }
 
 /* ---------- Tarjetas de planes enteras como enlace (sin enlaces anidados) ----------

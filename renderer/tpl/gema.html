@@ -11,12 +11,12 @@
 {% set DEMO_WA = wa('Hola, quiero solicitar una demo de GEMA') %}
 {% set PLAN = {"name": "Plan mensual", "sub": "Plataforma online personalizada", "price": "89.250", "num": 89250, "impl": "349.750",
   "feats": ["Plataforma online personalizada", "Carga ILIMITADA de clientes", "Uso de todas las funciones"],
-  "validity": "Precios válidos para octubre, noviembre y diciembre. Actualización trimestral."} %}
+  "validity": "Precio informado vigente hasta diciembre 2026."} %}
 {% set PLAN = plans_data([PLAN])[0] %}
 {% set FAQS = [
   ("¿Puedo gestionar mi taller de matafuegos desde mi casa?", "<p>Sí, podrás abrir el software desde DÓNDE y CUÁNDO quieras, siempre y cuando tengas conexión a Internet. No es necesario instalar nada en ninguna computadora, smartphone ni dispositivo digital: con sólo tener tu usuario y clave podrás ingresar fácilmente.</p>"),
   ("¿Si se me rompe la computadora donde estaba trabajando pierdo toda la info?", "<p>No, no perderás ni tendrás que pagar nada para volver a tener tus datos, ya que se guardan en el servidor/nube automáticamente y no en tu computadora; podrás acceder a ellos con otro dispositivo que cuente con Internet.</p>"),
-  ("¿El pago es mensual y fijo?", "<p>El pago es mensual: el abono es de " ~ importe(PLAN, "price") ~ " por mes e incluye actualizaciones y soporte técnico sin costo adicional.</p>"),
+  ("¿El pago es mensual y fijo?", "<p>El pago es mensual: hasta diciembre de 2026 el abono es de " ~ importe(PLAN, "price") ~ " por mes e incluye actualizaciones y soporte técnico sin costo adicional.</p>"),
   ("¿Puedo personalizar la aplicación en función de mi marca?", "<p>Sí, podrás pasarnos tu brandbook o manual de marca, con tu logotipo, colores y tipografías y ajustaremos la plataforma según tu identidad.</p>"),
   ("¿Puedo desuscribirme cuando desee?", "<p>Sí, una vez cumplido el plazo del plan contratado podrás dejar de usar el software si lo deseás, sin compromiso alguno.</p>"),
   ("¿Cuántos clientes y matafuegos puedo cargar?", "<p>La carga de clientes es <strong>ilimitada</strong> y tenés acceso a todas las funciones de la plataforma desde el primer día.</p>"),
@@ -117,7 +117,7 @@
 {{ pp.modules({
   "id": "para-quien", "eyebrow": "Para quién es", "title": "¿Para quién es GEMA?",
   "lead": "Si tu taller lleva el control de vencimientos a mano, en planillas de cálculo o en papel, GEMA te ayuda a no perder ningún vencimiento, tener el historial completo de cada matafuego y ahorrar tiempo administrativo.",
-  "note": "¿Necesitás un sistema de gestión más amplio para tu empresa? Conocé también <a href=\"" ~ url('/software-de-gestion-completo/') ~ "\">GERP, nuestro ERP basado en Odoo</a>.",
+  "note": "¿Necesitás un sistema de gestión más amplio para tu empresa? Conocé también <a href=\"" ~ url('/software-de-gestion-completo/') ~ "\">GERP, nuestro ERP</a>.",
   "items": para_quien,
 }) }}
 {% endif %}
@@ -137,12 +137,12 @@
 {# 9. Preguntas frecuentes #}
 {{ pp.faq({"title": "Lo que más nos preguntan", "lead": "Respondemos las dudas más comunes sobre GEMA, el software de gestión de extintores.", "items": FAQS}) }}
 
-{# 10. Material + demo (sin brochure por ahora) #}
+{# 10. Material (brochure) + demo #}
 {{ pp.convert({
   "product": "GEMA",
-  "brochure": {"eyebrow": "Material", "pending": true,
-               "text": "El brochure de GEMA va a estar disponible muy pronto. Mientras tanto, escribinos y te contamos cómo funciona la plataforma en un taller real.",
-               "action": {"label": "Escribinos por WhatsApp", "href": DEMO_WA, "external": true, "icon_before": "bi-whatsapp"}},
+  "brochure": {"eyebrow": "Material", "href": "descargas/brochure-gema-plataforma-de-gestion-de-matafuegos.pdf", "file": "brochure-gema-plataforma-de-gestion-de-matafuegos.pdf",
+               "cover": "gema/gema-brochure.webp", "cover_alt": "Brochure de GEMA, plataforma de gestión de matafuegos", "cover_w": 405, "cover_h": 485,
+               "text": "Conocé en detalle las funcionalidades, los planes y los módulos de GEMA (PDF · 9 páginas · 7,5 MB)."},
   "form": {
     "text": "Completá tus datos y te contactamos para mostrarte cómo controlar todos los vencimientos de tus clientes desde un solo lugar.",
     "rows": [

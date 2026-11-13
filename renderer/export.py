@@ -54,7 +54,8 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescap
 PUB = GENEOS / "public"  # sitio GENEOS ya construido (fuente de los recursos optimizados)
 
 # Desplegable «Planes» de GERP: una página por plan y las tarjetas de la home
-GERP_PLANES_MENU = [(q["label"], "/" + q["slug"]) for q in GERP_DATA["plans"]] + [("Ver todos los planes", "/#planes")]
+# Cada plan va con su color e ícono: (texto, enlace, color, ícono)
+GERP_PLANES_MENU = [(q["label"], "/" + q["slug"], q["color"], q["icon"]) for q in GERP_DATA["plans"]] + [("Ver todos los planes", "/#planes")]
 
 # Versión de site.css, site.js y formulario.js (huella del contenido): al cambiar el archivo cambia la URL
 # y el navegador no usa una copia vieja guardada en caché.
@@ -195,7 +196,7 @@ def export(key, P):
     # Blog (portada, listados por línea y artículos)
     def raiz(href):
         return href if not href.startswith("#") else "/" + href
-    home_nav = [(it[0], raiz(it[1])) + ((tuple((a, raiz(b)) for a, b in it[2]),) if len(it) > 2 else ()) for it in pages[0]["nav"]]
+    home_nav = [(it[0], raiz(it[1])) + ((tuple((s[0], raiz(s[1])) + tuple(s[2:]) for s in it[2]),) if len(it) > 2 else ()) for it in pages[0]["nav"]]
     for b in BLOG.get("indexes", []):
         pages.append(dict(tpl="blog-index.html", out=b["path"], crumb=b["title"], title=b["seo_title"], description=b["description"],
                           og=P["pages"][0]["og"], nav=home_nav, robots=b.get("robots"), sitemap=b.get("sitemap", True), blog=b))
