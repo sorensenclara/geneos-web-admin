@@ -174,7 +174,7 @@ class Command(BaseCommand):
     # ----------------------------------------------------------------------------------------------------------------
     def generar_base(self, base):
         """Genera las webs comerciales con las plantillas actuales (sin datos del administrador) para leer su contenido."""
-        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), GEAGRO_SRC_DIR=str(settings.GEAGRO_SRC_DIR))
+        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR))
         env.pop("WEB_DATA_DIR", None)
         for clave in CARPETAS:
             r = subprocess.run([sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export.py"), clave, "--out", str(base), "--no-project-files"],

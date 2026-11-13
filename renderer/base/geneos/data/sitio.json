@@ -1,0 +1,8 @@
+{
+  "_comentario": [
+    "Configuración general del sitio. A futuro la escribe GENEOS Web Admin («Configuración del sitio»).",
+    "encabezado: apariencia del encabezado en todas las páginas: \"claro\" (fondo blanco) u \"oscuro\" (fondo negro).",
+    "Cada página puede indicar su propio \"encabezado\" en build.py; si no lo indica, hereda este valor."
+  ],
+  "encabezado": "claro"
+}

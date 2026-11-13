@@ -1,0 +1,47 @@
+# Archivos de GENEOS WEB que usa el generador de los sitios comerciales (GERP, GEAGRO, GEMA).
+# Se copian a renderer/base/geneos/ con scripts/actualizar_base_comercial.py; nunca se editan a mano.
+# Una línea por archivo o patrón (glob, ** = subcarpetas). Las carpetas de cada producto van enteras
+# para que una sección hoy oculta tenga sus imágenes el día que se muestre.
+build.py
+data/identidad.json
+data/productos.json
+data/sitio.json
+data/trabajos.json
+templates/partials/macros.html
+templates/partials/product.html
+templates/icons/*.svg
+public/assets/img/gerp/**
+public/assets/img/gema/**
+public/assets/img/geagro/**
+public/assets/img/productos/**
+public/assets/img/recursos/**
+public/assets/geagro-landing/**
+# Recursos sueltos que usan hoy las páginas (auditoría del 13/11/2026)
+public/assets/css/product.css
+public/assets/css/styles.css
+public/assets/descargas/brochure-geagro-software-de-gestion-agropecuaria.pdf
+public/assets/descargas/brochure-gerp-software-de-gestion-empresarial.pdf
+public/assets/img/2023/10/Logo-Geneos-white.webp
+public/assets/img/2024/03/Celimundo.webp
+public/assets/img/2024/03/Divina-Lenceria.webp
+public/assets/img/2024/03/INBIO-HIGHWAY.webp
+public/assets/img/2024/03/Mercado-de-Consumo-Popular-Organizado-Para-la-Vida-Digna-ME.CO_.PO_.webp
+public/assets/img/2024/03/Phujoyapu.webp
+public/assets/img/2024/03/Redimec-Proveedor-de-Soluciones.webp
+public/assets/img/2024/03/VIAL-AGRO.webp
+public/assets/img/2024/03/WM-Argentina.webp
+public/assets/img/2024/08/Clientes-GENEOS_GEA.webp
+public/assets/img/2024/08/Clientes-GENEOS_Korronte.webp
+public/assets/img/2024/11/G-ERP-Core.svg
+public/assets/img/2024/11/G-ERP-Lite.svg
+public/assets/img/2024/11/G-ERP-Plus.svg
+public/assets/img/2024/11/Wallpaper-GENEOS.webp
+public/assets/img/2024/12/Manual-de-Marca-GENEOS.svg
+public/assets/img/2025/02/Isologo-GERP-Full.svg
+public/assets/img/2025/03/background-hero-gerp.webp
+public/assets/img/2026/01/Beneficios-GERP-1536x1029-1-1024x686.webp
+public/assets/img/hero/hero-geneos.webp
+public/assets/img/og/gema.jpg
+public/assets/img/og/gerp.jpg
+public/assets/js/main.js
+public/assets/js/product.js

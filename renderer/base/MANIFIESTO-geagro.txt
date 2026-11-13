@@ -1,0 +1,21 @@
+# Archivos del sitio publicado de GEAGRO (repo geagro-web) que se conservan con su misma URL:
+# la página /campo/, los brochures, las fuentes locales y las imágenes de fondo.
+# Se copian a renderer/base/geagro-publicado/ con scripts/actualizar_base_comercial.py.
+assets/docs/Brochure-GEAGRO-CEREALES.pdf
+assets/docs/Brochure-GEAGRO-VID.pdf
+assets/fonts/OFL-titillium-web.txt
+assets/fonts/titillium-web-latin-400-normal.woff2
+assets/fonts/titillium-web-latin-600-normal.woff2
+assets/fonts/titillium-web-latin-700-normal.woff2
+assets/images/cereales/campo-bg-1600.avif
+assets/images/cereales/campo-bg-1600.webp
+assets/images/cereales/campo-bg-900.avif
+assets/images/cereales/og-cereales.jpg
+assets/images/shared/hero-1920.avif
+assets/images/shared/hero-900.avif
+assets/images/shared/og-image.jpg
+assets/images/vid/og-vid.jpg
+assets/images/vid/vid-bg-1600.avif
+assets/images/vid/vid-bg-1600.webp
+assets/images/vid/vid-bg-900.avif
+campo/index.html

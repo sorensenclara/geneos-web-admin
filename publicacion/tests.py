@@ -231,6 +231,22 @@ class Circuito(TestCase):
         self.assertEqual(d.estado, "ok", d.registro)
         return (despliegue.raiz(sitio) / "actual" / ruta / "index.html").read_text()
 
+    # ---------------------------------------------------------------------------------------------- Webs completas
+    def test_webs_completas_con_todas_las_secciones_visibles(self):
+        """Con los datos del administrador y sin secciones ocultas, ninguna web pierde recursos ni controles."""
+        from contenidos.models import PaginaWeb
+        from publicacion.motor import generar, validar
+        from publicacion.tests_base import referencias_rotas
+        for pagina in PaginaWeb.objects.exclude(secciones_ocultas=[]):
+            pagina.secciones_ocultas = []
+            pagina.save_revision().publish()
+        destino = Path(tempfile.mkdtemp(prefix="gwa-completas-", dir=VAR))
+        for sitio in (self.gerp, self.gema, self.geagro):
+            carpeta, datos, registro = generar(sitio, destino)
+            self.assertNotIn("FALTAN", registro, f"{sitio.clave}: recursos faltantes")
+            self.assertEqual(validar(sitio, carpeta, datos), [], sitio.clave)
+            self.assertEqual(referencias_rotas(carpeta), [], f"{sitio.clave}: referencias a archivos que no están")
+
     # ---------------------------------------------------------------------------------------------- Precios: fuente única
     def test_precio_unico_en_tarjetas_landing_faq_y_datos(self):
         core = Plan.objects.get(sitio=self.gerp, clave="core")
@@ -282,7 +298,14 @@ class Circuito(TestCase):
         self.assertNotIn("Consultar", home)
         # La fila sin ningún dato confirmado se muestra igual, con sus celdas vacías
         import re
-        fila = re.search(r"<tr[^>]*><th scope=\"row\">Facturación electrónica ARCA \(AFIP\)</th>(.*?)</tr>", home, re.S)
+        from contenidos.models import Funcionalidad, ValorFuncionalidad
+        f = Funcionalidad(sitio=self.gerp, etiqueta="Función sin confirmar", grupo="basic", orden=99)
+        f.save()
+        for plan in Plan.objects.filter(sitio=self.gerp):
+            ValorFuncionalidad.objects.create(funcionalidad=f, plan=plan, estado="a_confirmar")
+        f.save_revision().publish()
+        home = self._web(self.gerp)
+        fila = re.search(r"<tr[^>]*><th scope=\"row\">Función sin confirmar</th>(.*?)</tr>", home, re.S)
         self.assertIsNotNone(fila)
         self.assertEqual(re.sub(r"<td[^>]*></td>", "", fila.group(1)).strip(), "")
         self.assertIn("Lotes y vencimientos</th>", home)                       # fila con datos: las celdas sin confirmar quedan vacías
@@ -495,10 +518,12 @@ class Circuito(TestCase):
         # «Planes» es un único botón que abre el desplegable (no un enlace)
         self.assertRegex(menu, r'<button type="button" class="nav-dd-btn" aria-expanded="false" aria-controls="(submenu-\d+)">Planes')
         self.assertNotIn('<a href="#planes">Planes</a>', menu)
-        for href, texto in (("lite/", "GERP Lite"), ("core/", "GERP Core"), ("plus/", "GERP Plus"), ("./#planes", "Ver todos los planes")):
-            self.assertIn(f'<a href="{href}">{texto}</a>', menu)
+        # Cada plan con su color y su ícono; «Ver todos los planes» sin color
+        for href, color, texto in (("lite/", "#254d99", "GERP Lite"), ("core/", "#138338", "GERP Core"), ("plus/", "#921d74", "GERP Plus")):
+            self.assertRegex(menu, rf'<a href="{href}" class="nav-dd-plan" style="--plan-color: {color}"><img src="[^"]+\.svg" alt="" [^>]*>{texto}</a>')
+        self.assertIn('<a href="./#planes">Ver todos los planes</a>', menu)
         self.assertNotIn("Comparar planes", menu)
-        self.assertIn('<a href="../lite/" aria-current="page">GERP Lite</a>', lite)   # la landing marca su plan
+        self.assertRegex(lite, r'<a href="\.\./lite/" class="nav-dd-plan" style="[^"]+" aria-current="page"><img [^>]+>GERP Lite</a>')   # la landing marca su plan
         self.assertIn('<a href="../#planes">Ver todos los planes</a>', lite)          # vuelve a las tarjetas de la home
         # Tarjetas enteras como enlace, sin enlaces anidados, con los precios de siempre
         for clave in ("lite", "core", "plus"):

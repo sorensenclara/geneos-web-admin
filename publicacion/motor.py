@@ -35,7 +35,8 @@ def generar(sitio, destino, overrides=None):
     try:
         for nombre, contenido in archivos.items():
             (tmp / nombre).write_text(json.dumps(contenido, ensure_ascii=False, indent=1))
-        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), WEB_DATA_DIR=str(tmp), GEAGRO_SRC_DIR=str(settings.GEAGRO_SRC_DIR))
+        # Los sitios comerciales usan solo el repositorio (renderer/base/); GENEOS_WEB_DIR queda para el sitio institucional.
+        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), WEB_DATA_DIR=str(tmp))
         if sitio.motor == "institucional":
             cmd = [sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export_geneos.py"), "--out", str(destino)]
         else:

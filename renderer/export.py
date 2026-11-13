@@ -9,11 +9,15 @@ Datos editables (una sola fuente para home, landings, comparador, formularios y 
   data/contacto.json  WhatsApp, teléfono y email de los tres sitios
   data/gerp.json      planes, precios, módulos, funcionalidades, comparador, sectores, testimonios y redirecciones de GERP
 
-Uso (desde la carpeta GENEOS WEB, con el sitio de GENEOS construido: python3 build.py):
-  python3 tools/sitios-comerciales/export.py gerp            # regenera ../gerp-web
-  python3 tools/sitios-comerciales/export.py                 # los tres sitios
-Opciones: --out <carpeta donde están gerp-web, geagro-web y gema-web> (por defecto, la carpeta que contiene GENEOS WEB)
-          --geagro-src <carpeta del sitio publicado de GEAGRO> (recursos que conservan su URL)
+Base propia (renderer/base/, versionada): plantillas, íconos, build.py y recursos de GENEOS WEB, y los
+archivos del sitio publicado de GEAGRO que conservan su URL. El generador no lee nada fuera del repositorio:
+la misma versión del repositorio y los mismos datos dan siempre el mismo sitio. Para actualizar la base:
+scripts/actualizar_base_comercial.py (registra el commit de origen en renderer/base/ORIGEN.json).
+
+Uso:
+  python3 renderer/export.py gerp --out <carpeta>            # genera <carpeta>/gerp-web
+  python3 renderer/export.py --out <carpeta>                 # los tres sitios
+Opciones: --out <carpeta de salida> (por defecto, la carpeta actual) · --no-project-files
 """
 import argparse
 import json
@@ -25,16 +29,16 @@ from pathlib import Path
 
 import os
 HERE = Path(__file__).resolve().parent
-# GENEOS WEB (plantillas base, build.py y recursos ya construidos en public/). Solo se lee, nunca se modifica.
-GENEOS = Path(os.environ.get("GENEOS_WEB_DIR") or HERE.parents[1]).resolve()
+# Copia versionada de lo que el generador usa de GENEOS WEB (plantillas base, build.py y recursos de public/).
+# GENEOS_WEB_DIR ya no se lee: ninguna carpeta local ni rama externa cambia lo que se genera.
+GENEOS = (HERE / "base" / "geneos").resolve()
 _ap = argparse.ArgumentParser(description="Exporta los sitios comerciales de GENEOS")
 _ap.add_argument("products", nargs="*", help="gerp, geagro, gema (por defecto, todos)")
-_ap.add_argument("--out", default=str(GENEOS.parent))
-_ap.add_argument("--geagro-src", default=os.environ.get("GEAGRO_SRC_DIR") or str(Path.home() / "Documents/geagro_clean/GEAGRO Geneos : Imagen de marca/GEAGRO WEB 2026"))
+_ap.add_argument("--out", default=str(Path.cwd()))
 _ap.add_argument("--no-project-files", action="store_true", help="no escribir README, workflow ni CNAME (exportación desde el administrador)")
 ARGS = _ap.parse_args()
 OUTROOT = Path(ARGS.out).resolve()
-GEAGRO_SRC = Path(ARGS.geagro_src)
+GEAGRO_SRC = HERE / "base" / "geagro-publicado"  # archivos del sitio publicado de GEAGRO que conservan su URL
 # Datos editables: el administrador los entrega en WEB_DATA_DIR; si no, se usan los de renderer/data/
 DATA = Path(os.environ.get("WEB_DATA_DIR") or HERE / "data")
 CONTACT = json.loads((DATA / "contacto.json").read_text())
@@ -51,7 +55,7 @@ sys.path.insert(0, str(HERE))
 from project_files import write_project_files  # noqa: E402
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescape  # noqa: E402
 
-PUB = GENEOS / "public"  # sitio GENEOS ya construido (fuente de los recursos optimizados)
+PUB = GENEOS / "public"  # recursos optimizados de GENEOS WEB (copia en renderer/base/geneos/public)
 
 # Desplegable «Planes» de GERP: una página por plan y las tarjetas de la home
 # Cada plan va con su color e ícono: (texto, enlace, color, ícono)

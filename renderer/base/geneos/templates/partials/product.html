@@ -1,0 +1,562 @@
+{#
+  Componentes de las páginas de producto (GEAGRO, GERP, GEMA…).
+  Cada página define su contenido en diccionarios y llama a estos macros; los estilos viven en
+  static/assets/css/product.css y los colores en el tema .pp-theme-<producto>.
+  Uso:  {% import "partials/product.html" as pp with context %}
+        <div class="pp pp-theme-gerp"> {{ pp.hero(HERO) }} … </div>
+#}
+{% import "partials/macros.html" as m with context %}
+
+{# Botón: {label, href, style: primary|accent|outline-light|ghost-light, icon, arrow, download, external, version} #}
+{% macro btn(b, extra_class="") -%}
+{%- set cls = "pp-btn-ghost-light" if b.style == "ghost-light" else "pp-btn pp-btn-" ~ (b.style or "primary") -%}
+<a class="{{ cls }} {{ extra_class }}" href="{{ b.href }}"
+   {%- if b.download %} download{% if b.download is string %}="{{ b.download }}"{% endif %}{% endif %}
+   {%- if b.external %} target="_blank" rel="noopener noreferrer"{% endif %}
+   {%- if b.version %} data-version="{{ b.version }}"{% endif %}>
+  {%- if b.icon_before %}{{ icon(b.icon_before, 'icon bi') }} {% endif %}{{ b.label|safe }}
+  {%- if b.icon %} {{ icon(b.icon, 'icon bi') }}{% endif %}{% if b.arrow %} <span aria-hidden="true">{{ b.arrow }}</span>{% endif -%}
+  {%- if b.external %}<span class="sr-only"> (se abre en una pestaña nueva)</span>{% endif -%}
+</a>
+{%- endmacro %}
+
+{# Ícono de componente: nombre de Bootstrap Icon ("bi-…") o ruta de imagen #}
+{% macro glyph(name, size=None) -%}
+{%- if "/" not in name and "." not in name %}{{ icon(name, 'icon bi') }}{% else %}<img src="{{ asset(name) }}" alt="" loading="lazy" decoding="async"{% if size %} width="{{ size }}" height="{{ size }}"{% endif %}>{% endif -%}
+{%- endmacro %}
+
+{# ---------- Hero ----------
+   h = {logo, logo_alt, logo_w, logo_h, title: [[texto, destacado?], …], lead, actions: [btn…],
+        img, img_sm, pos, fade, wave_next, wave_back,
+        media: {monitor: {src, webp, alt, w, h}, monitor_sm: {…}} | {shot: {src, alt, w, h}}} #}
+{% macro hero(h) -%}
+<section class="pp-hero pp-wave{% if not h.img %} pp-hero-plain{% endif %}{% if h.center %} pp-hero-center{% endif %}{% if h.compact %} pp-hero-compact{% endif %}{% if h.stack %} pp-hero-stack{% endif %}" style="{% if h.img %}--pp-hero-img: url('{{ asset(h.img) }}');{% endif %} {% if h.img_sm %}--pp-hero-img-sm: url('{{ asset(h.img_sm) }}');{% endif %} {% if h.pos %}--pp-hero-pos: {{ h.pos }};{% endif %} {% if h.fade %}--pp-hero-fade: {{ h.fade }};{% endif %} --pp-wave-next: {{ h.wave_next or '#fff' }};{% if h.wave_back %} --pp-wave-back: {{ h.wave_back }};{% endif %}">
+  <div class="pp-container pp-hero-grid{% if h.icon %} pp-hero-with-icon{% elif not h.media %} pp-hero-solo{% endif %}">
+    {% if h.icon %}<span class="pp-hero-icon">{{ icon(h.icon) }}</span>{% endif %}
+    <div class="pp-hero-copy">
+      {% if h.logo %}<img class="pp-hero-logo" src="{{ img(h.logo) }}" alt="{{ h.logo_alt }}" width="{{ h.logo_w }}" height="{{ h.logo_h }}">{% endif %}
+      {% if h.eyebrow %}<p class="pp-eyebrow pp-hero-eyebrow">{{ h.eyebrow }}</p>{% endif %}
+      <h1>{% for line, hl in h.title %}<span{% if hl %} class="pp-hl"{% endif %}>{{ line|safe }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
+      {% if h.sub %}<p class="pp-hero-sub">{{ h.sub|safe }}</p>{% endif %}
+      {% if h.lead %}<p class="pp-hero-lead">{{ h.lead|safe }}</p>{% endif %}
+      <div class="pp-hero-actions">{% for b in h.actions %}{{ btn(b) }}{% endfor %}</div>
+  {% if h.chips %}<ul class="pp-hero-chips">{% for c in h.chips %}<li>{{ icon('bi-check-circle', 'icon bi') }}{{ c }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% if h.media %}
+    <div class="pp-hero-media{% if h.media.monitor_sm %} has-sm{% endif %}">
+      {% if h.media.shot %}
+      <img class="pp-shot" src="{{ img(h.media.shot.src) }}" alt="{{ h.media.shot.alt }}" width="{{ h.media.shot.w }}" height="{{ h.media.shot.h }}" fetchpriority="high">
+      {% endif %}
+      {% for key, cls, prio in [("monitor", "pp-monitor", True), ("monitor_sm", "pp-monitor pp-monitor-sm", False)] if h.media[key] %}
+      {% set s = h.media[key] %}
+      <div class="{{ cls }}"><picture>{% if s.webp %}<source srcset="{{ asset(s.webp) }}" type="image/webp">{% endif %}<img src="{{ asset(s.src) }}" alt="{{ s.alt }}" width="{{ s.w }}" height="{{ s.h }}"{% if prio %} fetchpriority="high"{% else %} decoding="async"{% endif %}></picture></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Pasos ----------
+   s = {id, eyebrow, title, dot, lead, more: {label, href}, img, wave_next, wave_back,
+        items: [{icon, title, text}]} #}
+{% macro steps(s) -%}
+<section class="pp-section pp-steps{% if s.wave_next %} pp-wave{% endif %}"{% if s.id %} id="{{ s.id }}"{% endif %} style="{% if s.img %}--pp-steps-img: url('{{ asset(s.img) }}');{% elif s.wave_next %}--pp-steps-pb: clamp(100px, 12vw, 170px); --pp-steps-pb-sm: 96px;{% else %}--pp-steps-pb: clamp(64px, 8vw, 104px); --pp-steps-pb-sm: 64px;{% endif %}{% if s.bg %} --pp-soft-2: {{ s.bg }};{% endif %}{% if s.wave_next %} --pp-wave-next: {{ s.wave_next }};{% endif %}{% if s.wave_back %} --pp-wave-back: {{ s.wave_back }};{% endif %}">
+  <div class="pp-container pp-steps-grid">
+    <div class="pp-steps-head">
+      <p class="pp-eyebrow pp-eyebrow-2">{{ s.eyebrow }}</p>
+      <h2>{{ s.title }}{% if s.dot %}<span class="pp-dot">.</span>{% endif %}</h2>
+      <p class="pp-steps-lead">{{ s.lead|safe }}</p>
+      {% if s.more %}<a href="{{ s.more.href }}" class="pp-more">{{ s.more.label }} {{ icon('bi-arrow-right', 'icon bi') }}</a>{% endif %}
+    </div>
+    <ol class="pp-steps-list{% if s.cols %} pp-steps-{{ s.cols }}{% endif %}">
+      {% for it in s["items"] %}
+      <li{% if it.color %} style="--pp-steps-ico: {{ it.color }}"{% endif %}>
+        {% if it.icon %}
+        <span class="pp-steps-ico">{{ glyph(it.icon) }}</span>
+        <span class="pp-steps-num">{{ "%02d"|format(loop.index) }}</span>
+        {% else %}
+        <span class="pp-steps-ico pp-steps-n" aria-hidden="true">{{ "%02d"|format(loop.index) }}</span>
+        {% endif %}
+        <h3>{{ it.title }}</h3>
+        <p>{{ it.text }}</p>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Módulos ----------
+   m = {id, eyebrow, title, lead, href (enlace de las tarjetas, opcional), soft,
+        items: [{icon, title, text, color}]} #}
+{% macro modules(m) -%}
+<section class="pp-section {{ 'pp-soft' if m.soft else 'pp-white' }}{{ ' pp-compact' if m.compact else '' }}"{% if m.id %} id="{{ m.id }}"{% endif %}>
+  <div class="pp-container">
+    <header class="pp-head">
+      {% if m.eyebrow %}<p class="pp-eyebrow">{{ m.eyebrow }}</p>{% endif %}
+      <h2>{{ m.title }}</h2>
+      {% if m.lead %}<p>{{ m.lead|safe }}</p>{% endif %}
+    </header>
+    <ul class="pp-modules-grid{% if m.cols %} pp-modules-{{ m.cols }}{% endif %}{% if m.even %} is-even{% endif %}{% if m.mobile2 %} is-m2{% endif %}{% if m.circles %} is-circles{% endif %}">
+      {% for it in m["items"] %}
+      <li>
+        {% set href = it.href or m.href %}{% set tag = "a" if href else "div" %}
+        <{{ tag }} class="pp-module{% if it.highlight %} is-destacado{% endif %}{% if it.ilu %} has-ilu{% endif %}"{% if href %} href="{{ href }}"{% endif %}{% if it.color %} style="--pp-ico: {{ it.color }}"{% endif %}>
+          <span class="{{ 'pp-module-ilu' if it.ilu else 'pp-module-ico' }}">{{ ('<img src="' ~ img(it.ilu) ~ '" alt="" width="240" height="150" loading="lazy" decoding="async">')|safe if it.ilu else glyph(it.icon) }}</span>{{ '<div class="pp-module-body">'|safe if m.even else '' }}
+          <h3>{{ it.title|safe }}</h3>
+          <p>{{ it.text }}</p>
+          {% if it.more %}<span class="pp-module-more">{{ it.more }} {{ icon('bi-arrow-right', 'icon bi') }}</span>
+          {% elif href %}<span class="pp-arrow" aria-hidden="true">{{ icon('bi-arrow-right', 'icon bi') }}</span>{% endif %}
+        {{ '</div>'|safe if m.even else '' }}</{{ tag }}>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if m.note %}<p class="pp-note">{{ m.note|safe }}</p>{% endif %}
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Versiones de un producto ----------
+   v = {id, eyebrow, title, items: [{id, wordmark (html), color, btn_color, link_color, wm, wm_b, cover, iso, text,
+                                     feats: [[icono, texto]], button: {label, href}, version}]} #}
+{% macro versions(v) -%}
+<section class="pp-section pp-soft"{% if v.id %} id="{{ v.id }}"{% endif %}>
+  <div class="pp-container">
+    <div class="pp-versions-head">
+      <p class="pp-eyebrow">{{ v.eyebrow }}</p>
+      <h2>{{ v.title }}</h2>
+    </div>
+    <div class="pp-versions-grid">
+      {% for it in v["items"] %}
+      <article class="pp-version" id="{{ it.id }}" style="--pp-v-color: {{ it.color }}; --pp-v-btn: {{ it.btn_color }}; --pp-v-link: {{ it.link_color }}; --pp-v-img: url('{{ asset(it.cover) }}');{% if it.wm %} --pp-wm: {{ it.wm }};{% endif %}{% if it.wm_b %} --pp-wm-b: {{ it.wm_b }};{% endif %}">
+        <div class="pp-version-cover">
+          <img src="{{ asset(it.iso) }}" alt="" loading="lazy" decoding="async" width="64" height="64" class="pp-version-iso">
+        </div>
+        <div class="pp-version-body">
+          <h3 class="pp-wm">{{ it.wordmark|safe }}</h3>
+          <p>{{ it.text|safe }}</p>
+          {% if it.feats %}
+          <ul class="pp-version-feats">
+            {% for ic, label in it.feats %}<li><img src="{{ asset(ic) }}" alt="" loading="lazy" decoding="async" width="64" height="64">{{ label }}</li>{% endfor %}
+          </ul>
+          {% endif %}
+          <div class="pp-version-actions">{{ btn(it.button) }}{% if it.version %}<a href="#demo" class="pp-version-demo" data-version="{{ it.version }}">Solicitar demo →</a>{% endif %}</div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Planes y precios (2 o 3) ----------
+   p = {id, eyebrow, title, lead, note, brand,
+        items: [{name, sub, color, price, tax, label, feats: [], impl, impl_tax, impl_note, featured,
+                 button: {label, href, style, arrow, icon, external}}]} #}
+{% macro plans(p) -%}
+{% set n = p["items"]|length %}
+<section class="pp-section pp-white"{% if p.id %} id="{{ p.id }}"{% endif %} aria-labelledby="{{ p.id }}-title">
+  <div class="pp-container">
+    <header class="pp-head">
+      {% if p.eyebrow %}<p class="pp-eyebrow">{{ p.eyebrow }}</p>{% endif %}
+      <h2 id="{{ p.id }}-title">{{ p.title }}</h2>
+      {% if p.lead %}<p>{{ p.lead|safe }}</p>{% endif %}
+    </header>
+    <div class="pp-plans-grid pp-plans-{{ n }}">
+      {% for it in p["items"] %}
+      <article class="pp-plan{% if it.featured %} is-featured{% endif %}" style="--pp-plan-color: {{ it.color }}">
+        <header class="pp-plan-head">
+          {% if p.brand %}<p class="pp-plan-brand">{{ p.brand }}</p>{% endif %}
+          <h3 class="pp-plan-name">{{ it.name }}</h3>
+          {% if it.sub %}<p class="pp-plan-sub">{{ it.sub }}</p>{% endif %}
+        </header>
+        <div class="pp-plan-body">
+          <p class="pp-plan-label">{{ it.label or "Abono mensual" }}</p>
+          <p class="pp-plan-price">${{ it.price }}</p>
+          <p class="pp-plan-tax">{{ it.tax or "+ IVA / mes" }}</p>
+          <hr class="pp-plan-sep">
+          {% if it.impl %}
+          <p class="pp-plan-label">Implementación</p>
+          <p class="pp-plan-impl"><span class="pp-plan-impl-amount">${{ it.impl }}</span> <span class="pp-plan-impl-tax">{{ it.impl_tax or "+ IVA" }}</span></p>
+          {% if it.impl_note is not sameas false %}<p class="pp-plan-once">{{ it.impl_note or "Pago único" }}</p>{% endif %}
+          {% endif %}
+          {% if it.feats %}
+          {% if it.impl %}<hr class="pp-plan-sep">{% endif %}
+          <ul class="pp-plan-feats">{% for f in it.feats %}<li>{{ icon('bi-check2-circle', 'icon bi') }}<span>{{ f }}</span></li>{% endfor %}</ul>
+          {% endif %}
+          {{ btn(it.button, "pp-plan-cta") }}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% if p.note %}<p class="pp-note">{{ p.note }}</p>{% endif %}
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Banner con foto ----------
+   c = {eyebrow, title: [líneas], text, img, img_sm, pos, actions: [btn…]} #}
+{% macro cta(c) -%}
+<section class="pp-cta" style="--pp-cta-img: url('{{ asset(c.img) }}');{% if c.img_sm %} --pp-cta-img-sm: url('{{ asset(c.img_sm) }}');{% endif %}{% if c.pos %} --pp-cta-pos: {{ c.pos }};{% endif %}">
+  <div class="pp-container">
+    <div class="pp-cta-copy">
+      <p class="pp-eyebrow pp-eyebrow-light">{{ c.eyebrow }}</p>
+      <h2>{% for line in c.title %}<span>{{ line }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h2>
+      <p>{{ c.text|safe }}</p>
+      <div class="pp-cta-actions">{% for b in c.actions %}{{ btn(b) }}{% endfor %}</div>
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Sobre GENEOS ----------
+   a = {id, eyebrow, title, paragraphs: [html], stats: [{icon, title, text}], close (html), img, color} #}
+{% macro about(a) -%}
+<section class="pp-section pp-about"{% if a.id %} id="{{ a.id }}"{% endif %} style="{% if a.img %}--pp-about-img: url('{{ asset(a.img) }}');{% endif %}{% if a.color %} --pp-about-color: {{ a.color }};{% endif %}">
+  <div class="pp-container pp-about-grid">
+    <div class="pp-about-head">
+      <p class="pp-eyebrow">{{ a.eyebrow }}</p>
+      <h2>{{ a.title }}</h2>
+    </div>
+    <div class="pp-about-copy">
+      {% for par in a.paragraphs %}<p>{{ par|safe }}</p>{% endfor %}
+      <ul class="pp-about-stats pp-about-stats-{{ a.stats|length }}">
+        {% for st in a.stats %}
+        <li>
+          <span class="pp-about-ico">{{ glyph(st.icon, 80) }}</span>
+          <h3>{{ st.title }}</h3>
+          <p>{{ st.text }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if a.close %}<p class="pp-about-close">{{ a.close|safe }}</p>{% endif %}
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Logos de clientes (reutiliza la marquesina del sitio) ---------- #}
+{% macro clients(title, logos) -%}
+<section class="pp-clients" aria-labelledby="clientes-title">
+  <div class="pp-container"><h2 id="clientes-title">{{ title }}</h2></div>
+  {{ m.logo_marquee(logos) }}
+</section>
+{%- endmacro %}
+
+{# ---------- Preguntas frecuentes ----------
+   f = {eyebrow, title, lead, items: [[pregunta, respuesta html]]} #}
+{% macro faq(f) -%}
+<section class="pp-section pp-faq-section{% if f.centered %} pp-compact{% endif %}" id="faq">
+  <div class="pp-container pp-faq{% if f.centered %} is-centered{% endif %}">
+    <div class="pp-faq-head">
+      <p class="pp-eyebrow pp-eyebrow-2">{{ f.eyebrow or "Preguntas frecuentes" }}</p>
+      <h2>{{ f.title }}{% if not f.centered %}<span class="pp-dot">.</span>{% endif %}</h2>
+      {% if f.lead %}<p>{{ f.lead|safe }}</p>{% endif %}
+    </div>
+    <div class="pp-faq-list">
+      {% for q, a in f["items"] %}
+      <details name="faq">
+        <summary>{{ q }}</summary>
+        <div class="pp-faq-answer">{{ a|safe }}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Brochure + formulario de demo ----------
+   d = {product, brochure: {title, file, href, icon, meta, text, cover, cover_alt, button},
+        quote: {html, name, role, img, webp}, form: {title, text, rows: [[campo, campo]], radios: {legend, name, options: [[id, valor, etiqueta]]},
+        message: {label, placeholder}}}
+   campo = {name, label, type, required, autocomplete, placeholder, inputmode, wa (etiqueta en el mensaje), suffix} #}
+{% macro field(f) -%}
+<label for="f-{{ f.name }}">{{ f.label }}<input id="f-{{ f.name }}" name="{{ f.name }}"{% if f.type %} type="{{ f.type }}"{% endif %}{% if f.required %} required{% endif %}{% if f.autocomplete %} autocomplete="{{ f.autocomplete }}"{% endif %}{% if f.placeholder %} placeholder="{{ f.placeholder }}"{% endif %}{% if f.inputmode %} inputmode="{{ f.inputmode }}"{% endif %} data-wa="{{ f.wa or f.label }}"{% if f.suffix %} data-suffix="{{ f.suffix }}"{% endif %}></label>
+{%- endmacro %}
+
+{% macro convert(d) -%}
+<section class="pp-section pp-soft">
+  <div class="pp-container pp-convert{% if not d.brochure %} pp-convert-solo{% endif %}">
+    {% if d.brochure %}
+    <div class="pp-convert-side{% if d.quote %} is-optional-mobile{% endif %}">
+      <div class="pp-card" id="brochure">
+        <p class="pp-eyebrow">{{ d.brochure.eyebrow or "Brochure" }}</p>
+        <h2>{{ d.brochure.title or "Llevate toda la información" }}</h2>
+        {% if d.brochure.cover %}
+        <div class="pp-brochure-cover">
+          <p>{{ d.brochure.text|safe }}</p>
+          {{ btn({"label": d.brochure.button or "Descargar brochure", "href": asset(d.brochure.href), "download": d.brochure.file, "icon_before": "bi-download"}) }}
+          <img src="{{ img(d.brochure.cover) }}" alt="{{ d.brochure.cover_alt }}" width="{{ d.brochure.cover_w }}" height="{{ d.brochure.cover_h }}" loading="lazy" decoding="async">
+        </div>
+        {% elif d.brochure.pending %}
+        <p>{{ d.brochure.text|safe }}</p>
+        {{ btn(d.brochure.action) }}
+        {% else %}
+        <div class="pp-brochure-file">
+          <img src="{{ asset(d.brochure.icon) }}" alt="" loading="lazy" decoding="async" width="56" height="56">
+          <span><b>{{ d.brochure.name }}</b>{{ d.brochure.meta }}</span>
+        </div>
+        <p>{{ d.brochure.text|safe }}</p>
+        {{ btn({"label": d.brochure.button or "Descargar brochure", "href": asset(d.brochure.href), "download": d.brochure.file, "icon_before": "bi-download"}) }}
+        {% endif %}
+      </div>
+      {% if d.quote %}
+      <figure class="pp-quote">
+        <blockquote>{{ d.quote.html|safe }}</blockquote>
+        <figcaption>
+          <picture>{% if d.quote.webp %}<source srcset="{{ asset(d.quote.webp) }}" type="image/webp">{% endif %}<img src="{{ asset(d.quote.img) }}" alt="{{ d.quote.name }}" width="64" height="64" loading="lazy" decoding="async"></picture>
+          <span><b>{{ d.quote.name }}</b>{{ d.quote.role }}</span>
+        </figcaption>
+      </figure>
+      {% endif %}
+    </div>
+
+    {% endif %}
+    <div class="pp-card" id="demo">
+      <p class="pp-eyebrow">Demo</p>
+      <h2>{{ d.form.title or "Solicitá tu demo de " ~ d.product }}</h2>
+      <p>{{ d.form.text or "Completá tus datos y te contactamos para coordinar una presentación." }}</p>
+      {# El pedido se envía por WhatsApp (product.js). Cuando exista un endpoint, cambiar action/method. #}
+      <form class="pp-form" action="#" novalidate data-product="{{ d.product }}">
+        {% for row in d.form.rows %}
+        <div class="pp-row">{% for f in row %}{{ field(f) }}{% endfor %}</div>
+        {% endfor %}
+        {% if d.form.radios %}
+        <fieldset class="pp-radios">
+          <legend>{{ d.form.radios.legend }}</legend>
+          {% for rid, val, lab in d.form.radios.options %}
+          <label for="v-{{ rid }}"><input type="radio" id="v-{{ rid }}" name="{{ d.form.radios.name }}" value="{{ val }}"{% if loop.first %} checked{% endif %}> {{ lab }}</label>
+          {% endfor %}
+        </fieldset>
+        {% endif %}
+        <label for="f-msg">{{ d.form.message.label }}<textarea id="f-msg" name="mensaje" placeholder="{{ d.form.message.placeholder }}" data-wa="Mensaje"></textarea></label>
+        <div class="pp-form-actions">
+          <button type="submit" class="pp-btn pp-btn-primary">{{ d.form.submit or "Solicitar demo" }}</button>
+          <p class="pp-form-status" role="status"></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+
+{# ---------- Introducción: título + texto a la izquierda, lista breve con íconos a la derecha ----------
+   i = {id, title, text, items: [[icono, texto]]} #}
+{% macro intro(i) -%}
+<section class="pp-section pp-white pp-intro"{% if i.id %} id="{{ i.id }}"{% endif %}>
+  <div class="pp-container pp-intro-grid">
+    <div>
+      <h2>{{ i.title }}</h2>
+      <p>{{ i.text|safe }}</p>
+      {% if i.button %}<p class="pp-intro-cta">{{ btn(i.button) }}</p>{% endif %}
+    </div>
+    <ul class="pp-intro-list">
+      {% for ic, t in i["items"] %}<li><span class="pp-intro-ico">{{ icon(ic, 'icon bi') }}</span>{{ t }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Tecnologías: logos oficiales sobre banda de color ----------
+   t = {id, eyebrow, title, items: [[archivo, nombre, descripción, url]]} #}
+{% macro tech(t) -%}
+<section class="pp-section pp-tech pp-wave"{% if t.id %} id="{{ t.id }}"{% endif %} style="--pp-wave-next: {{ t.wave_next or '#fff' }}; --pp-wave-back: .18;">
+  <div class="pp-container">
+    <header class="pp-head pp-head-light">
+      <p class="pp-eyebrow">{{ t.eyebrow }}</p>
+      <h2>{{ t.title|safe }}</h2>
+    </header>
+    <ul class="pp-tech-grid">
+      {% for file, name, desc, href in t["items"] %}
+      <li><a href="{{ href }}" target="_blank" rel="noopener" title="{{ name }}: {{ desc }}">
+        <img src="{{ img('2023/10/' ~ file) }}" alt="{{ name }}" loading="lazy" width="96" height="96"><span>{{ name }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Casos de éxito: tarjetas horizontales ----------
+   c = {id, eyebrow, title, items: [{logo, logo_alt, logo_w, logo_h, title, text, link: {label, href}}]} #}
+{% macro cases(c) -%}
+<section class="pp-section pp-white"{% if c.id %} id="{{ c.id }}"{% endif %}>
+  <div class="pp-container">
+    <header class="pp-head">
+      <p class="pp-eyebrow">{{ c.eyebrow }}</p>
+      <h2>{{ c.title }}</h2>
+    </header>
+    <div class="pp-cases">
+      {% for it in c["items"] %}
+      <article class="pp-case">
+        <img src="{{ img(it.logo) }}" alt="{{ it.logo_alt }}" width="{{ it.logo_w }}" height="{{ it.logo_h }}" loading="lazy">
+        <div>
+          <h3>{{ it.title }}</h3>
+          <p>{{ it.text }}</p>
+          {% if it.link %}<a class="pp-more" href="{{ it.link.href }}" target="_blank" rel="noopener">{{ it.link.label }} {{ icon('bi-box-arrow-up-right', 'icon bi') }}<span class="sr-only"> (se abre en una pestaña nueva)</span></a>{% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Banda de cierre centrada (sin foto) ----------
+   b = {eyebrow, title, text, actions: [btn…]} #}
+{% macro band(b) -%}
+<section class="pp-band{% if b.icon %} pp-band-icon{% endif %}">
+  <div class="pp-container">
+    {% if b.icon %}<span class="pp-band-ico" aria-hidden="true">{{ icon(b.icon) }}</span>{% endif %}
+    <p class="pp-eyebrow pp-eyebrow-light">{{ b.eyebrow }}</p>
+    <h2>{{ b.title }}</h2>
+    <p>{{ b.text|safe }}</p>
+    <div class="pp-cta-actions">{% for x in b.actions %}{{ btn(x) }}{% endfor %}</div>
+  </div>
+</section>
+{%- endmacro %}
+
+
+{# ---------- Vidriera: texto + lista (o íconos) + imagen opcional ----------
+   s = {id, soft, eyebrow, title, text, checks: [texto], features: [[icono, título, detalle]], more: {label, href},
+        shot: {src, alt, w, h, frame: "browser"}, reverse} — sin imagen, la lista de íconos ocupa la columna de la derecha #}
+{% macro showcase(s) -%}
+<section class="pp-section {{ 'pp-soft' if s.soft else 'pp-white' }} pp-showcase{% if s.compact %} pp-compact{% endif %}"{% if s.id %} id="{{ s.id }}"{% endif %}>
+  <div class="pp-container pp-showcase-grid{% if s.reverse %} is-reverse{% endif %}{% if s.stack %} is-stack{% endif %}">
+    <div class="pp-showcase-copy">
+      {{ ('<p class="pp-eyebrow">' ~ s.eyebrow ~ '</p>')|safe if s.eyebrow else '<span class="pp-rule" aria-hidden="true"></span>'|safe }}
+      <h2>{{ s.title }}</h2>
+      {% if s.text %}<p class="pp-showcase-text">{{ s.text|safe }}</p>{% endif %}
+      {% if s.points %}<ul class="pp-points">{% for ic, t, d in s.points %}<li><span class="pp-points-ico">{{ glyph(ic) }}</span><span><b>{{ t }}</b><small>{{ d }}</small></span></li>{% endfor %}</ul>{% endif %}
+      {% if s.checks %}<ul class="pp-showcase-checks{% if s.checks_grid %} is-grid{% endif %}">{% for c in s.checks %}{% set t = c.split("|") %}<li>{{ icon('bi-check-circle', 'icon bi') }}<span>{{ t[0] }}{% if t|length > 1 %}<small>{{ t[1] }}</small>{% endif %}</span></li>{% endfor %}</ul>{% endif %}
+      {% if s.features and s.shot %}<ul class="pp-showcase-feats">{% for ic, t, d in s.features %}<li><span>{{ glyph(ic) }}</span><b>{{ t }}</b><small>{{ d }}</small></li>{% endfor %}</ul>{% endif %}
+      {% if s.more and s.more.style %}<div class="pp-showcase-actions">{{ btn(s.more) }}</div>{% elif s.more %}<a class="pp-more" href="{{ s.more.href }}">{{ s.more.label }} {{ icon('bi-arrow-right', 'icon bi') }}</a>{% endif %}
+    </div>
+    {% if s.shot %}
+    <figure class="pp-showcase-media{% if s.shot.frame %} is-{{ s.shot.frame }}{% endif %}"{% if s.shot_max %} style="max-width: {{ s.shot_max }}"{% endif %}>
+      {% if s.shot.frame == "browser" %}<span class="pp-browser-bar" aria-hidden="true"><i></i><i></i><i></i></span>{% endif %}
+      <picture>{% if s.shot.sm %}<source media="(max-width: 600px)" srcset="{{ img(s.shot.sm.src) }}" width="{{ s.shot.sm.w }}" height="{{ s.shot.sm.h }}">{% endif %}<img src="{{ img(s.shot.src) }}" alt="{{ s.shot.alt }}" width="{{ s.shot.w }}" height="{{ s.shot.h }}" loading="lazy" decoding="async"></picture>
+      {% if s.shot.caption %}<figcaption>{{ s.shot.caption }}</figcaption>{% endif %}
+    </figure>
+    {% elif s.features %}
+    <ul class="pp-showcase-feats {{ 'is-plain' if s.features_plain else 'is-grid' }}">{% for ic, t, d in s.features %}<li><span>{{ glyph(ic) }}</span><b>{{ t }}</b><small>{{ d }}</small></li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Logos de tecnologías sobre fondo claro ----------
+   l = {id, eyebrow, title, lead, items: [[ícono, nombre, color]]} #}
+{% macro logos(l) -%}
+<section class="pp-section {{ 'pp-soft' if l.soft else 'pp-white' }} pp-logos-section{% if l.compact %} pp-compact{% endif %}"{% if l.id %} id="{{ l.id }}"{% endif %}>
+  <div class="pp-container">
+    <header class="pp-head"><p class="pp-eyebrow">{{ l.eyebrow }}</p><h2>{{ l.title }}</h2>{% if l.lead %}<p>{{ l.lead }}</p>{% endif %}</header>
+    <ul class="pp-logos"{% if l.ancho %} style="max-width: {{ l.ancho }}; margin-inline: auto !important;"{% endif %}>{% for ic, name, color in l["items"] %}<li style="--logo: {{ color }}">{{ icon(ic, 'icon') }}<span>{{ name }}</span></li>{% endfor %}</ul>
+  </div>
+</section>
+{%- endmacro %}
+
+
+{# ---------- Imagen + encabezado + tarjetas (E-learning: «Una plataforma adaptada…») ---------- #}
+{% macro split_cards(c) -%}
+<section class="pp-section pp-compact {{ 'pp-soft' if c.soft else 'pp-white' }} pp-split"{% if c.id %} id="{{ c.id }}"{% endif %}>
+  <div class="pp-container pp-split-grid">
+    <figure class="pp-split-media"><img src="{{ img(c.img.src) }}" alt="{{ c.img.alt }}" width="{{ c.img.w }}" height="{{ c.img.h }}" loading="lazy" decoding="async"></figure>
+    <div class="pp-split-body">
+      <span class="pp-rule" aria-hidden="true"></span>
+      <h2>{{ c.title }}</h2>
+      {% if c.lead %}<p class="pp-split-lead">{{ c.lead }}</p>{% endif %}
+      <ul class="pp-split-cards">{% for it in c["items"] %}<li><span class="pp-split-ico">{{ glyph(it.icon) }}</span><h3>{{ it.title }}</h3><p>{{ it.text }}</p></li>{% endfor %}</ul>
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Pasos en tarjetas numeradas (E-learning) ---------- #}
+{% macro step_cards(s) -%}
+<section class="pp-section pp-compact pp-white pp-stepcards"{% if s.id %} id="{{ s.id }}"{% endif %}>
+  <div class="pp-container">
+    <h2 class="pp-stepcards-title">{{ s.title }}</h2>
+    <ol class="pp-stepcards-list">
+      {% for it in s["items"] %}<li><span class="pp-stepcards-n" aria-hidden="true">{{ loop.index }}</span><h3>{{ it.title }}</h3><p>{{ it.text }}</p></li>{% endfor %}
+    </ol>
+  </div>
+</section>
+{%- endmacro %}
+
+
+{# ---------- Pilares: encabezado centrado y conceptos con ícono en círculo suave (Diseño) ---------- #}
+{% macro pillars(p) -%}
+<section class="pp-section pp-compact pp-white pp-pillars"{% if p.id %} id="{{ p.id }}"{% endif %}>
+  <div class="pp-container">
+    <header class="pp-head"><h2>{{ p.title }}</h2>{% if p.lead %}<p>{{ p.lead|safe }}</p>{% endif %}</header>
+    <ul class="pp-pillars-list">{% for ic, t, d in p["items"] %}<li><span class="pp-soft-ico">{{ glyph(ic) }}</span><h3>{{ t }}</h3><p>{{ d }}</p></li>{% endfor %}</ul>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Trabajos (carrusel). Datos: data/trabajos.json, generado por GENEOS Web Admin. Sin trabajos no se muestra nada ---------- #}
+{% macro trabajos(t) -%}
+{% set items = trabajos_de(t.servicio) %}
+{% if items %}
+<section class="pp-section pp-compact pp-soft pp-works" id="{{ t.id or 'trabajos' }}">
+  <div class="pp-container">
+    <div class="pp-works-head">
+      <header class="pp-head"><h2>{{ t.title }}</h2>{% if t.lead %}<p>{{ t.lead }}</p>{% endif %}</header>
+      {% if PORTFOLIO_URL %}<a class="pp-more" href="{{ PORTFOLIO_URL }}">Ver todo el portfolio {{ icon('bi-arrow-right', 'icon bi') }}</a>{% endif %}
+    </div>
+    <div class="pp-works-rail" data-rail>
+      <button class="pp-works-nav is-prev" type="button" aria-label="Trabajos anteriores" data-rail-prev>{{ icon('bi-chevron-left', 'icon bi') }}</button>
+      <ul class="pp-works-track" data-rail-track>
+        {% for w in items %}
+        <li class="pp-work">
+          {% set tag = "a" if w.enlace else "div" %}
+          <{{ tag }} class="pp-work-card"{% if w.enlace %} href="{{ w.enlace }}"{% if w.enlace.startswith('http') %} target="_blank" rel="noopener"{% endif %}{% endif %}>
+            <img src="{{ img(w.imagen) }}" alt="{{ w.imagen_alt or w.nombre }}" width="640" height="360" loading="lazy" decoding="async">
+            <span class="pp-work-txt"><b>{{ w.nombre }}</b>{% if w.descripcion %}<small>{{ w.descripcion }}</small>{% endif %}</span>
+          </{{ tag }}>
+        </li>
+        {% endfor %}
+      </ul>
+      <button class="pp-works-nav is-next" type="button" aria-label="Trabajos siguientes" data-rail-next>{{ icon('bi-chevron-right', 'icon bi') }}</button>
+    </div>
+  </div>
+</section>
+{% endif %}
+{%- endmacro %}
+
+{# ---------- Dos bloques lado a lado: diseño web (tarjetas) e identidad (lista + imagen administrable) ---------- #}
+{% macro duo(d) -%}
+<section class="pp-section pp-compact pp-white pp-duo"{% if d.id %} id="{{ d.id }}"{% endif %}>
+  <div class="pp-container pp-duo-grid">
+    <div class="pp-duo-col" id="{{ d.left.id }}">
+      <span class="pp-rule" aria-hidden="true"></span>
+      <h2>{{ d.left.title }}</h2>
+      <p class="pp-duo-lead">{{ d.left.text }}</p>
+      <ul class="pp-mini-cards">{% for ic, t, x in d.left["items"] %}<li><span class="pp-soft-ico">{{ glyph(ic) }}</span><span><b>{{ t }}</b><small>{{ x }}</small></span></li>{% endfor %}</ul>
+    </div>
+    <div class="pp-duo-col" id="{{ d.right.id }}">
+      <span class="pp-rule" aria-hidden="true"></span>
+      <h2>{{ d.right.title }}</h2>
+      <p class="pp-duo-lead">{{ d.right.text }}</p>
+      <div class="pp-brand{% if d.right.images %} has-img{% endif %}">
+        <ul class="pp-brand-list">{% for ic, t, x in d.right["items"] %}<li><span class="pp-soft-ico is-sm">{{ glyph(ic) }}</span><span><b>{{ t }}</b><small>{{ x }}</small></span></li>{% endfor %}</ul>
+        {% if d.right.images %}{% set im = d.right.images[0] %}<figure class="pp-brand-img"><img src="{{ img(im.imagen) }}" alt="{{ im.imagen_alt }}" width="480" height="480" loading="lazy" decoding="async"></figure>{% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{# ---------- Banda oscura compacta con tres puntos ---------- #}
+{% macro dark_points(d) -%}
+<section class="pp-dark-points"{% if d.id %} id="{{ d.id }}"{% endif %}>
+  <div class="pp-container">
+    <header class="pp-dark-head"><p class="pp-eyebrow">{{ d.eyebrow }}</p><h2>{{ d.title }}</h2></header>
+    <ul class="pp-dark-list">{% for ic, t, x in d["items"] %}<li><span class="pp-dark-ico">{{ glyph(ic) }}</span><h3>{{ t }}</h3><p>{{ x }}</p></li>{% endfor %}</ul>
+    {% if d.more %}<p class="pp-dark-more"><a href="{{ d.more.href }}">{{ d.more.label }} {{ icon('bi-arrow-right', 'icon bi') }}</a></p>{% endif %}
+  </div>
+</section>
+{%- endmacro %}

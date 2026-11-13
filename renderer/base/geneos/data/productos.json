@@ -1,0 +1,12 @@
+{
+  "_comentario": [
+    "Webs independientes de los productos. Una sola configuración para la barra superior y los botones de las páginas de producto.",
+    "url: dirección de la web del producto. url_confirmada: si es la web oficial definitiva.",
+    "Los botones «Visitar sitio de …» y «Conocer más sobre …» solo se muestran con url_confirmada = true.",
+    "La barra superior usa url aunque no esté confirmada (comportamiento actual).",
+    "A futuro, GENEOS Web Admin escribe este archivo desde «Sitios y contacto» (dominio y dominio confirmado)."
+  ],
+  "gerp":   {"nombre": "GERP",   "descripcion": "Software de gestión",   "url": "https://gerp.ar/",   "url_confirmada": true,  "logo": "productos/gerp.svg"},
+  "geagro": {"nombre": "GEAGRO", "descripcion": "Gestión agropecuaria",  "url": "https://geagro.ar/", "url_confirmada": true,  "logo": "productos/geagro.svg"},
+  "gema":   {"nombre": "GEMA",   "descripcion": "Gestión de matafuegos", "url": "https://gema.geneos.com.ar/", "url_confirmada": false, "logo": "productos/gema.svg"}
+}
