@@ -9,7 +9,8 @@ NIVEL = {"editor": 1, "publicador": 2, "administrador": 3}
 
 class SitioWeb(models.Model):
     MOTORES = [("comercial", "Sitio comercial (GERP, GEAGRO, GEMA)"), ("institucional", "Sitio institucional de GENEOS (conexión en etapa 7)")]
-    DESTINOS = [("carpeta", "Carpeta local con versiones (pruebas)"), ("comando", "Comando de despliegue (proveedor a definir)")]
+    DESTINOS = [("carpeta", "Carpeta local con versiones (pruebas)"), ("repositorio", "Repositorio git de la web (web-gerp, web-geagro, web-gema)"),
+                ("comando", "Comando de despliegue (proveedor a definir)")]
 
     clave = models.SlugField("Clave", unique=True, help_text="geneos, gerp, geagro o gema. Coincide con el motor de sitios.")
     nombre = models.CharField("Nombre", max_length=60)
@@ -49,8 +50,13 @@ class SitioWeb(models.Model):
     comando_despliegue = models.CharField("Comando de despliegue", max_length=500, blank=True,
         help_text="Se ejecuta después de generar y validar la web. {carpeta} se reemplaza por la carpeta generada. "
                   "Ej.: npx wrangler pages deploy {carpeta} --project-name=gerp")
+    repo_url = models.CharField("Repositorio de la web", max_length=300, blank=True,
+        help_text="Dirección del repositorio git donde se publica la web, por ejemplo git@github.com:sorensenclara/web-gerp.git. "
+                  "La computadora del administrador tiene que tener permiso de escritura (clave de despliegue).")
+    repo_rama = models.CharField("Rama", max_length=60, default="main", help_text="Rama que sirve la web (GitHub Pages, Cloudflare Pages).")
     publicar_al_aprobar = models.BooleanField("Actualizar la web al aprobar cada cambio", default=False,
-                                              help_text="Si está apagado, los cambios aprobados se acumulan hasta que tocás «Publicar en la web».")
+                                              help_text="Solo con el destino «Carpeta local». En un repositorio o un comando, publicar siempre "
+                                                        "pide revisar las diferencias y confirmar.")
     actualizado = models.DateTimeField(auto_now=True)
 
     @property
@@ -73,7 +79,11 @@ class SitioWeb(models.Model):
         FieldPanel("direccion"), FieldRowPanel([FieldPanel("instagram"), FieldPanel("facebook"), FieldPanel("linkedin")]),
         FieldPanel("email_pedidos"), FieldPanel("texto_consentimiento"),
     ]
-    panels_publicacion = [FieldPanel("destino"), FieldPanel("comando_despliegue"), FieldPanel("publicar_al_aprobar")]
+    panels_publicacion = [
+        HelpPanel("<p>Publicar tiene tres pasos: <b>Guardar</b> (borrador), <b>Aprobar</b> (queda listo para la web) y <b>Publicar en la web</b> "
+                  "(desde «Estado de las webs»: se preparan los archivos, se revisan las diferencias y se confirma). Nada llega a la web sin esa confirmación.</p>"),
+        FieldPanel("destino"), FieldRowPanel([FieldPanel("repo_url"), FieldPanel("repo_rama")]), FieldPanel("comando_despliegue"), FieldPanel("publicar_al_aprobar"),
+    ]
     edit_handler = TabbedInterface([ObjectList(panels_general, heading="General"), ObjectList(panels_contacto, heading="Contacto y formularios"),
                                     ObjectList(panels_publicacion, heading="Publicación")])
 
@@ -84,6 +94,11 @@ class SitioWeb(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def publica_afuera(self):
+        """True si publicar cambia una web que ve otra gente (repositorio o comando), no solo la carpeta local."""
+        return self.destino in ("repositorio", "comando")
 
     @property
     def dominio_publico(self):

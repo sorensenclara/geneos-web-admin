@@ -659,8 +659,20 @@ def sectores_web(fuente):
     return [{"icon": s.icono, "title": s.titulo, "text": s.texto} for s in sorted(sectores, key=lambda s: s.orden)]
 
 
-def datos_sitio(sitio, overrides=None):
-    """Devuelve {"contacto.json": ..., "<clave>.json": ..., ["gerp.json": ...]} y la lista de archivos a copiar."""
+def url_formularios_publica(url):
+    """True si los visitantes pueden llegar a esta dirección del administrador (https y no una máquina local)."""
+    from urllib.parse import urlsplit
+    u = urlsplit(url or "")
+    host = (u.hostname or "").lower()
+    return u.scheme == "https" and bool(host) and host not in ("localhost", "127.0.0.1", "::1", "0.0.0.0") \
+        and not host.endswith((".localhost", ".local", ".test", ".internal"))
+
+
+def datos_sitio(sitio, overrides=None, publico=False):
+    """Devuelve {"contacto.json": ..., "<clave>.json": ..., ["gerp.json": ...]} y la lista de archivos a copiar.
+
+    publico=True: la web va a una dirección que ve otra gente. El formulario se conecta al administrador solo si su dirección
+    es pública (https); si no, queda el pedido por WhatsApp que arma la propia página, como en las webs actuales."""
     fuente = Fuente(sitio, overrides)
     files = fuente.files
     fq = faqs(fuente)
@@ -685,8 +697,9 @@ def datos_sitio(sitio, overrides=None):
         pd["header"] = sitio.encabezado  # apariencia del encabezado de la web institucional
         for ruta, logos in logos_geneos(fuente, files).items():
             pd["pages"].setdefault(ruta, {}).setdefault("admin", {})["logos"] = logos
-    if sitio.usa_formularios:
-        pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento}
+    if sitio.usa_formularios and (not publico or url_formularios_publica(settings.GWA_URL_PUBLICA)):
+        pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento,
+                      "whatsapp": sitio.whatsapp, "product": sitio.nombre}
     archivos = {"contacto.json": contacto(sitio), f"{sitio.clave}.admin.json": pd}
     if sitio.clave == "gerp":
         archivos["gerp.json"] = datos_gerp(fuente, fq)  # planes, comparador, sectores, testimonios, redirecciones

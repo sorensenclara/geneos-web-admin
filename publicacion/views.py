@@ -17,7 +17,8 @@ from sitios.permisos import puede, sitios_permitidos
 from . import despliegue
 from .models import Despliegue
 from .motor import ErrorGeneracion, NoConectado
-from .servicio import PREVIEWS, estado_sitio, publicar_sitio, vista_previa_sitio, volver_atras
+from .servicio import (PREVIEWS, ErrorPublicacion, descartar_preparacion, estado_sitio, motivo_para_no_publicar, preparar_publicacion,
+                       publicar_preparacion, publicar_sitio, vista_previa_sitio, volver_atras)
 
 
 def _staff(request):
@@ -66,15 +67,66 @@ def sitio_detalle(request, clave):
 
 @require_POST
 def publicar(request, clave):
+    """Paso 1 de «Publicar en la web»: prepara los archivos y lleva a la revisión. La web no cambia."""
     sitio = get_object_or_404(SitioWeb, clave=clave)
     if not puede(request.user, sitio.pk, nivel=2):
         raise PermissionDenied
-    d = publicar_sitio(sitio, request.user, request.POST.get("motivo") or "Publicación manual")
+    prep = preparar_publicacion(sitio, request.user, request.POST.get("motivo") or "Publicación en la web")
+    return redirect("gwa_revision", pk=prep.pk)
+
+
+def revision(request, pk):
+    """Paso 2: controles, diferencias con lo publicado y confirmación."""
+    prep = get_object_or_404(Despliegue, pk=pk, tipo="preparacion")
+    if not puede(request.user, prep.sitio_id):
+        raise PermissionDenied
+    dif = prep.diferencias or {}
+    cambios = dif.get("primera") or any(dif.get(k) for k in ("paginas_nuevas", "paginas_faltantes", "texto", "archivos_nuevos", "archivos_faltantes"))
+    return render(request, "publicacion/revision.html", {
+        "p": prep, "dif": dif, "hay_cambios": cambios, "no_publicable": motivo_para_no_publicar(prep),
+        "puede_publicar": puede(request.user, prep.sitio_id, nivel=2), "page_title": f"Revisar la publicación · {prep.sitio.nombre}"})
+
+
+@require_POST
+def confirmar(request, pk):
+    """Paso 3: publica exactamente la versión revisada. Pide la confirmación explícita."""
+    prep = get_object_or_404(Despliegue, pk=pk, tipo="preparacion")
+    if not puede(request.user, prep.sitio_id, nivel=2):
+        raise PermissionDenied
+    if request.POST.get("confirmo") != "si":
+        messages.error(request, "Marcá la confirmación para publicar.")
+        return redirect("gwa_revision", pk=pk)
+    try:
+        d = publicar_preparacion(prep, request.user)
+    except ErrorPublicacion as e:
+        messages.error(request, str(e))
+        return redirect("gwa_revision", pk=pk)
     if d.estado == "ok":
-        messages.success(request, f"La web de {sitio.nombre} se actualizó (versión {d.version}).")
-    else:
-        messages.error(request, f"No se publicó: la web de {sitio.nombre} sigue con la versión anterior. Revisá el detalle del error.")
-    return redirect("gwa_sitio", clave=clave)
+        messages.success(request, f"La web de {prep.sitio.nombre} se actualizó (versión {d.version}).")
+        return redirect("gwa_sitio", clave=prep.sitio.clave)
+    messages.error(request, f"No se publicó: la web de {prep.sitio.nombre} sigue con la versión anterior. Revisá el detalle del error.")
+    return redirect("gwa_despliegue", pk=d.pk)
+
+
+@require_POST
+def descartar(request, pk):
+    prep = get_object_or_404(Despliegue, pk=pk, tipo="preparacion")
+    if not puede(request.user, prep.sitio_id, nivel=2):
+        raise PermissionDenied
+    descartar_preparacion(prep)
+    messages.info(request, "Se descartó la versión preparada. La web no cambió.")
+    return redirect("gwa_sitio", clave=prep.sitio.clave)
+
+
+def archivo_preparacion(request, pk, ruta=""):
+    """La web tal como quedó preparada (o publicada), para revisarla antes de confirmar."""
+    _staff(request)
+    d = get_object_or_404(Despliegue, pk=pk)
+    if not puede(request.user, d.sitio_id) or not d.carpeta or not Path(d.carpeta).exists():
+        raise Http404("Esta versión ya no está guardada.")
+    if ruta.endswith("/") or ruta == "":
+        ruta += "index.html"
+    return serve(request, ruta, document_root=Path(d.carpeta).resolve())
 
 
 @require_POST
@@ -97,6 +149,9 @@ def volver(request, clave):
     sitio = get_object_or_404(SitioWeb, clave=clave)
     if not puede(request.user, sitio.pk, nivel=2):
         raise PermissionDenied
+    if request.POST.get("confirmo") != "si":
+        messages.error(request, "Marcá la confirmación para volver a la versión anterior.")
+        return redirect("gwa_sitio", clave=clave)
     d = volver_atras(sitio, request.user)
     (messages.success if d.estado == "ok" else messages.error)(request, "Se volvió a la versión anterior." if d.estado == "ok" else d.registro)
     return redirect("gwa_sitio", clave=clave)

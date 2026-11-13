@@ -12,12 +12,11 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
 
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from publicacion.comparar import comparar, sin_diferencias, texto_visible
+from publicacion.comparar import comparar, referencias_rotas, sin_diferencias, texto_visible
 
 RENDERER = Path(settings.GWA_RENDERER_DIR)
 REPO = RENDERER.parent
@@ -40,39 +39,9 @@ sys.argv = [os.environ["VIGIA_EXPORT"]] + sys.argv[1:]
 runpy.run_path(os.environ["VIGIA_EXPORT"], run_name="__main__")
 '''
 
-REF = re.compile(r'''(?:src|href|poster)=["']([^"']+)["']|srcset=["']([^"']+)["']|url\(\s*['"]?([^'")]+)['"]?\s*\)''')
-
-
 def huellas(carpeta):
     return {f.relative_to(carpeta).as_posix(): hashlib.sha256(f.read_bytes()).hexdigest()
             for f in sorted(Path(carpeta).rglob("*")) if f.is_file()}
-
-
-def referencias_rotas(carpeta):
-    """Enlaces y recursos relativos (HTML y CSS) que apuntan a un archivo que no está en la web generada."""
-    carpeta = Path(carpeta)
-    rotas = []
-    for f in list(carpeta.rglob("*.html")) + list(carpeta.rglob("*.css")):
-        contenido = f.read_text(errors="replace")
-        contenido = re.sub(r"<script\b[^>]*>.*?</script>", "", contenido, flags=re.S)  # JSON-LD y scripts: URLs absolutas
-        # url() en un style="" de la página: es una variable CSS que el navegador resuelve desde la hoja de estilos
-        # (assets/css/). Las del bloque <style> y los src/href se resuelven desde la página.
-        partes = [(re.sub(r'style="[^"]*"', "", contenido), f.parent)]
-        if f.suffix == ".html":
-            partes += [(a, carpeta / "assets" / "css") for a in re.findall(r'style="([^"]*)"', contenido)]
-        for texto, desde in partes:
-            for m in REF.finditer(texto):
-                valores = [m.group(1) or m.group(3)] if not m.group(2) else [c.strip().split(" ")[0] for c in m.group(2).split(",")]
-                for v in valores:
-                    v = (v or "").strip()
-                    if not v or v.startswith(("#", "http:", "https:", "//", "mailto:", "tel:", "data:", "javascript:", "{", "$", "/")):
-                        continue
-                    destino = (desde / unquote(urlsplit(v).path)).resolve()
-                    if destino.is_dir():
-                        destino = destino / "index.html"
-                    if not destino.exists():
-                        rotas.append(f"{f.relative_to(carpeta)} → {v}")
-    return sorted(set(rotas))
 
 
 class BaseComercial(SimpleTestCase):

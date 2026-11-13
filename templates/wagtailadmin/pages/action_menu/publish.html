@@ -1,0 +1,16 @@
+{% load i18n wagtailadmin_tags %}
+{# «Publicar» de Wagtail = aprobar dentro del administrador. La web cambia recién en «Estado de las webs → Preparar la publicación». #}
+<button
+    type="submit"
+    name="action-publish"
+    value="action-publish"
+    class="button button-longrunning"
+    data-controller="w-progress"
+    data-action="w-progress#activate"
+    data-w-progress-active-value="{% if is_scheduled %}{% trans 'Scheduling…' %}{% else %}Aprobando…{% endif %}"
+    title="Queda aprobado y listo para la web. La web cambia recién al publicar desde «Estado de las webs»."
+>
+    {% if icon_name %}{% icon name=icon_name classname="button-longrunning__icon" %}{% endif %}
+    {% icon name="spinner" %}
+    <em data-w-progress-target="label">{% if is_scheduled %}{% trans "Schedule to publish" %}{% elif is_revision %}Aprobar esta versión{% else %}Aprobar{% endif %}</em>
+</button>

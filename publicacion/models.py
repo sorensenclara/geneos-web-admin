@@ -6,8 +6,9 @@ from sitios.models import SitioWeb
 
 class Despliegue(models.Model):
     """Cada generación de una web: vista previa del sitio completo o publicación."""
-    TIPOS = [("publicacion", "Publicación"), ("vista_previa", "Vista previa"), ("vuelta_atras", "Vuelta a una versión anterior")]
-    ESTADOS = [("en_curso", "En curso"), ("ok", "Publicado"), ("fallo", "Falló")]
+    TIPOS = [("preparacion", "Preparación para revisar"), ("publicacion", "Publicación"), ("vista_previa", "Vista previa"),
+             ("vuelta_atras", "Vuelta a una versión anterior")]
+    ESTADOS = [("en_curso", "En curso"), ("listo", "Lista para revisar"), ("ok", "Publicado"), ("descartado", "Descartada"), ("fallo", "Falló")]
     sitio = models.ForeignKey(SitioWeb, on_delete=models.CASCADE, related_name="despliegues")
     tipo = models.CharField(max_length=20, choices=TIPOS, default="publicacion")
     estado = models.CharField(max_length=10, choices=ESTADOS, default="en_curso")
@@ -18,6 +19,11 @@ class Despliegue(models.Model):
     finalizado = models.DateTimeField(null=True, blank=True)
     registro = models.TextField(blank=True)
     carpeta = models.CharField(max_length=500, blank=True)
+    commit = models.CharField("Commit en el repositorio", max_length=40, blank=True)
+    controles = models.JSONField("Controles", default=list, blank=True, help_text="Errores que impiden publicar.")
+    diferencias = models.JSONField("Diferencias con la web publicada", default=dict, blank=True)
+    preparacion = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="publicaciones",
+                                    help_text="La versión revisada que se publicó.")
 
     class Meta:
         ordering = ["-iniciado"]

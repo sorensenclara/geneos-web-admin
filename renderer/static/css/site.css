@@ -230,6 +230,7 @@
 /* Formulario conectado al administrador */
 .pp-form-consent { display: flex !important; gap: 10px; align-items: flex-start; font-weight: 400 !important; font-size: .9rem !important; color: var(--pp-muted); }
 .pp-form-consent input { width: auto !important; margin-top: 4px; accent-color: var(--pp-accent); }
+.pp-form-status .pp-form-wa { display: inline-flex; margin-top: 10px; }
 .pp-form-hp { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
 
 /* ---------- Desplegable del menú principal (GERP · Planes) ----------

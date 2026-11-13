@@ -93,3 +93,11 @@
   .gwa-pr-barra-acciones { width: 100%; flex-wrap: nowrap; gap: 8px; }
   .gwa-pr-barra-acciones .gu-btn { flex: 1 1 0; padding: 0 10px; font-size: 13.5px; }
 }
+
+/* Revisión antes de publicar: diferencias de texto y confirmación explícita */
+.gwa-diff { max-height: 420px; overflow: auto; }
+.gwa-diff > div { padding: 2px 8px; border-radius: 4px; white-space: pre-wrap; }
+.gwa-diff-mas { background: color-mix(in srgb, var(--status-positive, #1f8a4c) 12%, transparent); }
+.gwa-diff-menos { background: color-mix(in srgb, var(--status-critical) 10%, transparent); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--status-critical) 50%, transparent); }
+.gwa-confirmo { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; max-width: 720px; }
+.gwa-confirmo input { margin-top: 3px; }

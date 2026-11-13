@@ -58,6 +58,38 @@ que las tres webs se generen sin carpetas externas y sin recursos faltantes, y q
 los repositorios `web-*` ni en `renderer/data/` (que solo sirve para la carga inicial). Lo que se cambie en otro lado vuelve atrás en la próxima
 publicación. Para comparar lo que generaría el administrador con una web publicada: `manage.py comparar_web <sitio> <carpeta o URL>`.
 
+## Publicar en la web
+
+Tres pasos separados, y nada llega a la web sin el último:
+
+1. **Guardar**: queda un borrador.
+2. **Aprobar** (el botón de Wagtail que antes decía «Publicar»): el contenido queda listo para la web. La web no cambia.
+3. **Publicar en la web**, desde *Estado de las webs → Preparar la publicación*: se generan los archivos con todo lo aprobado, se corren
+   los controles (un H1 por página, títulos, precios, recursos y enlaces completos, ninguna dirección `localhost` en una web pública,
+   ningún workflow del repositorio que regenere la web) y se muestran las diferencias de texto, páginas y archivos con lo publicado.
+   Recién al marcar la confirmación y tocar *Publicar en la web* se publica **exactamente** esa versión revisada.
+
+Una versión preparada vence a las 2 horas, o antes si se aprueba otro cambio o se publica otra versión: hay que prepararla de nuevo.
+*Volver a la versión anterior* también pide confirmación. Todo queda en el historial con usuario, fecha, motivo y commit.
+
+| Destino (Configuración del sitio → Publicación) | Qué hace al publicar | Vuelta atrás |
+|---|---|---|
+| Carpeta local | Guarda la versión en `var/publico/<sitio>/` (pruebas) | Activa la versión anterior |
+| Repositorio git | Reemplaza la web en el repo `web-*` (conserva `.github`, README y CNAME), commit y push | Commit nuevo con los archivos de la versión anterior |
+| Comando | Ejecuta el comando con la carpeta generada | Ejecuta el comando con la versión anterior |
+
+«Actualizar la web al aprobar cada cambio» solo funciona con la carpeta local. Si el push o el comando fallan, la web queda como estaba.
+
+**Antes de pasar un sitio a «Repositorio git»:** la computadora del administrador necesita permiso de escritura en el repo (clave de despliegue),
+y el repo no puede tener un workflow que regenere la web (hoy `web-gerp` lo tiene): reemplazarlo por `docs/workflow-web-estatico.yml`.
+
+**Formulario de demo.** Se conecta al administrador solo si `GWA_URL_PUBLICA` es una dirección `https` pública; si no, la web publicada
+usa el pedido por WhatsApp. Si el administrador no responde en 12 segundos, el formulario ofrece enviar el mismo pedido por WhatsApp.
+
+**Cloudflare Pages.** Cada web generada trae `_headers` (seguridad, caché y `noindex` en las direcciones `*.pages.dev`) y `_redirects`
+(301 desde las URL anteriores). Para conectarla: proyecto de Pages sobre el repo `web-*`, rama `main`, sin comando de compilación,
+carpeta de salida `/`. No cambia DNS: eso se decide aparte.
+
 ## Cómo está organizado
 
 | Carpeta | Qué hay |

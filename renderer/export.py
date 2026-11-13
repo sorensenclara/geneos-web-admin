@@ -55,6 +55,24 @@ sys.path.insert(0, str(HERE))
 from project_files import write_project_files  # noqa: E402
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescape  # noqa: E402
 
+# Encabezados para Cloudflare Pages: seguridad básica, caché de recursos y noindex en las direcciones de prueba (*.pages.dev).
+CABECERAS = """# Encabezados HTTP (Cloudflare Pages). Se generan; no editar a mano.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+
+/assets/*
+  Cache-Control: public, max-age=86400
+
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex
+"""
+
 PUB = GENEOS / "public"  # recursos optimizados de GENEOS WEB (copia en renderer/base/geneos/public)
 
 # Desplegable «Planes» de GERP: una página por plan y las tarjetas de la home
@@ -423,7 +441,7 @@ def export(key, P):
         f.write_text(html)
 
     # Direcciones anteriores: página con redirección inmediata + canónica + noindex (GitHub Pages no permite 301)
-    rlines = []
+    rlines, r301 = [], []
     for old, new in P.get("redirects", []):
         target = P["domain"] + "/" + new.lstrip("/") if not new.startswith("#") else P["domain"] + "/" + new
         rel = "../" * old.count("/") + (new if not new.startswith("#") else new)
@@ -435,6 +453,14 @@ def export(key, P):
                      f'<meta http-equiv="refresh" content="0; url={rel}"><script>location.replace("{rel}")</script></head>\n'
                      f'<body><p>Esta página se mudó a <a href="{rel}">{target}</a>.</p></body></html>\n')
         rlines.append(f"| `/{old}` | `{target}` |")
+        destino_301 = "/" + new.lstrip("/") if not new.startswith("#") else "/" + new
+        for origen in dict.fromkeys(["/" + old.strip("/") + "/", "/" + old.strip("/")]):
+            r301.append(f"{origen} {destino_301} 301")
+    # Cloudflare Pages: redirecciones 301 reales (se aplican antes que las páginas de redirección de arriba,
+    # que quedan para GitHub Pages) y encabezados de seguridad. Otros hostings ignoran estos dos archivos.
+    if r301:
+        (out / "_redirects").write_text("# Direcciones anteriores → nuevas (Cloudflare Pages). Se generan; no editar a mano.\n" + "\n".join(r301) + "\n")
+    (out / "_headers").write_text(CABECERAS)
     if rlines:
         (out / "REDIRECCIONES.md").write_text(
             "# Redirecciones de las URL anteriores\n\nSe generan desde `data/" + key + ".json` (clave `redirects`).\n"

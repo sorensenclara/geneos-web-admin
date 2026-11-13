@@ -13,6 +13,8 @@ urlpatterns = [
     path("api/formularios/demo/", formularios.recibir, name="gwa_form_demo"),
     path("api/formularios/demo/token/", formularios.token, name="gwa_form_token"),
     path("vista-previa/<path:ruta>", publicacion.archivo_previa, name="gwa_archivo_previa"),
+    path("version/<int:pk>/", publicacion.archivo_preparacion, {"ruta": ""}, name="gwa_version"),
+    path("version/<int:pk>/<path:ruta>", publicacion.archivo_preparacion, name="gwa_version_ruta"),
     path("web-local/<slug:clave>/", publicacion.archivo_publico, {"ruta": ""}, name="gwa_web_local"),
     path("web-local/<slug:clave>/<path:ruta>", publicacion.archivo_publico, name="gwa_web_local_ruta"),
     path("admin/", include(wagtailadmin_urls)),
