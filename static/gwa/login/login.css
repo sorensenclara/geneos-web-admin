@@ -1,0 +1,45 @@
+/* Inicio de sesión de GENEOS Web Admin. Basado en el diseño del ingreso de GELETRIC. Fuentes locales (sin servicios externos). */
+@font-face { font-family: "Titillium Web"; font-weight: 400; font-display: swap; src: url("../ui/fuentes/titillium-web-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Titillium Web"; font-weight: 600; font-display: swap; src: url("../ui/fuentes/titillium-web-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Titillium Web"; font-weight: 700; font-display: swap; src: url("../ui/fuentes/titillium-web-latin-700-normal.woff2") format("woff2"); }
+:root {
+  --surface: #fff; --surface-2: #f5f7fc; --border: #e3e7f2;
+  --text: #141b3c; --text-secondary: #4c5573; --text-muted: #8991a8;
+  --brand: #244c97; --brand-dark: #0c3a84; --critical: #e5484d; --ok: #17a672;
+  --radius: 14px; --radius-sm: 9px; --font: "Titillium Web", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: var(--font); color: var(--text); background: #244c97; }
+.icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.auth-shell { min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #244c97 0%, #1b6b4c 100%); }
+.auth-card { width: 100%; max-width: 400px; background: var(--surface); border-radius: var(--radius); box-shadow: 0 8px 40px rgba(10, 20, 50, .25); padding: 36px 32px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.auth-logo { width: 100%; max-width: 190px; height: auto; display: block; margin-bottom: 18px; }
+.auth-title { font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+.auth-sub { font-size: 13px; color: var(--text-secondary); margin: 6px 0 0; }
+.auth-alert { width: 100%; margin-top: 18px; display: grid; gap: 4px; text-align: left; font-size: 12.5px; border-radius: var(--radius-sm); padding: 10px 12px; }
+.auth-alert p { margin: 0; }
+.auth-alert.error { background: #fdeceb; color: #a1272b; border: 1px solid #f6c7c8; }
+.auth-alert.info { background: #eaf6f0; color: #0d6b47; border: 1px solid #c4e8d6; }
+.auth-form { width: 100%; display: flex; flex-direction: column; gap: 16px; margin-top: 22px; text-align: left; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-field-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.auth-input-wrap { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; background: var(--surface-2); }
+.auth-input-wrap:focus-within { border-color: var(--brand); background: var(--surface); }
+.auth-input-wrap.error { border-color: var(--critical); }
+.auth-input-wrap .icon { color: var(--text-muted); }
+.auth-input-wrap input { border: 0; background: none; outline: none; font-family: var(--font); font-size: 13.5px; color: var(--text); width: 100%; padding: 0; }
+.auth-field-error { font-size: 11.5px; color: var(--critical); }
+.auth-pw-toggle { display: flex; align-items: center; justify-content: center; background: none; border: 0; padding: 0; margin: 0; color: var(--text-muted); cursor: pointer; }
+.auth-pw-toggle:hover { color: var(--text-secondary); }
+.auth-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.auth-check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer; }
+.auth-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--brand); }
+.auth-link { font-size: 12.5px; font-weight: 600; color: var(--brand); text-decoration: none; }
+.auth-link:hover { text-decoration: underline; }
+.auth-btn { width: 100%; border: 0; border-radius: 32px; background: var(--brand); color: #fff; font-family: var(--font); font-size: 15px; font-weight: 600; padding: 12px 18px; cursor: pointer; transition: background .15s; }
+.auth-btn:hover { background: var(--brand-dark); }
+.auth-btn:focus-visible, .auth-link:focus-visible, .auth-pw-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.auth-btn[disabled] { opacity: .75; cursor: progress; }
+.auth-foot { margin-top: 18px; font-size: 11.5px; color: var(--text-muted); }
+@media (max-width: 480px) { .auth-card { padding: 28px 20px 24px; } }

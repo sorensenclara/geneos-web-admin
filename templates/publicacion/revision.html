@@ -1,0 +1,69 @@
+{% extends "wagtailadmin/base.html" %}
+{% block titletag %}Revisar la publicación · {{ p.sitio.nombre }}{% endblock %}
+{% block content %}
+{% include "wagtailadmin/shared/header.html" with title=p.sitio.nombre subtitle="Revisar antes de publicar" icon="desktop" %}
+<div class="nice-padding">
+  <p>Versión preparada el {{ p.finalizado|date:"d/m/Y H:i" }} por {{ p.usuario|default:"el sistema" }} · {{ p.motivo }}.
+     Destino: <strong>{{ p.sitio.get_destino_display }}</strong>{% if p.sitio.destino == "repositorio" %} ({{ p.sitio.repo_url }} · {{ p.sitio.repo_rama }}){% endif %}.
+     La web pública todavía no cambió.</p>
+
+  {% if p.estado == "ok" %}
+  <div class="gwa-aviso">Esta versión ya se publicó.</div>
+  {% elif p.estado == "descartado" %}
+  <div class="gwa-aviso">Esta versión se descartó.</div>
+  {% endif %}
+
+  <h2 class="w-h3">1. Controles</h2>
+  {% if p.controles %}
+  <div class="gwa-aviso err"><strong>No se puede publicar: la web generada no pasó {{ p.controles|length }} control{{ p.controles|length|pluralize:"es" }}.</strong>
+    <ul>{% for c in p.controles %}<li>{{ c }}</li>{% endfor %}</ul></div>
+  {% elif p.estado == "fallo" %}
+  <div class="gwa-aviso err"><strong>No se pudo preparar la web.</strong> <a href="{% url 'gwa_despliegue' p.pk %}">Ver el error</a></div>
+  {% else %}
+  <p>Sin problemas: un solo título principal por página, títulos de página, precios en la portada, recursos y enlaces completos{% if p.sitio.publica_afuera %}, sin direcciones locales{% endif %}.</p>
+  {% endif %}
+
+  <h2 class="w-h3 w-mt-8">2. Diferencias con lo que está hoy en la web</h2>
+  {% if dif.primera %}
+  <p>Es la primera publicación en este destino: no hay una versión anterior para comparar.</p>
+  {% elif not hay_cambios %}
+  <p>No hay diferencias: la web quedaría igual a la que está publicada.</p>
+  {% else %}
+  {% if dif.paginas_nuevas %}<p><strong>Páginas nuevas:</strong> {% for r in dif.paginas_nuevas %}<code>/{{ r }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+  {% if dif.paginas_faltantes %}<div class="gwa-aviso warn"><strong>Páginas que se quitarían:</strong> {% for r in dif.paginas_faltantes %}<code>/{{ r }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+  {% for ruta, renglones in dif.texto.items %}
+  <h3 class="w-h4 w-mt-6"><a href="{% if ruta %}{% url 'gwa_version_ruta' p.pk ruta %}{% else %}{% url 'gwa_version' p.pk %}{% endif %}" target="_blank">/{{ ruta }}</a>
+    <span class="help">· texto que cambia (− hoy en la web, + con esta publicación)</span></h3>
+  <div class="gwa-pre gwa-diff">{% for r in renglones %}<div class="{% if r|slice:':1' == '+' %}gwa-diff-mas{% else %}gwa-diff-menos{% endif %}">{{ r }}</div>{% endfor %}</div>
+  {% endfor %}
+  {% if dif.archivos_nuevos or dif.archivos_faltantes %}
+  <details class="w-mt-6"><summary>Archivos: {{ dif.total_archivos_nuevos }} nuevos, {{ dif.total_archivos_faltantes }} que se quitarían</summary>
+    {% if dif.archivos_nuevos %}<p><strong>Nuevos:</strong></p><div class="gwa-pre">{{ dif.archivos_nuevos|join:"
+" }}</div>{% endif %}
+    {% if dif.archivos_faltantes %}<p><strong>Se quitarían:</strong></p><div class="gwa-pre">{{ dif.archivos_faltantes|join:"
+" }}</div>{% endif %}
+  </details>
+  {% endif %}
+  {% endif %}
+
+  <h2 class="w-h3 w-mt-8">3. Ver y confirmar</h2>
+  {% if p.carpeta %}<p><a class="button button-secondary" href="{% url 'gwa_version' p.pk %}" target="_blank">Ver la web preparada completa</a></p>{% endif %}
+  {% if p.estado == "listo" %}
+    {% if no_publicable %}
+    <div class="gwa-aviso warn">{{ no_publicable }}</div>
+    {% elif puede_publicar %}
+    <form method="post" action="{% url 'gwa_confirmar' p.pk %}" class="w-mt-4">{% csrf_token %}
+      <label class="gwa-confirmo"><input type="checkbox" name="confirmo" value="si" required>
+        Revisé las diferencias y quiero publicar esta versión en {% if p.sitio.destino == "repositorio" %}el repositorio {{ p.sitio.repo_url }}{% else %}{{ p.sitio.get_destino_display|lower }}{% endif %}.</label>
+      <div class="gwa-acciones w-mt-4"><button class="button">Publicar en la web</button></div>
+    </form>
+    {% else %}
+    <p class="help">Para publicar hace falta el permiso de publicador de {{ p.sitio.nombre }}.</p>
+    {% endif %}
+    {% if puede_publicar %}
+    <form method="post" action="{% url 'gwa_descartar' p.pk %}" class="w-mt-4">{% csrf_token %}<button class="button button-secondary no">Descartar esta versión</button></form>
+    {% endif %}
+  {% endif %}
+  <p class="w-mt-6"><a href="{% url 'gwa_sitio' p.sitio.clave %}">Volver al estado de {{ p.sitio.nombre }}</a> · <a href="{% url 'gwa_despliegue' p.pk %}">Registro de la generación</a></p>
+</div>
+{% endblock %}

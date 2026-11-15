@@ -13,11 +13,13 @@ from pathlib import Path
 from django.conf import settings
 from django.utils import timezone
 from django.utils.html import escape
+from django.utils.text import slugify
 from wagtail.models import Page
 from wagtail.rich_text import expand_db_html
 
-from contenidos.models import (ArticuloPage, BlogIndexPage, Funcionalidad, IdentidadSitio, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector,
-                               Testimonio)
+from contenidos import geneos as G
+from contenidos.models import (ArticuloPage, BlogIndexPage, Funcionalidad, IdentidadSitio, LogoCliente, PaginaWeb, Plan, PreguntaFrecuente,
+                               Redireccion, Sector, Testimonio)
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 RENDERER = Path(settings.GWA_RENDERER_DIR)
@@ -166,11 +168,123 @@ def datos_paginas(fuente, faqs_por_ruta, excluir_faqs=()):
             d["hero"] = hero
         if p.secciones_ocultas:
             d["hidden"] = list(p.secciones_ocultas)
+        if p.encabezado:
+            d["header"] = p.encabezado  # claro u oscuro; vacío = heredar la configuración del sitio
+        if fuente.sitio.clave == "geneos":
+            admin = admin_geneos(p, fuente.files)
+            if admin:
+                d["admin"] = admin
         pages[p.ruta_publica] = d
     for ruta, items in faqs_por_ruta.items():
         if ruta not in excluir_faqs:
             pages.setdefault(ruta, {})["faqs"] = items
     return pages
+
+
+# ------------------------------------------------------------------------------------------------ Web institucional de GENEOS
+def texto_web(texto):
+    """Texto de un campo a HTML seguro: escapado, **negrita** y un renglón por línea. Vacío: ""."""
+    texto = (texto or "").strip()
+    if not texto:
+        return ""
+    html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", str(escape(texto)))
+    return re.sub(r"\s*\n\s*", "<br>", html)
+
+
+def plano(texto):
+    """Texto plano (la plantilla lo escapa). Vacío: ""."""
+    return " ".join((texto or "").split())
+
+
+def imagen_web(img, files, spec="max-1600x1600|format-webp|webpquality-82"):
+    """Copia una versión WebP de la imagen a assets/img/admin/. Devuelve {imagen, imagen_w, imagen_h} o {}."""
+    if not img or not getattr(img, "file", None):
+        return {}
+    r = img.get_rendition(spec)
+    nombre = f"admin/{Path(r.file.name).name}"
+    files.append([r.file.path, nombre])
+    return {"imagen": nombre, "imagen_w": r.width, "imagen_h": r.height}
+
+
+def _sin_vacios(d):
+    return {k: v for k, v in d.items() if v not in ("", None, [], {})}
+
+
+def admin_geneos(p, files):
+    """Contenido de una página de GENEOS para build.py (seccion(), visible(), orden_secciones(), logos_de()).
+    Solo se exportan los campos con contenido: lo vacío conserva el texto de la plantilla."""
+    ruta = p.ruta_publica or ""
+    secciones = {}
+    hero = _sin_vacios({"antetitulo": plano(p.hero_antetitulo), "titulo": plano(" ".join(p.hero_titulo.replace("**", "").splitlines())),
+                        "bajada": texto_web(p.hero_bajada)})
+    botones = [_sin_vacios({"clave": clave, "texto": plano(getattr(p, f"boton{n}_texto")), "enlace": enlace_seguro(getattr(p, f"boton{n}_enlace"))
+                            if getattr(p, f"boton{n}_enlace").strip() else ""}) for n, clave in ((1, "principal"), (2, "secundario"))]
+    if any(len(b) > 1 for b in botones):
+        hero["botones"] = botones
+    destacados = [_sin_vacios({"clave": b.value.get("clave") or "", "icono": b.value.get("icono") or "", "texto": texto_web(b.value.get("texto"))})
+                  for b in p.hero_destacados]
+    if any(len(x) > (1 if x.get("clave") else 0) for x in destacados):
+        hero["destacados"] = [x for x in destacados if x.get("clave") or x.get("texto")]
+    if hero:
+        secciones["hero"] = hero
+    orden = []
+    for b in p.secciones:
+        v = b.value
+        clave = v.get("clave")
+        if G.seccion(ruta, clave) is None:
+            continue
+        orden.append(clave)
+        if b.block_type == "posicion":
+            continue
+        d = _sin_vacios({"antetitulo": plano(v.get("antetitulo")), "titulo": plano(v.get("titulo")), "bajada": texto_web(v.get("bajada"))})
+        boton = _sin_vacios({"texto": plano(v.get("boton_texto")),
+                             "enlace": enlace_seguro(v.get("boton_enlace")) if (v.get("boton_enlace") or "").strip() else ""})
+        if boton:
+            d["boton"] = boton
+        if b.block_type == "texto_imagen":
+            d.update(_sin_vacios({"texto": texto_web(v.get("texto")), "imagen_alt": plano(v.get("imagen_alt"))}))
+            d.update(imagen_web(v.get("imagen"), files))
+        if b.block_type == "tarjetas":
+            items = []
+            for t in v.get("items") or []:
+                item = _sin_vacios({"clave": (t.get("clave") or "").strip(), "icono": t.get("icono") or "", "titulo": plano(t.get("titulo")),
+                                    "texto": texto_web(t.get("texto")), "imagen_alt": plano(t.get("imagen_alt")),
+                                    "enlace_texto": plano(t.get("enlace_texto")),
+                                    "enlace": enlace_seguro(t.get("enlace")) if (t.get("enlace") or "").strip() else ""})
+                item.update(imagen_web(t.get("imagen"), files))
+                if item:
+                    items.append(item)
+            if items:
+                d["items"] = items
+        if d:
+            secciones[clave] = d
+    res = {}
+    if secciones:
+        res["secciones"] = secciones
+    if orden:
+        res["orden"] = orden
+    ocultas = [c for c in (p.secciones_ocultas or []) if (G.seccion(ruta, c) or {}).get("ocultar")]
+    if ocultas:
+        res["ocultas"] = ocultas
+    return res
+
+
+def logos_geneos(fuente, files):
+    """Logos nuevos autorizados por página. Los que ya están en la web se conservan siempre (en la plantilla)."""
+    res = {}
+    for logo in sorted(fuente.snippets(LogoCliente), key=lambda x: (x.orden, x.organizacion)):
+        if not logo.publicable or logo.archivo_web:  # los que ya están en la web los conserva la plantilla
+            continue
+        img = imagen_web(logo.imagen, files, "max-440x248|format-webp|webpquality-90")
+        if not img:
+            continue
+        nombre = slugify(logo.organizacion) or f"logo-{logo.pk}"
+        destino = f"admin/logos/{nombre}.webp"
+        files[-1][1] = destino
+        for ruta in logo.paginas or []:
+            res.setdefault(ruta, {}).setdefault("clientes", []).append(
+                {"src": destino, "enlace": logo.enlace or "", "nombre": logo.organizacion, "archivo_web": logo.archivo_web})
+    return res
 
 
 def con_precios(texto, planes):
@@ -545,8 +659,20 @@ def sectores_web(fuente):
     return [{"icon": s.icono, "title": s.titulo, "text": s.texto} for s in sorted(sectores, key=lambda s: s.orden)]
 
 
-def datos_sitio(sitio, overrides=None):
-    """Devuelve {"contacto.json": ..., "<clave>.json": ..., ["gerp.json": ...]} y la lista de archivos a copiar."""
+def url_formularios_publica(url):
+    """True si los visitantes pueden llegar a esta dirección del administrador (https y no una máquina local)."""
+    from urllib.parse import urlsplit
+    u = urlsplit(url or "")
+    host = (u.hostname or "").lower()
+    return u.scheme == "https" and bool(host) and host not in ("localhost", "127.0.0.1", "::1", "0.0.0.0") \
+        and not host.endswith((".localhost", ".local", ".test", ".internal"))
+
+
+def datos_sitio(sitio, overrides=None, publico=False):
+    """Devuelve {"contacto.json": ..., "<clave>.json": ..., ["gerp.json": ...]} y la lista de archivos a copiar.
+
+    publico=True: la web va a una dirección que ve otra gente. El formulario se conecta al administrador solo si su dirección
+    es pública (https); si no, queda el pedido por WhatsApp que arma la propia página, como en las webs actuales."""
     fuente = Fuente(sitio, overrides)
     files = fuente.files
     fq = faqs(fuente)
@@ -567,8 +693,13 @@ def datos_sitio(sitio, overrides=None):
         if reds:
             pd["redirects"] = [[r.origen, r.destino] for r in reds]
     pd["identity"] = datos_identidad(fuente, files)
-    if sitio.usa_formularios:
-        pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento}
+    if sitio.clave == "geneos":
+        pd["header"] = sitio.encabezado  # apariencia del encabezado de la web institucional
+        for ruta, logos in logos_geneos(fuente, files).items():
+            pd["pages"].setdefault(ruta, {}).setdefault("admin", {})["logos"] = logos
+    if sitio.usa_formularios and (not publico or url_formularios_publica(settings.GWA_URL_PUBLICA)):
+        pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento,
+                      "whatsapp": sitio.whatsapp, "product": sitio.nombre}
     archivos = {"contacto.json": contacto(sitio), f"{sitio.clave}.admin.json": pd}
     if sitio.clave == "gerp":
         archivos["gerp.json"] = datos_gerp(fuente, fq)  # planes, comparador, sectores, testimonios, redirecciones

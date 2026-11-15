@@ -110,7 +110,6 @@ WAGTAILADMIN_COMMENTS_ENABLED = True
 # Motor de sitios y publicación
 GWA_RENDERER_DIR = BASE_DIR / "renderer"
 GENEOS_WEB_DIR = BASE_DIR / Path(env("GENEOS_WEB_DIR", str(BASE_DIR.parent / "GENEOS WEB")))  # relativa al repositorio o absoluta
-GEAGRO_SRC_DIR = Path(env("GEAGRO_SRC_DIR", str(Path.home() / "Documents/geagro_clean/GEAGRO Geneos : Imagen de marca/GEAGRO WEB 2026")))
 GWA_VAR_DIR = BASE_DIR / "var"
 GWA_URL_PUBLICA = env("GWA_URL_PUBLICA", "http://localhost:8000")
 

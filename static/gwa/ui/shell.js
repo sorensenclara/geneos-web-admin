@@ -125,6 +125,51 @@
   // ---------- buscador del topbar ----------
   // Mientras se escribe (2+ caracteres) consulta el buscador del administrador y muestra
   // un desplegable; Enter sin elegir un resultado abre la página completa de resultados.
+  // ---------- Buscador del menú lateral (como GELETRIC) ----------
+  // Filtra en el navegador las secciones y opciones del menú: cuenta cualquier palabra de la etiqueta que empiece
+  // con lo escrito, sin distinguir mayúsculas ni acentos. El índice se arma con los enlaces del propio menú.
+  function initSidebarSearch() {
+    var input = document.getElementById("gu-sidebar-search-input");
+    var clear = document.getElementById("gu-sidebar-search-clear");
+    var nav = document.getElementById("gu-sidebar-nav");
+    var foot = document.getElementById("gu-sidebar-foot");
+    var results = document.getElementById("gu-sidebar-results");
+    if (!input || !nav || !results) return;
+    function norm(s) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+    var index = [];
+    nav.querySelectorAll("a.gu-nav-item").forEach(function (a) {
+      var label = (a.querySelector(".gu-nav-label") || a).textContent.trim();
+      var sub = a.closest(".gu-subnav");
+      var parent = sub ? document.querySelector('[aria-controls="' + sub.id + '"]') : null;
+      var icon = (parent || a).querySelector("svg.gu-icon");
+      index.push({ label: label, parent: parent ? parent.querySelector(".gu-nav-label").textContent.trim() : "",
+                   href: a.getAttribute("href"), target: a.getAttribute("target"), icon: icon ? icon.outerHTML : "" });
+    });
+    function matches(label, q) {
+      var words = label.split(/[\s/,()\-·]+/);
+      for (var i = 0; i < words.length; i++) { if (words[i] && norm(words[i]).indexOf(q) === 0) return true; }
+      return false;
+    }
+    function render() {
+      var query = input.value.trim();
+      clear.hidden = !query;
+      if (!query) { nav.hidden = false; if (foot) foot.hidden = false; results.hidden = true; results.innerHTML = ""; return; }
+      var q = norm(query);
+      var found = index.filter(function (e) { return matches(e.label, q) || (e.parent && matches(e.parent, q)); });
+      nav.hidden = true; if (foot) foot.hidden = true; results.hidden = false;
+      results.innerHTML = found.length ? found.map(function (e) {
+        return '<a class="gu-nav-item gu-search-hit" role="listitem" href="' + escapeHtml(e.href) + '"' + (e.target ? ' target="_blank" rel="noopener noreferrer"' : "") + ">" +
+          e.icon + '<span class="gu-nav-label"><b>' + escapeHtml(e.label) + "</b>" + (e.parent ? "<small>" + escapeHtml(e.parent) + "</small>" : "") + "</span></a>";
+      }).join("") : '<p class="gu-sidebar-empty">Sin resultados para «' + escapeHtml(query) + "».</p>";
+    }
+    input.addEventListener("input", render);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { input.value = ""; render(); }
+      if (e.key === "Enter") { var first = results.querySelector("a"); if (first) { e.preventDefault(); first.click(); } }
+    });
+    clear.addEventListener("click", function () { input.value = ""; render(); input.focus(); });
+  }
+
   function initTopbarSearch() {
     var form = document.getElementById("gu-search-form");
     var input = document.getElementById("gu-search-input");
@@ -229,6 +274,7 @@
     initSidebarToggle();
     initSidebarTooltips();
     initTopbarSearch();
+    initSidebarSearch();
     initBtnDropdowns();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

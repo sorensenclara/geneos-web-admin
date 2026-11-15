@@ -230,6 +230,11 @@ class LecturaAutomatica(TestCase):
         self.assertTrue(f.prioritaria)
 
     def test_eventos_solo_confirmados_como_proximos(self):
+        # «Hoy» fijo, antes de los eventos del catálogo: un evento que ya pasó deja de listarse, y eso no es lo que se prueba acá
+        with mock.patch("django.utils.timezone.localdate", return_value=datetime.date(2026, 10, 15)):
+            self._eventos_solo_confirmados_como_proximos()
+
+    def _eventos_solo_confirmados_como_proximos(self):
         proximos = [i.titulo for i in _ideas(self.geneos, None)]
         self.assertIn("56° Congreso de Cooperativas de Río Negro", proximos)
         self.assertNotIn("CongregaCoop 2026 · Congreso Internacional de Cooperativismo", proximos)  # solo según prensa

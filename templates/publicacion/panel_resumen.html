@@ -3,7 +3,7 @@
   <form class="gwa-selector" method="post" action="{% url 'gwa_elegir_sitio' %}">{% csrf_token %}
     <input type="hidden" name="volver" value="{{ request.get_full_path }}">
     <strong>Trabajar en:</strong>
-    <button class="button button-small {% if not activo %}button-secondary{% else %}button-secondary bicolor{% endif %}" name="sitio" value="" aria-pressed="{% if not activo %}true{% else %}false{% endif %}">Todos los sitios</button>
+    <button class="button button-small button-secondary gwa-selector-producto" name="sitio" value="" aria-pressed="{% if not activo %}true{% else %}false{% endif %}">Todos los sitios</button>
     {% for s in sitios %}<button class="button button-small button-secondary gwa-selector-producto" name="sitio" value="{{ s.clave }}" aria-pressed="{% if activo == s.clave %}true{% else %}false{% endif %}">{% if s.marca.isologo_url %}<img src="{{ s.marca.isologo_url }}" alt="" width="18" height="18">{% endif %}{{ s.nombre }}</button>{% endfor %}
   </form>
   {% endif %}

@@ -28,7 +28,7 @@ from django.db import transaction
 from wagtail.models import (Collection, GroupCollectionPermission, GroupPagePermission, Page, Site, Workflow, WorkflowContentType,
                             WorkflowPage, WorkflowTask)
 
-from contenidos.models import (IdentidadSitio, BlogIndexPage, Funcionalidad, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector, Testimonio,
+from contenidos.models import (IdentidadSitio, BlogIndexPage, Funcionalidad, LogoCliente, PaginaWeb, Plan, PreguntaFrecuente, Redireccion, Sector, Testimonio,
                                ValorFuncionalidad)
 from sitios.models import AccesoSitio, AprobacionSitio, LineaProducto, SitioWeb
 
@@ -174,7 +174,7 @@ class Command(BaseCommand):
     # ----------------------------------------------------------------------------------------------------------------
     def generar_base(self, base):
         """Genera las webs comerciales con las plantillas actuales (sin datos del administrador) para leer su contenido."""
-        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), GEAGRO_SRC_DIR=str(settings.GEAGRO_SRC_DIR))
+        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR))
         env.pop("WEB_DATA_DIR", None)
         for clave in CARPETAS:
             r = subprocess.run([sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export.py"), clave, "--out", str(base), "--no-project-files"],
@@ -334,7 +334,7 @@ class Command(BaseCommand):
         WorkflowPage.objects.update_or_create(page=Page.get_first_root_node(), defaults={"workflow": wf})
         for s in SitioWeb.objects.all():
             IdentidadSitio.objects.get_or_create(sitio=s)
-        for model in (Plan, Funcionalidad, Sector, PreguntaFrecuente, Testimonio, IdentidadSitio):
+        for model in (Plan, Funcionalidad, Sector, PreguntaFrecuente, Testimonio, LogoCliente, IdentidadSitio):
             WorkflowContentType.objects.update_or_create(content_type=ContentType.objects.get_for_model(model), defaults={"workflow": wf})
         self.log("  Flujo de aprobación asignado a páginas, planes, funcionalidades, preguntas frecuentes y testimonios")
 

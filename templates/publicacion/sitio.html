@@ -24,23 +24,33 @@
   {% elif e.situacion != "no_conectado" %}<p>No hay cambios aprobados sin publicar.{% if e.borradores %} Hay {{ e.borradores }} borrador{{ e.borradores|pluralize:"es" }} sin aprobar.{% endif %}</p>{% endif %}
 
   {% if e.situacion != "no_conectado" %}
-  <div class="gwa-acciones w-mt-6 w-mb-8">
+  {% if e.preparada %}
+  <div class="gwa-aviso">Hay una versión preparada el {{ e.preparada.finalizado|date:"d/m/Y H:i" }} esperando revisión.
+    <a href="{% url 'gwa_revision' e.preparada.pk %}">Revisarla y publicar</a></div>
+  {% endif %}
+  <div class="gwa-acciones w-mt-6 w-mb-4">
     <form method="post" action="{% url 'gwa_previa_sitio' e.sitio.clave %}" target="_blank">{% csrf_token %}<button class="button button-secondary">Vista previa de la web completa</button></form>
     {% if puede_publicar %}
-    <form method="post" action="{% url 'gwa_publicar' e.sitio.clave %}" onsubmit="return confirm('¿Publicar en la web de {{ e.sitio.nombre }} todo lo aprobado?')">{% csrf_token %}<button class="button">Publicar en la web</button></form>
-    {% if versiones|length > 1 %}<form method="post" action="{% url 'gwa_volver' e.sitio.clave %}" onsubmit="return confirm('¿Volver la web de {{ e.sitio.nombre }} a la versión anterior?')">{% csrf_token %}<button class="button button-secondary no">Volver a la versión anterior</button></form>{% endif %}
+    <form method="post" action="{% url 'gwa_publicar' e.sitio.clave %}">{% csrf_token %}<button class="button">Preparar la publicación</button></form>
     {% endif %}
-    {% if e.version_local %}<a class="button button-secondary" href="{% url 'gwa_web_local' e.sitio.clave %}" target="_blank">Ver la web publicada (local)</a>{% endif %}
+    {% if e.version_local %}<a class="button button-secondary" href="{% url 'gwa_web_local' e.sitio.clave %}" target="_blank">Ver la última versión publicada</a>{% endif %}
   </div>
-  <p class="help">Destino: {{ e.sitio.get_destino_display }}. La vista previa muestra todo lo aprobado, todavía sin publicar. Si la publicación falla, la web queda como estaba.</p>
+  <p class="help">Guardar deja un borrador; Aprobar lo deja listo para la web; «Preparar la publicación» genera la web, corre los controles y muestra las diferencias
+    con lo publicado. Recién al confirmar en esa pantalla cambia la web. Destino: {{ e.sitio.get_destino_display }}{% if e.sitio.destino == "repositorio" %} ({{ e.sitio.repo_url|default:"sin repositorio cargado" }} · {{ e.sitio.repo_rama }}){% endif %}.
+    Si la publicación falla, la web queda como estaba.</p>
+  {% if puede_publicar and e.puede_volver %}
+  <form method="post" action="{% url 'gwa_volver' e.sitio.clave %}" class="w-mt-4 w-mb-8">{% csrf_token %}
+    <label class="gwa-confirmo"><input type="checkbox" name="confirmo" value="si" required> Quiero volver la web de {{ e.sitio.nombre }} a la versión publicada anterior.</label>
+    <button class="button button-secondary no w-mt-2">Volver a la versión anterior</button></form>
+  {% endif %}
   {% endif %}
 
   <h2 class="w-h3 w-mt-8">Historial de publicaciones</h2>
   {% if despliegues %}
   <table class="gwa-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Versión</th><th>Usuario</th><th>Motivo</th></tr></thead><tbody>
-    {% for d in despliegues %}<tr><td><a href="{% url 'gwa_despliegue' d.pk %}">{{ d.iniciado|date:"d/m/Y H:i" }}</a></td><td>{{ d.get_tipo_display }}</td>
+    {% for d in despliegues %}<tr><td><a href="{% if d.tipo == 'preparacion' %}{% url 'gwa_revision' d.pk %}{% else %}{% url 'gwa_despliegue' d.pk %}{% endif %}">{{ d.iniciado|date:"d/m/Y H:i" }}</a></td><td>{{ d.get_tipo_display }}</td>
       <td><span class="gwa-badge {% if d.estado == 'ok' %}gwa-al_dia{% elif d.estado == 'fallo' %}gwa-error{% else %}gwa-pendiente{% endif %}">{{ d.get_estado_display }}</span></td>
-      <td>{{ d.version }}</td><td>{{ d.usuario|default:"—" }}</td><td>{{ d.motivo }}</td></tr>{% endfor %}
+      <td>{{ d.version }}{% if d.commit %} · <code>{{ d.commit|slice:":8" }}</code>{% endif %}</td><td>{{ d.usuario|default:"—" }}</td><td>{{ d.motivo }}</td></tr>{% endfor %}
   </tbody></table>
   {% else %}<p>Todavía no hay publicaciones.</p>{% endif %}
 </div>

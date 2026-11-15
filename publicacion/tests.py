@@ -18,7 +18,8 @@ from contenidos.models import Plan, PreguntaFrecuente
 from formularios.models import SolicitudDemo
 from formularios.views import SAL
 from publicacion import despliegue
-from publicacion.servicio import estado_sitio, publicar_sitio, volver_atras
+from publicacion.servicio import (ErrorPublicacion, estado_sitio, motivo_para_no_publicar, preparar_publicacion, publicar_preparacion,
+                                  publicar_sitio, volver_atras)
 from sitios.models import LineaProducto, SitioWeb
 from sitios.permisos import SitioPermissionPolicy, puede
 
@@ -231,6 +232,22 @@ class Circuito(TestCase):
         self.assertEqual(d.estado, "ok", d.registro)
         return (despliegue.raiz(sitio) / "actual" / ruta / "index.html").read_text()
 
+    # ---------------------------------------------------------------------------------------------- Webs completas
+    def test_webs_completas_con_todas_las_secciones_visibles(self):
+        """Con los datos del administrador y sin secciones ocultas, ninguna web pierde recursos ni controles."""
+        from contenidos.models import PaginaWeb
+        from publicacion.motor import generar, validar
+        from publicacion.comparar import referencias_rotas
+        for pagina in PaginaWeb.objects.exclude(secciones_ocultas=[]):
+            pagina.secciones_ocultas = []
+            pagina.save_revision().publish()
+        destino = Path(tempfile.mkdtemp(prefix="gwa-completas-", dir=VAR))
+        for sitio in (self.gerp, self.gema, self.geagro):
+            carpeta, datos, registro = generar(sitio, destino)
+            self.assertNotIn("FALTAN", registro, f"{sitio.clave}: recursos faltantes")
+            self.assertEqual(validar(sitio, carpeta, datos), [], sitio.clave)
+            self.assertEqual(referencias_rotas(carpeta), [], f"{sitio.clave}: referencias a archivos que no están")
+
     # ---------------------------------------------------------------------------------------------- Precios: fuente única
     def test_precio_unico_en_tarjetas_landing_faq_y_datos(self):
         core = Plan.objects.get(sitio=self.gerp, clave="core")
@@ -282,7 +299,14 @@ class Circuito(TestCase):
         self.assertNotIn("Consultar", home)
         # La fila sin ningún dato confirmado se muestra igual, con sus celdas vacías
         import re
-        fila = re.search(r"<tr[^>]*><th scope=\"row\">Facturación electrónica ARCA \(AFIP\)</th>(.*?)</tr>", home, re.S)
+        from contenidos.models import Funcionalidad, ValorFuncionalidad
+        f = Funcionalidad(sitio=self.gerp, etiqueta="Función sin confirmar", grupo="basic", orden=99)
+        f.save()
+        for plan in Plan.objects.filter(sitio=self.gerp):
+            ValorFuncionalidad.objects.create(funcionalidad=f, plan=plan, estado="a_confirmar")
+        f.save_revision().publish()
+        home = self._web(self.gerp)
+        fila = re.search(r"<tr[^>]*><th scope=\"row\">Función sin confirmar</th>(.*?)</tr>", home, re.S)
         self.assertIsNotNone(fila)
         self.assertEqual(re.sub(r"<td[^>]*></td>", "", fila.group(1)).strip(), "")
         self.assertIn("Lotes y vencimientos</th>", home)                       # fila con datos: las celdas sin confirmar quedan vacías
@@ -495,10 +519,12 @@ class Circuito(TestCase):
         # «Planes» es un único botón que abre el desplegable (no un enlace)
         self.assertRegex(menu, r'<button type="button" class="nav-dd-btn" aria-expanded="false" aria-controls="(submenu-\d+)">Planes')
         self.assertNotIn('<a href="#planes">Planes</a>', menu)
-        for href, texto in (("lite/", "GERP Lite"), ("core/", "GERP Core"), ("plus/", "GERP Plus"), ("./#planes", "Ver todos los planes")):
-            self.assertIn(f'<a href="{href}">{texto}</a>', menu)
+        # Cada plan con su color y su ícono; «Ver todos los planes» sin color
+        for href, color, texto in (("lite/", "#254d99", "GERP Lite"), ("core/", "#138338", "GERP Core"), ("plus/", "#921d74", "GERP Plus")):
+            self.assertRegex(menu, rf'<a href="{href}" class="nav-dd-plan" style="--plan-color: {color}"><img src="[^"]+\.svg" alt="" [^>]*>{texto}</a>')
+        self.assertIn('<a href="./#planes">Ver todos los planes</a>', menu)
         self.assertNotIn("Comparar planes", menu)
-        self.assertIn('<a href="../lite/" aria-current="page">GERP Lite</a>', lite)   # la landing marca su plan
+        self.assertRegex(lite, r'<a href="\.\./lite/" class="nav-dd-plan" style="[^"]+" aria-current="page"><img [^>]+>GERP Lite</a>')   # la landing marca su plan
         self.assertIn('<a href="../#planes">Ver todos los planes</a>', lite)          # vuelve a las tarjetas de la home
         # Tarjetas enteras como enlace, sin enlaces anidados, con los precios de siempre
         for clave in ("lite", "core", "plus"):
@@ -582,11 +608,167 @@ class Circuito(TestCase):
         antes = despliegue.version_actual(self.gema)
         self.gema.destino, self.gema.comando_despliegue = "comando", "echo subiendo {carpeta}; exit 3"
         self.gema.save()
-        mal = publicar_sitio(self.gema, self.clara)
+        prep = preparar_publicacion(self.gema, self.clara)
+        self.assertEqual(prep.estado, "listo", prep.controles)
+        mal = publicar_preparacion(prep, self.clara)
         self.assertEqual(mal.estado, "fallo")
         self.assertIn("terminó con error", mal.registro)
         self.assertEqual(despliegue.version_actual(self.gema), antes)
         self.assertEqual(estado_sitio(self.gema)["situacion"], "error")
+
+    # ---------------------------------------------------------------------------------------------- Publicación en el repositorio
+    def _git(self, cwd, *args):
+        import subprocess
+        r = subprocess.run(["git", "-c", "user.name=Prueba", "-c", "user.email=prueba@example.com", *args], cwd=cwd, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout.strip()
+
+    def _repo_remoto(self, workflow="name: Publicar\non:\n  push:\njobs: {}\n", rechazar_push=False):
+        """Repositorio git local que hace de web-<producto>: README, workflow y una web vieja."""
+        raiz = Path(tempfile.mkdtemp(prefix="repo-", dir=VAR))
+        remoto, trabajo = raiz / "web.git", raiz / "trabajo"
+        self._git(raiz, "init", "-q", "--bare", "-b", "main", str(remoto))
+        self._git(raiz, "clone", "-q", str(remoto), str(trabajo))
+        (trabajo / ".github" / "workflows").mkdir(parents=True)
+        (trabajo / ".github" / "workflows" / "pages.yml").write_text(workflow)
+        (trabajo / "README.md").write_text("Repositorio de la web")
+        (trabajo / "index.html").write_text("<h1>Web vieja</h1>")
+        self._git(trabajo, "add", "-A")
+        self._git(trabajo, "commit", "-q", "-m", "Web anterior")
+        self._git(trabajo, "push", "-q", "origin", "HEAD:main")
+        if rechazar_push:
+            hook = remoto / "hooks" / "pre-receive"
+            hook.write_text("#!/bin/sh\necho 'rechazado por la prueba' >&2\nexit 1\n")
+            hook.chmod(0o755)
+        return remoto
+
+    def _al_repositorio(self, sitio, remoto):
+        sitio.destino, sitio.repo_url, sitio.repo_rama = "repositorio", str(remoto), "main"
+        sitio.save()
+
+    def _archivo_remoto(self, remoto, ruta, ref="main"):
+        return self._git(remoto, "show", f"{ref}:{ruta}")
+
+    def test_repositorio_revisar_confirmar_y_volver(self):
+        remoto = self._repo_remoto()
+        self._al_repositorio(self.gerp, remoto)
+        inicial = self._git(remoto, "rev-parse", "main")
+        # Sin confirmación no se publica nada: ni el paso único ni la aprobación automática
+        with self.assertRaises(ErrorPublicacion):
+            publicar_sitio(self.gerp, self.clara)
+        prep = preparar_publicacion(self.gerp, self.clara, "Primera publicación desde el administrador")
+        self.assertEqual(prep.estado, "listo", prep.controles)
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), inicial)               # preparar no cambia la web
+        self.assertIn("", prep.diferencias["texto"])                                     # el texto de la portada cambia
+        self.assertIn("-Web vieja", prep.diferencias["texto"][""])
+        # La pantalla de revisión pide la confirmación; sin la casilla no publica
+        self.client.force_login(self.clara)
+        html = self.client.get(f"/admin/web/publicacion/{prep.pk}/revisar/").content.decode()
+        self.assertIn("Revisé las diferencias y quiero publicar esta versión", html)
+        self.client.post(f"/admin/web/publicacion/{prep.pk}/confirmar/")
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), inicial)
+        self.client.post(f"/admin/web/publicacion/{prep.pk}/confirmar/", {"confirmo": "si"})
+        v1 = self.gerp.despliegues.filter(tipo="publicacion").first()
+        self.assertEqual((v1.estado, v1.preparacion_id), ("ok", prep.pk), v1.registro)
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), v1.commit)
+        self.assertEqual(self._archivo_remoto(remoto, "README.md"), "Repositorio de la web")   # conserva lo propio del repo
+        self.assertIn("pages.yml", self._git(remoto, "ls-tree", "-r", "--name-only", "main"))
+        self.assertIn("GERP", self._archivo_remoto(remoto, "index.html"))
+        self.assertIn("X-Content-Type-Options", self._archivo_remoto(remoto, "_headers"))
+        self.assertIn(" 301", self._archivo_remoto(remoto, "_redirects"))
+        # Una versión ya publicada no se vuelve a publicar
+        with self.assertRaises(ErrorPublicacion):
+            publicar_preparacion(prep, self.clara)
+        # Segunda versión con un precio nuevo, y vuelta atrás con un commit nuevo
+        core = Plan.objects.get(sitio=self.gerp, clave="core")
+        self.client.post(PLANES, self._form_precios(core, precio="199.000", accion="aprobar"))
+        p2 = preparar_publicacion(self.gerp, self.clara)
+        self.assertTrue(any("$199.000" in r for r in p2.diferencias["texto"][""]), p2.diferencias)
+        time.sleep(1.1)
+        v2 = publicar_preparacion(p2, self.clara)
+        self.assertEqual(v2.estado, "ok", v2.registro)
+        self.assertIn("$199.000", self._archivo_remoto(remoto, "index.html"))
+        self.client.post(f"/admin/web/{self.gerp.clave}/volver/")                            # sin confirmar: nada
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), v2.commit)
+        self.client.post(f"/admin/web/{self.gerp.clave}/volver/", {"confirmo": "si"})
+        atras = self.gerp.despliegues.filter(tipo="vuelta_atras").first()
+        self.assertEqual(atras.estado, "ok", atras.registro)
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), atras.commit)
+        self.assertNotEqual(atras.commit, v1.commit)                                            # commit nuevo, historial intacto
+        self.assertEqual(self._archivo_remoto(remoto, "index.html"), self._archivo_remoto(remoto, "index.html", v1.commit))
+        self.assertEqual(self._archivo_remoto(remoto, "README.md"), "Repositorio de la web")
+
+    def test_preparacion_vence_si_se_aprueban_cambios(self):
+        remoto = self._repo_remoto()
+        self._al_repositorio(self.gerp, remoto)
+        prep = preparar_publicacion(self.gerp, self.clara)
+        self.assertIsNone(motivo_para_no_publicar(prep))
+        time.sleep(1.1)
+        lite = Plan.objects.get(sitio=self.gerp, clave="lite")
+        self.client.force_login(self.clara)
+        self.client.post(PLANES, self._form_precios(lite, precio="95.000", accion="aprobar"))
+        self.assertIn("Se aprobaron cambios", motivo_para_no_publicar(prep))
+        with self.assertRaises(ErrorPublicacion):
+            publicar_preparacion(prep, self.clara)
+
+    def test_aprobar_no_publica_en_el_repositorio(self):
+        remoto = self._repo_remoto()
+        self._al_repositorio(self.gerp, remoto)
+        self.gerp.publicar_al_aprobar = True
+        self.gerp.save()
+        antes = self._git(remoto, "rev-parse", "main")
+        lite = Plan.objects.get(sitio=self.gerp, clave="lite")
+        self.client.force_login(self.clara)
+        self.client.post(PLANES, self._form_precios(lite, precio="97.000", accion="aprobar"))
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), antes)
+        self.assertFalse(self.gerp.despliegues.filter(tipo="publicacion").exists())
+
+    def test_push_rechazado_deja_la_web_como_estaba(self):
+        remoto = self._repo_remoto(rechazar_push=True)
+        self._al_repositorio(self.gema, remoto)
+        antes = self._git(remoto, "rev-parse", "main")
+        prep = preparar_publicacion(self.gema, self.clara)
+        self.assertEqual(prep.estado, "listo", prep.controles)
+        d = publicar_preparacion(prep, self.clara)
+        self.assertEqual(d.estado, "fallo")
+        self.assertIn("rechazado por la prueba", d.registro)
+        self.assertEqual(self._git(remoto, "rev-parse", "main"), antes)
+        self.assertEqual(prep.__class__.objects.get(pk=prep.pk).estado, "listo")   # se puede reintentar
+
+    def test_workflow_que_regenera_bloquea_la_publicacion(self):
+        remoto = self._repo_remoto(workflow="jobs:\n  build:\n    steps:\n      - run: python web-admin/renderer/export.py gerp\n")
+        self._al_repositorio(self.geagro, remoto)
+        prep = preparar_publicacion(self.geagro, self.clara)
+        self.assertEqual(prep.estado, "fallo")
+        self.assertTrue(any("vuelve a generar la web por su cuenta" in c for c in prep.controles), prep.controles)
+        with self.assertRaises(ErrorPublicacion):
+            publicar_preparacion(prep, self.clara)
+
+    def test_formulario_sin_localhost_en_la_web_publica(self):
+        from publicacion.exportar import datos_sitio
+        from publicacion.motor import validar
+        self.assertTrue(self.gema.usa_formularios)
+        with override_settings(GWA_URL_PUBLICA="http://localhost:8000"):
+            local, _ = datos_sitio(self.gema)
+            publica, _ = datos_sitio(self.gema, publico=True)
+        self.assertIn("localhost", local["gema.admin.json"]["form"]["endpoint"])      # pruebas locales: conectado
+        self.assertNotIn("form", publica["gema.admin.json"])                             # web pública: queda el pedido por WhatsApp
+        with override_settings(GWA_URL_PUBLICA="https://admin.geneos.com.ar"):
+            publica, _ = datos_sitio(self.gema, publico=True)
+        form = publica["gema.admin.json"]["form"]
+        self.assertEqual((form["endpoint"], form["whatsapp"]), ("https://admin.geneos.com.ar/api/formularios/demo", self.gema.whatsapp))
+        carpeta = Path(tempfile.mkdtemp(dir=VAR))
+        (carpeta / "index.html").write_text('<h1>x</h1><title>x</title><script>window.GWA_FORM = {"endpoint": "http://localhost:8000/api"}</script>')
+        self.assertTrue(any("localhost" in e for e in validar(self.gema, carpeta, {}, publico=True)))
+        self.assertFalse(any("localhost" in e for e in validar(self.gema, carpeta, {}, publico=False)))
+
+    def test_boton_de_wagtail_dice_aprobar(self):
+        from contenidos.models import PaginaWeb
+        self.client.force_login(self.clara)
+        pagina = PaginaWeb.objects.filter(live=True).first()
+        html = self.client.get(f"/admin/pages/{pagina.pk}/edit/").content.decode()
+        self.assertIn(">Aprobar</em>", html)
+        self.assertNotIn(">Publicar</em>", html)
 
     def test_volver_a_la_version_anterior(self):
         v1 = publicar_sitio(self.gerp, self.clara)

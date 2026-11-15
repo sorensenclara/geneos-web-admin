@@ -25,17 +25,18 @@ def conectado(sitio):
     return sitio.clave in CARPETAS
 
 
-def generar(sitio, destino, overrides=None):
+def generar(sitio, destino, overrides=None, publico=False):
     """Genera la web del sitio en `destino`/<carpeta>. Devuelve (carpeta, datos, registro).
     GENEOS usa su propio build.py (GENEOS WEB, sin modificarlo) y suma las Noticias del administrador (renderer/export_geneos.py)."""
     if not conectado(sitio):
         raise NoConectado(f"La web de {sitio.nombre} todavía no está conectada al generador.")
-    archivos, _files = datos_sitio(sitio, overrides)
+    archivos, _files = datos_sitio(sitio, overrides, publico=publico)
     tmp = Path(tempfile.mkdtemp(prefix="gwa-datos-", dir=settings.GWA_VAR_DIR))
     try:
         for nombre, contenido in archivos.items():
             (tmp / nombre).write_text(json.dumps(contenido, ensure_ascii=False, indent=1))
-        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), WEB_DATA_DIR=str(tmp), GEAGRO_SRC_DIR=str(settings.GEAGRO_SRC_DIR))
+        # Los sitios comerciales usan solo el repositorio (renderer/base/); GENEOS_WEB_DIR queda para el sitio institucional.
+        env = dict(os.environ, GENEOS_WEB_DIR=str(settings.GENEOS_WEB_DIR), WEB_DATA_DIR=str(tmp))
         if sitio.motor == "institucional":
             cmd = [sys.executable, str(Path(settings.GWA_RENDERER_DIR) / "export_geneos.py"), "--out", str(destino)]
         else:
@@ -51,9 +52,16 @@ def generar(sitio, destino, overrides=None):
     return Path(destino) / CARPETAS[sitio.clave], archivos, registro
 
 
-def validar(sitio, carpeta, archivos):
-    """Controles mínimos antes de reemplazar la web pública."""
+LOCALES = re.compile(r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])[:/]", re.I)
+
+
+def validar(sitio, carpeta, archivos, publico=False):
+    """Controles mínimos antes de reemplazar la web pública (publico=True: una web que ve otra gente)."""
     errores = []
+    if publico:
+        for f in sorted(Path(carpeta).rglob("*")):
+            if f.suffix in (".html", ".js", ".css", ".json", ".xml", ".txt") and f.is_file() and LOCALES.search(f.read_text(errors="ignore")):
+                errores.append(f"/{f.relative_to(carpeta).as_posix()}: apunta a una dirección local (localhost); no puede ir a la web pública")
     paginas = [""]
     pd = archivos.get(f"{sitio.clave}.admin.json", {})
     paginas += [r for r in pd.get("pages", {}) if r and (carpeta / r).exists()]

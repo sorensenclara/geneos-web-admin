@@ -1,0 +1,221 @@
+{% macro eyebrow(text) -%}
+<p class="eyebrow"><span>{{ text }}</span></p>
+{%- endmacro %}
+
+{% macro section_head(kicker, title, lead=None, tag="h2") -%}
+<header class="section-head">
+  {% if kicker %}{{ eyebrow(kicker) }}{% endif %}
+  <{{ tag }} class="section-title">{{ title }}</{{ tag }}>
+  {% if lead %}<p class="lead">{{ lead }}</p>{% endif %}
+</header>
+{%- endmacro %}
+
+{% set SERVICES = [
+  ("gestion", "Software de Gestión", "ODOO", "/software-de-gestion-completo/"),
+  ("staff", "Staff Augmentation", "DESARROLLADORES", "/staff-augmentation/"),
+  ("apps", "Apps y<br>sitios web", "DJANGO · WAGTAIL", "/desarrollo-apps-sitios-web-cooperativos/"),
+  ("elearning", "E-Learning Platforms", "MOODLE", "/plataformas-e-learning-lms-moodle/"),
+  ("diseno", "Diseño &amp; Comunicación", "DIGITAL", "/diseno-sitios-web-identidades/"),
+] %}
+
+{% macro service_cards(items=SERVICES) -%}
+<ul class="service-cards">
+  {% for ic, title, sub, href in items %}
+  <li class="seg-{{ ic }}">
+    <a href="{{ url(href) }}">
+      <span class="ring">{{ icon(ic) }}</span>
+      <strong>{{ title|safe }}</strong>
+      <small>{{ sub }}</small>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{%- endmacro %}
+
+{% set TECH = [
+  ("Vuejs_b.svg", "Vue JS", "El framework JavaScript progresivo", "https://vuejs.org/"),
+  ("reactjs_b.svg", "React JS", "Librería JavaScript para construcción de interfaces", "https://es.react.dev/"),
+  ("nodejs_b.svg", "Node JS", "Entorno de ejecución JavaScript orientado a eventos asincrónicos", "https://nodejs.org/"),
+  ("moodle_b.svg", "Moodle", "Herramienta de gestión de aprendizaje en línea de distribución libre", "https://moodle.org/?lang=es"),
+  ("django_b.svg", "Django", "Framework web en Python, rápido, limpio, pragmático y de código abierto", "https://www.djangoproject.com/"),
+  ("angularjs_b.svg", "Angular", "Framework para el desarrollo de páginas web dinámicas", "https://angular.dev/"),
+] %}
+
+{% macro tech_grid() -%}
+<ul class="tech-grid">
+  {% for file, name, desc, href in TECH %}
+  <li>
+    <a href="{{ href }}" target="_blank" rel="noopener">
+      <img src="{{ img('2023/10/' ~ file) }}" alt="{{ name }}" loading="lazy" width="160" height="160">
+      <span class="tech-caption"><b>{{ name }}</b>{{ desc }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{%- endmacro %}
+
+{% macro logo_marquee(logos, label="Clientes") -%}
+<div class="marquee" aria-label="{{ label }}">
+  <ul class="marquee-track">
+    {% for item in logos %}
+    {% set file = item[0] if item is not string else item %}
+    {% set link = item[1] if item is not string else None %}
+    {% set alt = item[2] if item is not string and item|length > 2 else "Logo de " ~ (file.split('/')[-1].rsplit('.',1)[0].replace('Clientes-GENEOS_', '').replace('Busqueda', 'Búsqueda').replace('-', ' ').replace('_', ' ')|regex_replace(' \\d+$', '')) %}
+    <li>{% if link %}<a href="{{ link }}" target="_blank" rel="noopener">{% endif %}<img src="{{ img(file) }}" alt="{{ alt }}" loading="lazy" width="220" height="124">{% if link %}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{%- endmacro %}
+
+{% macro photo_carousel(files) -%}
+<div class="carousel" data-autoplay="4500">
+  <div class="carousel-track">
+    {% for f in files %}
+    <figure class="carousel-slide"><img src="{{ img(f[0]) }}" alt="{{ f[1] }}" loading="lazy" width="800" height="600"></figure>
+    {% endfor %}
+  </div>
+  <button class="carousel-btn prev" aria-label="Anterior">{{ icon('ui-chevron') }}</button>
+  <button class="carousel-btn next" aria-label="Siguiente">{{ icon('ui-chevron') }}</button>
+</div>
+{%- endmacro %}
+
+{% macro check_list(items, cls="check-list") -%}
+<ul class="{{ cls }}">
+  {% for it in items %}
+  <li>{{ icon('ui-check') }}<span>{{ it|safe }}</span></li>
+  {% endfor %}
+</ul>
+{%- endmacro %}
+
+{% macro scroll_down(target) -%}
+<a class="scroll-down" href="#{{ target }}" aria-label="Seguir bajando">{{ icon('ui-arrow-down') }}</a>
+{%- endmacro %}
+
+{% macro contact_form(variant="simple") -%}
+<form class="contact-form" action="{{ site.form_action }}" method="POST">
+  <input type="hidden" name="_subject" value="Nuevo mensaje desde geneos.coop.ar">
+  <input type="hidden" name="_template" value="table">
+  <input type="hidden" name="_next" value="{{ site_url }}/contacto-geneos/?enviado=1">
+  <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <div class="field"><label for="f-nombre-{{ variant }}">Nombre y Apellido</label><input id="f-nombre-{{ variant }}" name="nombre" type="text" placeholder="Nombre y Apellido*" required autocomplete="name"></div>
+  {% if variant == "simple" %}
+  <div class="field"><label for="f-asunto-{{ variant }}">Asunto</label><input id="f-asunto-{{ variant }}" name="asunto" type="text" placeholder="Asunto"></div>
+  {% endif %}
+  <div class="field"><label for="f-email-{{ variant }}">Email</label><input id="f-email-{{ variant }}" name="email" type="email" placeholder="Email*" required autocomplete="email"></div>
+  <div class="field"><label for="f-tel-{{ variant }}">Teléfono</label><input id="f-tel-{{ variant }}" name="telefono" type="tel" placeholder="Teléfono" autocomplete="tel"></div>
+  {% if variant == "full" %}
+  <div class="field"><label for="f-motivo">¿Cuál es el motivo de tu inquietud?</label>
+    <select id="f-motivo" name="motivo">
+      {% for o in ["Software de Gestión", "Staff Augmentation", "Sitio Web", "Aplicaciones", "E-Learning", "Diseño y Comunicación", "Otro"] %}<option>{{ o }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="field field-wide"><label for="f-msg-{{ variant }}">Mensaje</label><textarea id="f-msg-{{ variant }}" name="mensaje" rows="4" placeholder="Mensaje" required></textarea></div>
+  <div class="field-wide form-actions"><button class="btn btn-outline" type="submit">Enviar</button></div>
+  <p class="form-status field-wide" role="status" hidden></p>
+</form>
+{%- endmacro %}
+
+{% macro autoadmin_block(cta_label="Contactanos") -%}
+<div class="feature-row">
+  <div class="feature">
+    <span class="feature-icon circle-icon">{{ icon('bi-file-earmark-text') }}</span>
+    <h3>Lo gestionás vos</h3>
+    <p>Tu equipo actualiza páginas, noticias e imágenes desde un panel simple, sin conocimientos técnicos.</p>
+  </div>
+  <div class="feature">
+    <span class="feature-icon circle-icon">{{ icon('bi-code-slash') }}</span>
+    <h3>Diseño a medida</h3>
+    <p>Cada sitio se diseña para tu organización y se adapta a computadoras, tablets y celulares.</p>
+  </div>
+  <div class="feature">
+    <span class="feature-icon circle-icon">{{ icon('ventaja-costos') }}</span>
+    <h3>Software libre</h3>
+    <p>Django y Wagtail son tecnologías de código abierto: sin costos de licencias y sin depender de un único proveedor.</p>
+  </div>
+</div>
+<p class="center"><a class="btn btn-outline" href="{{ url('/desarrollo-apps-sitios-web-cooperativos/') }}#autoadministrables">CONOCER MÁS</a> <a class="btn btn-outline" href="{{ url('/contacto-geneos/') }}">{{ cta_label }}</a></p>
+{%- endmacro %}
+
+{% macro service_hero(theme, ic, title, text, target) -%}
+<section class="service-hero theme-{{ theme }}">
+  <div class="container service-hero-inner">
+    <span class="service-hero-icon">{{ icon(ic) }}</span>
+    <div class="service-hero-text">
+      <h1>{{ title|safe }}</h1>
+      <p>{{ text|safe }}</p>
+    </div>
+  </div>
+  {{ scroll_down(target) }}
+</section>
+{%- endmacro %}
+
+{# ================= SEO: bloques de contenido ================= #}
+
+{% macro faq(items, title="Preguntas frecuentes", kicker="DUDAS", theme="theme-gray-light", id="preguntas") -%}
+<section class="section {{ theme }}" id="{{ id }}">
+  <div class="container narrow">
+    {{ section_head(kicker, title) }}
+    <div class="accordion">
+      {% for q, a in items %}
+      <details{% if loop.first %} open{% endif %}><summary><h3>{{ q }}</h3></summary><div class="answer">{{ a|safe }}</div></details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{%- endmacro %}
+
+{% macro faq_schema(items) -%}
+{{ jsonld({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faq_entities(items)}) }}
+{%- endmacro %}
+
+{% macro service_schema(name, service_type, desc, offers=None) -%}
+{% set data = {
+  "@context": "https://schema.org", "@type": "Service", "name": name, "serviceType": service_type,
+  "description": desc, "url": abs_url(page.out), "inLanguage": "es",
+  "provider": {"@id": abs_url("#organizacion")},
+  "areaServed": [{"@type": "Country", "name": "Argentina"}, {"@type": "Place", "name": "Latinoamérica"}]
+} %}
+{% if offers %}{% set _ = data.update({"offers": offers}) %}{% endif %}
+{{ jsonld(data) }}
+{%- endmacro %}
+
+{% macro steps(items, title="Cómo trabajamos", kicker="PASO A PASO", theme="theme-white") -%}
+<section class="section {{ theme }}">
+  <div class="container">
+    {{ section_head(kicker, title) }}
+    <ol class="steps">
+      {% for t, d in items %}
+      <li><span class="step-n">{{ loop.index }}</span><h3>{{ t }}</h3><p>{{ d|safe }}</p></li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+{%- endmacro %}
+
+{% set ALL_SERVICES = [
+  ("/software-de-gestion-completo/", "gestion", "Software de gestión ERP", "Sistema de gestión GERP basado en Odoo para pymes."),
+  ("/software-gestion-matafuegos-extintores/", "gestion", "Software para matafuegos", "GEMA: gestión online para talleres de extintores."),
+  ("/software-agropecuario-geagro/", "img:geagro/Isologo-geagro.svg", "Software agropecuario", "GEAGRO: gestión de campañas agrícolas y viñedos."),
+  ("/staff-augmentation/", "staff", "Staff augmentation", "Desarrolladores y perfiles IT que se suman a tu equipo."),
+  ("/desarrollo-apps-sitios-web-cooperativos/", "apps", "Apps y sitios web", "Webs, tiendas online y apps a medida con tecnología libre."),
+  ("/plataformas-e-learning-lms-moodle/", "elearning", "Campus virtual Moodle", "Plataformas e-learning personalizadas para educar online."),
+  ("/diseno-sitios-web-identidades/", "diseno", "Diseño y comunicación", "Diseño web UX/UI, identidad visual y comunicación."),
+] %}
+
+{% macro svc_icon(ic) -%}
+{% if ic.startswith("img:") %}<img src="{{ img(ic[4:]) }}" alt="" width="54" height="54" loading="lazy">{% else %}{{ icon(ic) }}{% endif %}
+{%- endmacro %}
+
+{% macro cta(title, text, wa_text="", button="Escribinos por WhatsApp", theme="theme-blue") -%}
+<section class="section {{ theme }} cta-band">
+  <div class="container narrow center">
+    <h2 class="section-title">{{ title }}</h2>
+    <p class="lead">{{ text|safe }}</p>
+    <div class="btn-row center">
+      <a class="btn btn-white" href="{{ wa(wa_text) }}" target="_blank" rel="noopener">{{ icon('ui-whatsapp') }} {{ button }}</a>
+      <a class="btn btn-outline" href="{{ url('/contacto-geneos/') }}">Formulario de contacto</a>
+    </div>
+  </div>
+</section>
+{%- endmacro %}

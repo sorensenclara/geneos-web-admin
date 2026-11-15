@@ -1,0 +1,11 @@
+{
+  "_comentario": [
+    "Trabajos que se muestran en las páginas de servicios (carrusel «Algunos de nuestros trabajos»).",
+    "Lo genera GENEOS Web Admin a partir de los proyectos aprobados; no editar a mano salvo para pruebas locales.",
+    "Cada trabajo: id, nombre, descripcion (opcional), imagen, imagen_alt, enlace (opcional), servicios (lista de claves), orden, activo, aprobado.",
+    "Solo se publican los que tienen activo = true y aprobado = true. Si un servicio no tiene trabajos, la sección no se muestra.",
+    "portfolio_url: dirección del Portfolio general; vacía mientras no esté habilitado (oculta «Ver todo el portfolio»)."
+  ],
+  "portfolio_url": "",
+  "trabajos": []
+}

@@ -9,6 +9,9 @@ Con Noticias activo, sin tocar los archivos de GENEOS WEB:
   - se agregan la portada (con paginación) y los artículos, con las plantillas tpl/geneos/*.html que extienden base.html de GENEOS;
   - el sitemap y llms.txt los incluyen, con la fecha real de cada artículo.
 
+Siempre (con o sin blog): el SEO de cada página (título, descripción, noindex) y el contenido por sección de las plantillas
+preparadas (hoy, la home) pasan en page["admin"]. Solo se aplica lo que tiene contenido; lo vacío conserva lo de build.py.
+
 Uso:  GENEOS_WEB_DIR=<GENEOS WEB> WEB_DATA_DIR=<datos del administrador> python export_geneos.py --out <carpeta>
 """
 import argparse
@@ -61,6 +64,21 @@ def transformar(nombre, fuente, activo):
     return fuente
 
 
+def aplicar_paginas(B, paginas):
+    """SEO y contenido por sección de cada página. Solo lo que tiene contenido: lo vacío conserva lo de build.py.
+    El contenido por sección necesita una plantilla preparada (seccion(), visible()…); hoy, la home."""
+    for p in B.PAGES:
+        d = paginas.get(p["out"]) or {}
+        if (d.get("title") or "").strip():
+            p["title"] = d["title"].strip()
+        if (d.get("description") or "").strip():
+            p["description"] = d["description"].strip()
+        if d.get("robots"):
+            p["noindex"] = True
+        if d.get("admin") and hasattr(B, "seccion"):
+            p["admin"] = d["admin"]
+
+
 def generar(out_root):
     sys.path.insert(0, str(GENEOS))
     import build as B  # noqa: E402  (GENEOS WEB/build.py: solo se lee)
@@ -108,6 +126,16 @@ def generar(out_root):
         nav.insert(pos - 1 if 0 < pos <= len(nav) else len(nav), item)
         return nav
 
+    # Apariencia del encabezado (claro u oscuro): global del sitio y, si una página la define, la de esa página.
+    paginas = PD.get("pages") or {}
+    if hasattr(B, "SITIO"):
+        if PD.get("header") in ("claro", "oscuro"):
+            B.SITIO["encabezado"] = PD["header"]
+        for p in B.PAGES:
+            h = (paginas.get(p["out"]) or {}).get("header")
+            if h in ("claro", "oscuro"):
+                p["encabezado"] = h
+    aplicar_paginas(B, paginas)
     B.FileSystemLoader = cargador
     B.Environment = Entorno
     if activo:
@@ -130,11 +158,12 @@ def generar(out_root):
         lastmod_original = B.lastmod
         B.lastmod = lambda tpl: fechas.get(tpl) or lastmod_original(tpl)
     B.build()
-    if activo:
-        for src, d in PD.get("files", []):  # imágenes del blog entregadas por el administrador
+    for src, d in PD.get("files", []):  # imágenes del blog y del contenido por sección entregadas por el administrador
+        if activo or d.startswith("admin/"):
             t = out / "assets" / "img" / d
             t.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, t)
+    if activo:
         css = HERE / "static" / "css" / "blog.css"
         (out / "assets" / "css").mkdir(parents=True, exist_ok=True)
         shutil.copy2(css, out / "assets" / "css" / "blog.css")

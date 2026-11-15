@@ -8,8 +8,9 @@ Este repositorio es independiente de los sistemas Django operativos y de los rep
 
 ## Probarlo en tu Mac
 
-Requisitos: Python 3.12 o más nuevo (`python3 --version`) y la carpeta `GENEOS WEB` al lado de este repositorio
-(`~/Documents/GENEOS WEB` y `~/Documents/geneos-web-admin`), con su carpeta `public/` generada como está hoy. El administrador solo lee esa carpeta.
+Requisitos: Python 3.12 o más nuevo (`python3 --version`). GERP, GEAGRO y GEMA se generan solo con este repositorio
+(ver «Base de los sitios comerciales»). La carpeta `GENEOS WEB` al lado de este repositorio (`~/Documents/GENEOS WEB`, con `public/`
+generada) solo hace falta para la web institucional de GENEOS. El administrador solo la lee.
 
 ```bash
 cd ~/Documents/geneos-web-admin
@@ -20,7 +21,7 @@ La primera vez crea el entorno, la base local, importa el contenido actual de la
 (esa es tu cuenta de administradora, con acceso a todo). Después abrí <http://localhost:8000/admin/>.
 Para volver a entrar otro día: `scripts/iniciar.sh` de nuevo. Para empezar de cero: borrá la carpeta `var/` y ejecutalo otra vez.
 
-Si GEAGRO no está en la ruta de siempre, copiá `.env.example` como `.env` y completá `GEAGRO_SRC_DIR`.
+Si `GENEOS WEB` no está al lado de este repositorio, copiá `.env.example` como `.env` y completá `GENEOS_WEB_DIR`.
 
 ### Tres pruebas
 
@@ -33,6 +34,62 @@ Si GEAGRO no está en la ruta de siempre, copiá `.env.example` como `.env` y co
    *Vista previa de la web completa* → *Publicar en la web* → *Ver la web publicada (local)*.
    *Volver a la versión anterior* deshace la última publicación.
 
+## Base de los sitios comerciales
+
+El generador de GERP, GEAGRO y GEMA (`renderer/export.py`) no lee nada fuera de este repositorio: usa la copia versionada de
+`renderer/base/`, así la misma versión del repositorio y los mismos datos del administrador dan siempre el mismo sitio.
+
+| Carpeta | Qué hay | De dónde sale |
+|---|---|---|
+| `renderer/base/geneos/` | `build.py`, plantillas `partials/`, íconos, datos y los recursos de `public/assets` que usan las webs | GENEOS WEB, según `MANIFIESTO-geneos.txt` |
+| `renderer/base/geagro-publicado/` | Página `/campo/`, brochures, fuentes e imágenes que conservan su URL en geagro.ar | Repo `geagro-web`, según `MANIFIESTO-geagro.txt` |
+| `renderer/base/ORIGEN.json` | Repositorio, rama, commit y huella de cada archivo copiado | Lo escribe el script |
+
+Nunca se edita a mano. Para actualizarla (por ejemplo, cuando cambian los estilos compartidos de GENEOS WEB):
+
+```bash
+.venv/bin/python scripts/actualizar_base_comercial.py --geneos-web "../GENEOS WEB" --geagro "<carpeta del repo geagro-web>"
+```
+
+Después, generá las webs y revisá las diferencias antes de publicar. Los tests verifican que la copia coincida con `ORIGEN.json`,
+que las tres webs se generen sin carpetas externas y sin recursos faltantes, y que dos generaciones den los mismos archivos.
+
+**Contenido: solo en el administrador.** Los textos, precios, planes, preguntas, comparador y demás contenidos se editan acá, no en
+los repositorios `web-*` ni en `renderer/data/` (que solo sirve para la carga inicial). Lo que se cambie en otro lado vuelve atrás en la próxima
+publicación. Para comparar lo que generaría el administrador con una web publicada: `manage.py comparar_web <sitio> <carpeta o URL>`.
+
+## Publicar en la web
+
+Tres pasos separados, y nada llega a la web sin el último:
+
+1. **Guardar**: queda un borrador.
+2. **Aprobar** (el botón de Wagtail que antes decía «Publicar»): el contenido queda listo para la web. La web no cambia.
+3. **Publicar en la web**, desde *Estado de las webs → Preparar la publicación*: se generan los archivos con todo lo aprobado, se corren
+   los controles (un H1 por página, títulos, precios, recursos y enlaces completos, ninguna dirección `localhost` en una web pública,
+   ningún workflow del repositorio que regenere la web) y se muestran las diferencias de texto, páginas y archivos con lo publicado.
+   Recién al marcar la confirmación y tocar *Publicar en la web* se publica **exactamente** esa versión revisada.
+
+Una versión preparada vence a las 2 horas, o antes si se aprueba otro cambio o se publica otra versión: hay que prepararla de nuevo.
+*Volver a la versión anterior* también pide confirmación. Todo queda en el historial con usuario, fecha, motivo y commit.
+
+| Destino (Configuración del sitio → Publicación) | Qué hace al publicar | Vuelta atrás |
+|---|---|---|
+| Carpeta local | Guarda la versión en `var/publico/<sitio>/` (pruebas) | Activa la versión anterior |
+| Repositorio git | Reemplaza la web en el repo `web-*` (conserva `.github`, README y CNAME), commit y push | Commit nuevo con los archivos de la versión anterior |
+| Comando | Ejecuta el comando con la carpeta generada | Ejecuta el comando con la versión anterior |
+
+«Actualizar la web al aprobar cada cambio» solo funciona con la carpeta local. Si el push o el comando fallan, la web queda como estaba.
+
+**Antes de pasar un sitio a «Repositorio git»:** la computadora del administrador necesita permiso de escritura en el repo (clave de despliegue),
+y el repo no puede tener un workflow que regenere la web (hoy `web-gerp` lo tiene): reemplazarlo por `docs/workflow-web-estatico.yml`.
+
+**Formulario de demo.** Se conecta al administrador solo si `GWA_URL_PUBLICA` es una dirección `https` pública; si no, la web publicada
+usa el pedido por WhatsApp. Si el administrador no responde en 12 segundos, el formulario ofrece enviar el mismo pedido por WhatsApp.
+
+**Cloudflare Pages.** Cada web generada trae `_headers` (seguridad, caché y `noindex` en las direcciones `*.pages.dev`) y `_redirects`
+(301 desde las URL anteriores). Para conectarla: proyecto de Pages sobre el repo `web-*`, rama `main`, sin comando de compilación,
+carpeta de salida `/`. No cambia DNS: eso se decide aparte.
+
 ## Cómo está organizado
 
 | Carpeta | Qué hay |
@@ -41,7 +98,7 @@ Si GEAGRO no está en la ruta de siempre, copiá `.env.example` como `.env` y co
 | `contenidos/` | Páginas (encabezado, botones, SEO, secciones visibles), blog con artículos por bloques, planes y precios, funcionalidades (comparador), FAQ, testimonios, sectores, redirecciones, recursos descargables |
 | `publicacion/` | Del contenido aprobado a los datos del generador, vista previa, controles, publicación con versiones, vuelta atrás y estado de cada web |
 | `formularios/` | API del formulario de demo (antispam, consentimiento, aviso por email) y listado de pedidos |
-| `renderer/` | Motor de sitios comerciales (copia de `GENEOS WEB/tools/sitios-comerciales`) que acepta los datos del administrador |
+| `renderer/` | Motor de sitios comerciales (copia de `GENEOS WEB/tools/sitios-comerciales`) que acepta los datos del administrador. Diseño en `tpl/` y `static/`; base propia en `base/` |
 | `templates/`, `static/gwa/` | Pantallas propias del panel y estilo GENEOS |
 
 ### Aprobado ≠ publicado
