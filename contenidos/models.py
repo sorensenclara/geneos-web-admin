@@ -492,6 +492,8 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
     orden = models.PositiveSmallIntegerField("Orden", default=0)
     publico_corto = models.CharField("Público (breve)", max_length=80, blank=True, help_text="Aparece en la cabecera de la tarjeta.")
     publico = models.TextField("Para quién es", blank=True)
+    titulo_caracteristicas = models.CharField("Título de las características", max_length=80, blank=True,
+        help_text="Encabezado de la lista en la tarjeta (GEMA), por ejemplo «Funciones incluidas» o «Todo lo de Básico, más». Vacío: sin título.")
     caracteristicas = models.TextField("Características de la tarjeta", blank=True, help_text="Una por renglón.")
     cta_texto = models.CharField("Texto del botón", max_length=40, blank=True, default="Solicitar demo")
     cta_enlace = models.CharField("Enlace del botón", max_length=200, blank=True, default="#demo")
@@ -529,7 +531,7 @@ class Plan(WorkflowMixin, DraftStateMixin, LockableMixin, RevisionMixin, Preview
     ]
     panels_presentacion = [
         FieldRowPanel([FieldPanel("nombre"), FieldPanel("etiqueta")]),
-        FieldPanel("publico_corto"), FieldPanel("publico"), FieldPanel("caracteristicas"),
+        FieldPanel("publico_corto"), FieldPanel("publico"), FieldPanel("titulo_caracteristicas"), FieldPanel("caracteristicas"),
         FieldRowPanel([FieldPanel("cta_texto"), FieldPanel("cta_enlace")]),
         FieldPanel("destacado"),
     ]

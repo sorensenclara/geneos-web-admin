@@ -337,3 +337,61 @@
   .has-solves .pp-steps-ico .icon { width: 30px; height: 30px; }
   .has-solves .pp-steps-list li { grid-template-columns: 64px 1fr; }
 }
+
+/* ---------- Planes en tarjetas simples (GEMA · partials/standalone.html → plans_simple) ----------
+   --gp-c: color del plan (administrador) · --gp-ink: texto legible sobre ese color.
+   Escritorio: precios, listas y botones alineados entre tarjetas (subgrid). Móvil: tarjetas apiladas. */
+.gp-plans .pp-head { margin-bottom: 36px; }
+.gp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 28px; align-items: stretch; }
+.gp-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gp-plan { display: grid; grid-template-rows: auto auto 1fr auto; background: #fff; border: 1px solid #e2e7ef; border-radius: 22px;
+  box-shadow: 0 6px 0 #e9edf4, 0 14px 32px rgba(15, 47, 92, .07); overflow: hidden; min-width: 0; }
+@supports (grid-template-rows: subgrid) {
+  .gp-grid { grid-auto-rows: auto; }
+  .gp-plan { grid-row: span 4; grid-template-rows: subgrid; row-gap: 0; }
+}
+.gp-plan-head { background: var(--gp-c); color: var(--gp-ink); padding: 22px 28px 20px; display: grid; gap: 4px; align-content: center; }
+.pp .gp-plan-name { color: inherit; font-size: clamp(1.6rem, 2.6vw, 2.15rem); line-height: 1.15; font-weight: 700; margin: 0; }
+.gp-plan-sub { color: inherit; font-size: 1.05rem; line-height: 1.35; margin: 0; opacity: .95; }
+.gp-plan-prices { display: grid; align-content: start; justify-items: start; text-align: left; margin: 0 28px; padding: 22px 0 0;
+  border-bottom: 1px solid #e2e7ef; }
+.gp-price { display: grid; gap: 4px; min-width: 0; padding-bottom: 18px; }
+.gp-price + .gp-price { width: 100%; border-top: 1px solid #e2e7ef; padding-top: 16px; }
+.gp-price-label { color: var(--pp-muted); font-size: .95rem; line-height: 1.3; margin: 0; }
+.gp-price-amount { color: var(--pp-heading); font-size: clamp(2.6rem, 4.2vw, 3.3rem); font-weight: 700; line-height: 1; letter-spacing: -.01em; white-space: nowrap; }
+.gp-price-tax { color: var(--pp-muted); font-size: .92rem; font-weight: 600; }
+.gp-price-value { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .5em; row-gap: 2px; line-height: 1.1; }
+.gp-price-impl .gp-price-amount { font-size: clamp(1.35rem, 2vw, 1.6rem); }
+.gp-plan-feats { padding: 20px 28px 8px; }
+.pp .gp-feats-title { margin: 0 0 14px; font-weight: 700; font-size: 1rem; color: color-mix(in srgb, var(--gp-c) 72%, #000); }
+.gp-plan-feats ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.gp-plan-feats li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; color: var(--pp-text); font-size: 1.02rem; line-height: 1.4; }
+.gp-check { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; margin-top: 1px;
+  background: color-mix(in srgb, var(--gp-c) 14%, #fff); color: color-mix(in srgb, var(--gp-c) 80%, #000); }
+.gp-check .icon { width: 13px; height: 13px; }
+.gp-plan-cta { padding: 22px 28px 28px; align-self: end; }
+.gp-plan .gp-btn { width: 100%; background: var(--gp-c); color: var(--gp-ink); }
+.gp-plan .gp-btn:hover, .gp-plan .gp-btn:focus-visible { background: var(--pp-heading); color: #fff; }
+.pp .gp-common { margin: 28px 0 0; padding: 14px 20px; border-radius: 14px; background: #eaf1fa; color: var(--pp-heading);
+  text-align: center; font-size: 1rem; line-height: 1.45; }
+.gp-common strong { font-weight: 700; }
+.gp-plans .pp-note { margin-top: 16px !important; }
+/* GEMA Plus: título, bajada y botón en blanco sobre el naranja (también al pasar el mouse y con foco) */
+.gp-plan-administracion .gp-plan-head,
+.gp-plan-administracion .gp-plan-name,
+.gp-plan-administracion .gp-plan-sub { color: #FFFFFF; }
+.gp-plan.gp-plan-administracion .gp-btn,
+.gp-plan.gp-plan-administracion .gp-btn:hover,
+.gp-plan.gp-plan-administracion .gp-btn:focus,
+.gp-plan.gp-plan-administracion .gp-btn:focus-visible { color: #FFFFFF; }
+.gp-plan.gp-plan-administracion .gp-btn .icon { color: #FFFFFF; fill: currentColor; }
+/* GEMA Plus: naranja más oscuro solo al pasar el mouse (el foco conserva el estilo general) */
+.gp-plan.gp-plan-administracion .gp-btn:hover { background: #C44B08; color: #FFFFFF; }
+@media (max-width: 860px) {
+  .gp-grid, .gp-grid-2 { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .gp-plan { grid-row: auto; grid-template-rows: auto auto auto auto; }
+}
+@media (max-width: 420px) {
+  .gp-plan-head, .gp-plan-feats, .gp-plan-cta { padding-left: 20px; padding-right: 20px; }
+  .gp-plan-prices { margin: 0 20px; }
+}

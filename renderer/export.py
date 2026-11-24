@@ -316,6 +316,23 @@ def export(key, P):
                 res.append(dict(p, **{k: v for k, v in (q or {}).items() if k not in ("name", "hidden")}) if q else p)
             return res
 
+        def plans_list(default):
+            """Planes completos del administrador (nombre, bajada, características, color, botón y orden), para los sitios
+            que arman sus tarjetas solo con esos datos (GEMA). Sin datos del administrador, los de la plantilla."""
+            admin = [p for p in (PD.get("plans") or []) if p.get("key")]
+            planes = sorted((p for p in admin if not p.get("hidden")), key=lambda p: p.get("order", 0)) if admin else plans_data(default)
+            return [dict(p, ink=ink(p.get("color"))) for p in planes]
+
+        def ink(color):
+            """Texto legible sobre el color del plan: blanco sobre colores oscuros, azul oscuro sobre los claros (contraste AA)."""
+            c = (color or "").lstrip("#")
+            if len(c) != 6:
+                return "#fff"
+            r, g, b = (int(c[i:i + 2], 16) / 255 for i in (0, 2, 4))
+            lin = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in (r, g, b)]
+            lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+            return "#fff" if (1.05 / (lum + 0.05)) >= 4.5 else "#0f2f5c"
+
         # Precios: moneda, IVA y leyenda de vigencia salen de cada plan (administrador). Sin datos: $, + IVA, ARS.
         def cur(p):
             return p.get("currency") or "$"
@@ -338,7 +355,7 @@ def export(key, P):
 
         fav_dir = Path((PD.get("identity") or {}).get("favicons") or HERE / "favicons" / key)
         env.globals.update(FAVICON_SVG=(fav_dir / "favicon.svg").exists(), V=VERSION_ESTATICOS, site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
-                           DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, show=show,
+                           DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, plans_list=plans_list, show=show,
                            cur=cur, iva=iva, currency_code=currency_code, importe=importe, plans_note=plans_note,
                            FORM=PD.get("form"),
                            abs_url=abs_url, page_url=page_url, prefix=prefix, year=date.today().year, site_url="",

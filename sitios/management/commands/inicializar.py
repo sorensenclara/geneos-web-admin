@@ -61,10 +61,18 @@ VIGENCIA_GERP = "Los valores informados son precios vigentes hasta diciembre 202
 PLANES_SIMPLES = {
     "geagro": [dict(clave="lite", nombre="Lite", precio="89.250", implementacion="624.750", color="#22b24c", orden=1),
                dict(clave="plus", nombre="Plus", precio="178.500", implementacion="1.071.000", color="#0b3422", orden=2, destacado=True)],
-    "gema": [dict(clave="mensual", nombre="Plan mensual", precio="89.250", implementacion="349.750", orden=1,
+    # GEMA (noviembre 2026): dos planes, Básico y Plus (mockup «Planes de GEMA»)
+    "gema": [dict(clave="basico", nombre="Básico", etiqueta="GEMA Básico", precio="89.250", implementacion="357.000", orden=1, color="#1455a0",
                   leyenda_vigencia="Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.",
-                  publico_corto="Plataforma online personalizada",
-                  caracteristicas="Plataforma online personalizada\nCarga ILIMITADA de clientes\nUso de todas las funciones")],
+                  publico_corto="Gestión diaria del taller de matafuegos", titulo_caracteristicas="Funciones incluidas",
+                  caracteristicas="Clientes ilimitados y registro de matafuegos\nÓrdenes de trabajo y presupuestos\n"
+                                  "Vencimientos y avisos por email\nHistorial de servicios y obleas imprimibles"),
+             dict(clave="administracion", nombre="Plus", etiqueta="GEMA Plus", precio="125.000", implementacion="535.500",
+                  orden=2, color="#f36b21",
+                  leyenda_vigencia="Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.",
+                  publico_corto="Gestión del taller, facturación y cobranzas", titulo_caracteristicas="Todo lo de GEMA Básico, más",
+                  caracteristicas="Facturación electrónica ARCA desde las órdenes\nCatálogo, listas de precios, stock y remitos\n"
+                                  "Compras, cobranzas y cuentas corrientes\nInformes de IVA y permisos de usuario")],
 }
 PERMISOS_PAGINA = {"editor": ["add_page", "change_page", "lock_page"],
                    "publicador": ["add_page", "change_page", "lock_page", "publish_page", "unlock_page"],

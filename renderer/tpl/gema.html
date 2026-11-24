@@ -9,20 +9,37 @@
 #}
 {% set O = "#f36b21" %}{% set B = "#1455a0" %}
 {% set DEMO_WA = wa('Hola, quiero solicitar una demo de GEMA') %}
-{% set PLAN = {"name": "Plan mensual", "sub": "Plataforma online personalizada", "price": "89.250", "num": 89250, "impl": "349.750",
-  "feats": ["Plataforma online personalizada", "Carga ILIMITADA de clientes", "Uso de todas las funciones"],
-  "validity": "Precio informado vigente hasta diciembre 2026."} %}
-{% set PLAN = plans_data([PLAN])[0] %}
+{# Planes: salen de «Oferta comercial → Planes y precios» (nombre, bajada, precios, funciones, color, botón y orden).
+   Esta lista solo se usa si se genera sin datos del administrador. #}
+{% set PLANES = plans_list([
+  {"key": "basico", "name": "Básico", "label": "GEMA Básico", "sub": "Gestión diaria del taller de matafuegos", "color": B,
+   "price": "89.250", "num": 89250, "impl": "357.000", "impl_num": 357000, "feats_title": "Funciones incluidas",
+   "feats": ["Clientes ilimitados y registro de matafuegos", "Órdenes de trabajo y presupuestos", "Vencimientos y avisos por email", "Historial de servicios y obleas imprimibles"],
+   "button": {"label": "Solicitar demo", "href": "#demo"}},
+  {"key": "administracion", "name": "Plus", "label": "GEMA Plus", "sub": "Gestión del taller, facturación y cobranzas", "color": O,
+   "price": "125.000", "num": 125000, "impl": "535.500", "impl_num": 535500, "feats_title": "Todo lo de GEMA Básico, más",
+   "feats": ["Facturación electrónica ARCA desde las órdenes", "Catálogo, listas de precios, stock y remitos", "Compras, cobranzas y cuentas corrientes", "Informes de IVA y permisos de usuario"],
+   "button": {"label": "Solicitar demo", "href": "#demo"}},
+]) %}
+{% set PLANES_TXT = [] %}
+{% for p in PLANES %}{% set _ = PLANES_TXT.append((p.label or p.name) ~ ", " ~ importe(p, "price") ~ " por mes" ~ ((" (implementación: " ~ importe(p, "impl") ~ ", pago único)") if p.impl else "")) %}{% endfor %}
 {% set FAQS = [
   ("¿Puedo gestionar mi taller de matafuegos desde mi casa?", "<p>Sí, podrás abrir el software desde DÓNDE y CUÁNDO quieras, siempre y cuando tengas conexión a Internet. No es necesario instalar nada en ninguna computadora, smartphone ni dispositivo digital: con sólo tener tu usuario y clave podrás ingresar fácilmente.</p>"),
   ("¿Si se me rompe la computadora donde estaba trabajando pierdo toda la info?", "<p>No, no perderás ni tendrás que pagar nada para volver a tener tus datos, ya que se guardan en el servidor/nube automáticamente y no en tu computadora; podrás acceder a ellos con otro dispositivo que cuente con Internet.</p>"),
-  ("¿El pago es mensual y fijo?", "<p>El pago es mensual: hasta diciembre de 2026 el abono es de " ~ importe(PLAN, "price") ~ " por mes e incluye actualizaciones y soporte técnico sin costo adicional.</p>"),
+  ("¿El pago es mensual y fijo?", "<p>Sí. El abono es mensual y depende del plan: " ~ PLANES_TXT|join("; ") ~ ". Ambos planes incluyen actualizaciones y soporte técnico sin costo adicional.</p>"),
   ("¿Puedo personalizar la aplicación en función de mi marca?", "<p>Sí, podrás pasarnos tu brandbook o manual de marca, con tu logotipo, colores y tipografías y ajustaremos la plataforma según tu identidad.</p>"),
   ("¿Puedo desuscribirme cuando desee?", "<p>Sí, una vez cumplido el plazo del plan contratado podrás dejar de usar el software si lo deseás, sin compromiso alguno.</p>"),
-  ("¿Cuántos clientes y matafuegos puedo cargar?", "<p>La carga de clientes es <strong>ilimitada</strong> y tenés acceso a todas las funciones de la plataforma desde el primer día.</p>"),
+  ("¿Cuántos clientes y matafuegos puedo cargar?", "<p>La carga de clientes y matafuegos es <strong>ilimitada</strong> en los dos planes, desde el primer día.</p>"),
   ("¿Puedo probar GEMA antes de contratarlo?", "<p>Sí. <a href=\"#demo\">Pedinos una demo</a> y te mostramos cómo funciona con ejemplos reales de un taller.</p>"),
 ] %}
 {% set FAQS = faq_items(FAQS) %}
+
+{% set OFERTAS = [] %}
+{% for p in PLANES %}
+{% set spec = [{"@type": "UnitPriceSpecification", "name": "Abono mensual", "price": p.num, "priceCurrency": currency_code(p), "unitText": "mes", "valueAddedTaxIncluded": not iva(p)}] %}
+{% if p.impl %}{% set _ = spec.append({"@type": "PriceSpecification", "name": "Implementación (pago único)", "price": p.impl_num, "priceCurrency": currency_code(p), "valueAddedTaxIncluded": not iva(p)}) %}{% endif %}
+{% set _ = OFERTAS.append({"@type": "Offer", "name": p.label or p.name, "description": p.sub, "price": p.num, "priceCurrency": currency_code(p), "url": abs_url(page.out) ~ "#planes", "priceSpecification": spec}) %}
+{% endfor %}
 
 {% block schema %}
 {{ m.faq_schema(FAQS) }}
@@ -30,9 +47,8 @@
   "alternateName": "GEMA Plataforma de Gestión de Matafuegos", "applicationCategory": "BusinessApplication",
   "applicationSubCategory": "Software para talleres de matafuegos", "operatingSystem": "Web", "description": description, "url": abs_url(page.out),
   "image": abs_url("assets/img/gema/gema-hero-1920.webp"), "publisher": {"@id": abs_url("#organizacion")},
-  "featureList": ["Control de vencimientos de matafuegos", "Historial de recargas y servicios", "Notificaciones por mail a clientes", "Órdenes de trabajo para facturación", "Obleas imprimibles", "Presupuestos automáticos", "Personalización con la marca del taller"],
-  "offers": {"@type": "Offer", "name": "Plan mensual GEMA", "price": PLAN.num, "priceCurrency": currency_code(PLAN), "url": abs_url(page.out) ~ "#planes",
-    "priceSpecification": {"@type": "UnitPriceSpecification", "price": PLAN.num, "priceCurrency": currency_code(PLAN), "unitText": "mes", "valueAddedTaxIncluded": not iva(PLAN)}}}) }}
+  "featureList": ["Control de vencimientos de matafuegos", "Historial de recargas y servicios", "Notificaciones por mail a clientes", "Órdenes de trabajo y presupuestos", "Obleas imprimibles", "Facturación electrónica ARCA", "Stock, listas de precios y remitos", "Compras, cobranzas y cuentas corrientes", "Personalización con la marca del taller"],
+  "offers": OFERTAS}) }}
 {% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ asset('css/product.css') }}">{% endblock %}
 {% block preload %}
@@ -92,13 +108,10 @@
   ],
 }) }}
 
-{# 5. Planes #}
-{{ sx.price_plans({"id": "planes", "eyebrow": "Planes", "title": "Planes de GEMA",
-  "lead": "Un abono mensual con todas las funciones de la plataforma, actualizaciones y soporte técnico.",
-  "note": plans_note([PLAN]),
-  "items": [{"name": PLAN.name, "sub": PLAN.sub, "price": PLAN.price, "per": "por mes", "currency": PLAN.currency, "iva": PLAN.iva, "feats": PLAN.feats,
-             "impl": PLAN.impl, "impl_note": "Por única vez", "color": O,
-             "button": {"label": "Solicitar demo", "href": "#demo", "style": "accent", "icon": "bi-arrow-right"}}]}) }}
+{# 5. Planes: dos tarjetas simples (mockup «Planes de GEMA»). Datos: «Oferta comercial → Planes y precios» #}
+{{ sx.plans_simple({"id": "planes", "title": "Planes de GEMA", "lead": "Elegí el plan para tu taller de matafuegos.",
+  "common": "<strong>En ambos planes:</strong> plataforma con la marca del taller, copias de seguridad, actualizaciones y soporte técnico.",
+  "note": plans_note(PLANES), "items": PLANES}) }}
 
 {# 6. Banner con foto. Todavía no hay brochure de GEMA: el segundo botón lleva a WhatsApp #}
 {{ pp.cta({

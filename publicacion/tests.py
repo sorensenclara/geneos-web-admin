@@ -261,21 +261,41 @@ class Circuito(TestCase):
         self.assertNotIn("178.500", home + landing + lite)
 
     def test_moneda_iva_y_vigencia_editables(self):
-        plan = Plan.objects.get(sitio=self.gema)
+        plan, admin = Plan.objects.get(sitio=self.gema, clave="basico"), Plan.objects.get(sitio=self.gema, clave="administracion")
         faq = PreguntaFrecuente.objects.get(sitio=self.gema, pregunta__startswith="¿El pago es mensual")
-        self.assertNotIn("89.250", faq.respuesta)            # la respuesta referencia al plan, no repite el importe
-        self.assertIn("[precio:mensual]", faq.respuesta)
+        self.assertNotIn("89.250", faq.respuesta)            # la respuesta referencia a los planes, no repite los importes
+        self.assertIn("[precio:basico]", faq.respuesta)
+        self.assertIn("[precio:administracion]", faq.respuesta)
         html = self._web(self.gema)
-        self.assertIn("el abono es de $89.250 + IVA por mes", html)
+        self.assertIn("GEMA Básico, $89.250 + IVA por mes", html)
         self.assertNotIn("dólares", html)
         self.assertIn("(*) Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.", html)
         self.client.force_login(self.clara)
         self.client.post(PLANES, self._form_precios(plan, precio="95", moneda="USD", mas_iva=False, leyenda_vigencia="", accion="aprobar"))
+        self.client.post(PLANES, self._form_precios(admin, precio="130", moneda="USD", mas_iva=False, leyenda_vigencia="", accion="aprobar"))
         html = self._web(self.gema)
-        self.assertIn("el abono es de US$95 por mes", html)
+        self.assertIn("GEMA Básico, US$95 por mes", html)
         self.assertIn('"priceCurrency": "USD"', html)
         self.assertNotIn("(*)", html)                         # sin leyenda no hay asterisco ni nota
         self.assertNotIn("+ IVA", html.split('id="planes"')[1].split("</section>")[0])
+
+    def test_gema_dos_planes_desde_el_administrador(self):
+        """Nombres, precios, funciones y orden de las tarjetas de GEMA salen de «Planes y precios»."""
+        html = self._web(self.gema)
+        planes = html.split('id="planes"')[1].split("</section>")[0]
+        self.assertLess(planes.index("GEMA Básico"), planes.index("GEMA Plus"))
+        for texto in ("$89.250", "$357.000", "$125.000", "$535.500", "Funciones incluidas", "Todo lo de GEMA Básico, más",
+                      "Facturación electrónica ARCA desde las órdenes", "En ambos planes:"):
+            self.assertIn(texto, planes)
+        self.assertEqual(planes.count('href="#demo"'), 2)
+        self.assertEqual(html.count('"@type": "Offer"'), 2)  # datos estructurados: una oferta por plan
+        basico = Plan.objects.get(sitio=self.gema, clave="basico")
+        basico.orden, basico.caracteristicas = 9, "Función de prueba"
+        basico.save_revision(user=self.clara).publish(user=self.clara)
+        planes = self._web(self.gema).split('id="planes"')[1].split("</section>")[0]
+        self.assertLess(planes.index("GEMA Plus"), planes.index("GEMA Básico"))
+        self.assertIn("Función de prueba", planes)
+        self.assertNotIn("Órdenes de trabajo y presupuestos", planes)
 
     def test_geagro_sin_leyenda_de_vigencia(self):
         self.assertFalse(Plan.objects.filter(sitio=self.geagro).exclude(leyenda_vigencia="").exists())
@@ -290,7 +310,7 @@ class Circuito(TestCase):
         f.respuesta = "<p>Sale [precio:inexistente].</p>"
         with self.assertRaises(ValidationError):
             f.full_clean()
-        f.respuesta = "<p>Sale [precio:mensual].</p>"
+        f.respuesta = "<p>Sale [precio:basico].</p>"
         f.full_clean()
 
     def test_comparador_sin_a_confirmar(self):
@@ -500,7 +520,7 @@ class Circuito(TestCase):
         self.assertEqual(self.client.get(f"{SECTORES}edit/{lab.pk}/").status_code, 302)
 
     def test_ultima_modificacion_interna(self):
-        plan = Plan.objects.get(sitio=self.gema)
+        plan = Plan.objects.get(sitio=self.gema, clave="basico")
         self.client.force_login(self.clara)
         self.client.post(PLANES, self._form_precios(plan, precio="91.000", accion="aprobar"))
         plan.refresh_from_db()

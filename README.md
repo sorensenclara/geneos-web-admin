@@ -196,14 +196,17 @@ Importes de origen (octubre 2026), copiados de las páginas publicadas:
 | GERP Plus | $446.250 + IVA | $1.785.000 + IVA | ídem |
 | GEAGRO Lite | $89.250 + IVA | $624.750 + IVA | sin leyenda |
 | GEAGRO Plus | $178.500 + IVA | $1.071.000 + IVA | sin leyenda |
-| GEMA Plan mensual | $89.250 + IVA | $349.750 + IVA | «Precios válidos para octubre, noviembre y diciembre. Actualización trimestral.» |
+| GEMA Básico (antes «Plan mensual») | $89.250 + IVA | $357.000 + IVA | ídem (noviembre 2026) |
+| GEMA Plus | $125.000 + IVA | $535.500 + IVA | ídem (noviembre 2026) |
 
 Dónde se muestra cada precio (todo sale del plan):
 
 - GERP: tarjetas de la home; tarjeta de cada landing (/lite/, /core/, /plus/); «otros planes» en cada landing;
   pregunta «¿Cómo es la implementación?» de cada landing; datos estructurados (Offer) de la home y las landings; nota (*).
 - GEAGRO: tarjetas de la home; pregunta «¿Cuánto cuesta GEAGRO?»; datos estructurados de la home.
-- GEMA: tarjeta de planes; pregunta «¿El pago es mensual y fijo?»; datos estructurados; nota (*).
+- GEMA: las dos tarjetas de «Planes de GEMA» (nombre completo, bajada, precios, título y lista de funciones, color, botón y orden: todo sale del plan,
+  pestañas «Presentación» e «Identidad y configuración»); pregunta «¿El pago es mensual y fijo?»; datos estructurados (una oferta por plan); nota (*).
+  La franja común «En ambos planes…» y el título de la sección están en la plantilla (`renderer/tpl/gema.html`).
 
 En las preguntas frecuentes los importes no se escriben: se usa `[precio:clave]`, `[implementacion:clave]` o `[vigencia:clave]`
 (por ejemplo `[precio:lite]`), que se reemplaza por el importe vigente con su moneda e IVA. El administrador no deja guardar
@@ -216,7 +219,7 @@ isologo y la cantidad cargada, y dos vistas de los mismos datos:
 
 - **Comparador**: matriz con orden, nombre, grupo, «Resumido» (comparador resumido de la web) y una columna por cada plan real del
   producto. Cada celda es Incluido, No incluido, Opcional, Texto personalizado o «A confirmar», con ícono y texto (no solo color).
-  Con un único plan (GEMA) se muestra una sola columna «Disponibilidad en …»; si se agregan planes, aparecen solos en la matriz.
+  Con un único plan se muestra una sola columna «Disponibilidad en …»; si se agregan planes, aparecen solos en la matriz.
 - **Lista**: nombre, grupo, orden, «Visible en la web» y estado editorial.
 - Filtros por grupo y estado, búsqueda por nombre, reordenar arrastrando (o con flechas) dentro de cada grupo, y menú ⋯ con
   editar, historial y vista previa. En GEAGRO cada funcionalidad puede ser de Cereales, de Vid o de ambas líneas.

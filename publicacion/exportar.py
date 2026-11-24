@@ -681,7 +681,15 @@ def datos_sitio(sitio, overrides=None, publico=False):
     if sitio.clave in ("geagro", "gema"):
         pd["plans"] = [{"name": p.nombre, "price": p.precio, "num": p.precio_num, "impl": p.implementacion, "hidden": not p.visible,
                         "currency": p.simbolo, "currency_code": p.moneda, "iva": p.mas_iva, "validity": p.leyenda_vigencia}
-                       for p in fuente.snippets(Plan)]
+                       for p in sorted(fuente.snippets(Plan), key=lambda x: (x.orden, x.pk or 0))]
+    if sitio.clave == "gema":
+        # GEMA arma sus tarjetas solo con los planes del administrador: nombre, bajada, características, color, botón y orden
+        for d, p in zip(pd["plans"], sorted(fuente.snippets(Plan), key=lambda x: (x.orden, x.pk or 0))):
+            d.update({"key": p.clave, "label": p.etiqueta or p.nombre, "sub": p.publico_corto, "order": p.orden,
+                      "impl_num": int(re.sub(r"\D", "", p.implementacion.split(",")[0]) or 0),
+                      "feats_title": p.titulo_caracteristicas, "feats": [x.strip() for x in p.caracteristicas.splitlines() if x.strip()],
+                      "color": p.color, "featured": p.destacado,
+                      "button": {"label": p.cta_texto or "Solicitar demo", "href": p.cta_enlace or "#demo"}})
     if sitio.clave == "gema" and (Sector.objects.filter(sitio=sitio).exists() or fuente.snippets(Sector)):
         pd["sectors"] = sectores_web(fuente)  # «¿Para quién es GEMA?»
     pd["blog"] = datos_blog(fuente, files)

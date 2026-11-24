@@ -266,3 +266,55 @@
   </div>
 </section>
 {%- endmacro %}
+
+
+{# ---------- Planes en tarjetas simples (GEMA): todo sale de «Oferta comercial → Planes y precios» ----------
+   Cada tarjeta: cabecera con el color del plan, abono mensual e implementación lado a lado, lista de funciones con su título
+   y el botón del plan abajo. En escritorio los precios, las listas y los botones quedan alineados entre tarjetas (subgrid);
+   en móvil las tarjetas se apilan. Debajo, una franja común a todos los planes y la leyenda de vigencia (*), si la hay.
+   p: {id, title, lead, common, note, items: [{key, label, sub, price, impl, currency, iva, feats_title, feats, color, ink, button}]} #}
+{% macro plans_simple(p) -%}
+{% set ast = " (*)" if p.note else "" %}
+<section class="pp-section pp-white gp-plans" id="{{ p.id }}" aria-labelledby="{{ p.id }}-title">
+  <div class="pp-container">
+    <header class="pp-head">
+      <h2 id="{{ p.id }}-title">{{ p.title }}</h2>
+      {% if p.lead %}<p>{{ p.lead|safe }}</p>{% endif %}
+    </header>
+    <div class="gp-grid gp-grid-{{ p["items"]|length }}">
+      {% for it in p["items"] %}
+      {% set pid = p.id ~ "-" ~ (it.key or loop.index) %}
+      <article class="gp-plan{% if it.key %} gp-plan-{{ it.key }}{% endif %}" style="--gp-c: {{ it.color or '#1455a0' }}; --gp-ink: {{ it.ink or '#fff' }}" aria-labelledby="{{ pid }}-name">
+        <header class="gp-plan-head">
+          <h3 class="gp-plan-name" id="{{ pid }}-name">{{ it.label or it.name }}</h3>
+          {% if it.sub %}<p class="gp-plan-sub">{{ it.sub }}</p>{% endif %}
+        </header>
+        {# Precios apilados como en GERP: abono (grande) · línea · implementación (más chica) · línea antes de la lista #}
+        <div class="gp-plan-prices">
+          <div class="gp-price">
+            <p class="gp-price-label">Abono mensual</p>
+            <p class="gp-price-amount">{{ cur(it) }}{{ it.price }}</p>
+            <p class="gp-price-tax">{% if iva(it) %}+ IVA {% endif %}por mes{{ ast }}</p>
+          </div>
+          {% if it.impl %}
+          <div class="gp-price gp-price-impl">
+            <p class="gp-price-label">Implementación</p>
+            <p class="gp-price-value"><span class="gp-price-amount">{{ cur(it) }}{{ it.impl }}</span> <span class="gp-price-tax">{% if iva(it) %}+ IVA · {% endif %}pago único</span></p>
+          </div>
+          {% endif %}
+        </div>
+        <div class="gp-plan-feats">
+          {% if it.feats_title %}<p class="gp-feats-title">{{ it.feats_title }}</p>{% endif %}
+          {% if it.feats %}<ul>{% for f in it.feats %}<li><span class="gp-check" aria-hidden="true">{{ icon('bi-check2', 'icon bi') }}</span><span>{{ f }}</span></li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="gp-plan-cta">
+          {{ pp.btn({"label": it.button.label, "href": it.button.href, "style": "accent", "icon": "bi-arrow-right"}, "gp-btn") }}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% if p.common %}<p class="gp-common">{{ p.common|safe }}</p>{% endif %}
+    {% if p.note %}<p class="pp-note">(*) {{ p.note }}</p>{% endif %}
+  </div>
+</section>
+{%- endmacro %}
