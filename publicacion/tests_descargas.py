@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 
-from contenidos.models import Recurso, carpeta_drive_id
+from contenidos.models import Recurso, archivo_drive_id, carpeta_drive_id
 from publicacion import drive
 from sitios.models import SitioWeb
 
@@ -70,6 +70,12 @@ class DescargaDesdeDrive(TestCase):
         self.assertEqual(r.status_code, 503)
         self.assertIn("no está disponible", r.content.decode())
 
+    def test_sin_archivo_por_nombre_usa_el_enlace_fijo(self):
+        Recurso.objects.filter(pk=self.recurso.pk).update(drive_archivo="https://drive.google.com/file/d/respaldo1234/view?usp=sharing")
+        r, _ = self._get(error=drive.DriveError("Drive respondió 403"))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r["Location"], drive.url_descarga("respaldo1234"))
+
     @override_settings(GWA_DRIVE_API_KEY="")
     def test_sin_clave_de_api_no_consulta(self):
         r, m = self._get([archivo("vigente")])
@@ -87,6 +93,11 @@ class DescargaDesdeDrive(TestCase):
         self.assertEqual(carpeta_drive_id(f"https://drive.google.com/drive/folders/{CARPETA}?usp=sharing"), CARPETA)
         self.assertEqual(carpeta_drive_id(CARPETA), CARPETA)
         self.assertEqual(carpeta_drive_id("https://example.com/"), "")
+        self.assertEqual(archivo_drive_id("https://drive.google.com/file/d/133yvrU01TGaN0xVCgPIKe7ET2wvLgXOt/view?usp=sharing"),
+                         "133yvrU01TGaN0xVCgPIKe7ET2wvLgXOt")
+        Recurso(sitio=self.gema, titulo="x", clave="otro", drive_archivo="133yvrU01TGaN0xVCgPIKe7ET2wvLgXOt").full_clean()  # solo enlace fijo
+        with self.assertRaises(ValidationError):
+            Recurso(sitio=self.gema, titulo="x", clave="otro2", drive_archivo="https://example.com/").full_clean()
         for datos in ({"drive_carpeta": CARPETA}, {"drive_nombre": "Brochure GEMA.pdf"}, {},
                       {"drive_carpeta": CARPETA, "drive_nombre": "Brochure GEMA.pdf"}):  # el último sin ruta fija
             with self.assertRaises(ValidationError):

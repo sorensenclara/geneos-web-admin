@@ -708,12 +708,22 @@ def datos_sitio(sitio, overrides=None, publico=False):
     if sitio.usa_formularios and (not publico or url_formularios_publica(settings.GWA_URL_PUBLICA)):
         pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento,
                       "whatsapp": sitio.whatsapp, "product": sitio.nombre}
-    # Descargas con dirección fija (/descargas/<sitio>/<ruta>/, por ejemplo el brochure desde Drive). Como el formulario:
-    # en una web pública se enlazan solo si el administrador tiene una dirección pública; si no, queda el archivo de la web.
-    if not publico or url_formularios_publica(settings.GWA_URL_PUBLICA):
-        base = settings.GWA_URL_PUBLICA.rstrip("/")
-        pd["downloads"] = {r.clave: f"{base}/descargas/{sitio.clave}/{r.clave}/"
-                           for r in Recurso.objects.filter(sitio=sitio, visible=True).exclude(clave="") if r.usa_drive or r.documento_id}
+    # Descargas (por ejemplo el brochure desde Drive):
+    # 1. Dirección fija del administrador (/descargas/<sitio>/<ruta>/), que busca en Drive el PDF vigente por nombre.
+    #    Como el formulario: en una web pública solo si el administrador tiene una dirección pública.
+    # 2. Si no, el enlace fijo de respaldo al archivo de Drive (se actualiza con «Administrar versiones», mismo ID).
+    # 3. Si no hay ninguno, queda el PDF incluido en la web.
+    from publicacion.drive import url_descarga
+    admin_publico = not publico or url_formularios_publica(settings.GWA_URL_PUBLICA)
+    base = settings.GWA_URL_PUBLICA.rstrip("/")
+    descargas = {}
+    for r in Recurso.objects.filter(sitio=sitio, visible=True).exclude(clave=""):
+        if admin_publico and (r.usa_drive or r.documento_id or r.archivo_id):
+            descargas[r.clave] = f"{base}/descargas/{sitio.clave}/{r.clave}/"
+        elif r.archivo_id:
+            descargas[r.clave] = url_descarga(r.archivo_id)
+    if descargas:
+        pd["downloads"] = descargas
     archivos = {"contacto.json": contacto(sitio), f"{sitio.clave}.admin.json": pd}
     if sitio.clave == "gerp":
         archivos["gerp.json"] = datos_gerp(fuente, fq)  # planes, comparador, sectores, testimonios, redirecciones

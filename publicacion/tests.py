@@ -293,6 +293,10 @@ class Circuito(TestCase):
         self.assertNotIn("9 páginas", con)
         with override_settings(GWA_URL_PUBLICA="http://localhost:8000"):
             self.assertNotIn("downloads", datos_sitio(self.gema, publico=True)[0]["gema.admin.json"])
+            # Sin administrador público: enlace fijo de respaldo al archivo de Drive, si está cargado
+            Recurso.objects.filter(sitio=self.gema, clave="brochure").update(drive_archivo="https://drive.google.com/file/d/133yvrU01TGaN0xVCgPIKe7ET2wvLgXOt/view")
+            self.assertEqual(datos_sitio(self.gema, publico=True)[0]["gema.admin.json"]["downloads"],
+                             {"brochure": "https://drive.google.com/uc?export=download&id=133yvrU01TGaN0xVCgPIKe7ET2wvLgXOt"})
         with override_settings(GWA_URL_PUBLICA="https://admin.geneos.com.ar"):
             self.assertEqual(datos_sitio(self.gema, publico=True)[0]["gema.admin.json"]["downloads"],
                              {"brochure": "https://admin.geneos.com.ar/descargas/gema/brochure/"})

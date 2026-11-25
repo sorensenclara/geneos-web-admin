@@ -4,7 +4,8 @@ La web enlaza siempre a la misma dirección. Esta vista busca en Drive el PDF vi
 y redirige a su descarga pública. Si Comunicación sube un archivo nuevo con el mismo nombre, Drive le da otro ID y la
 próxima consulta lo encuentra: no hay que cambiar enlaces ni volver a publicar la web.
 
-Si Drive no responde, se usa el último archivo encontrado; si nunca se encontró, el documento subido al administrador.
+Si Drive no responde, se usa el último archivo encontrado; si nunca se encontró, el enlace fijo de respaldo y después
+el documento subido al administrador.
 """
 import hashlib
 import logging
@@ -67,6 +68,8 @@ def descargar(request, sitio, clave):
                     cache.set(llave, archivo_id, 60)  # se reintenta en un minuto
         if archivo_id:
             return _redirigir(drive.url_descarga(archivo_id), min(segundos, 300))
+    if recurso.archivo_id:  # enlace fijo de respaldo
+        return _redirigir(drive.url_descarga(recurso.archivo_id), 300)
     if recurso.documento_id:
         return _redirigir(request.build_absolute_uri(recurso.documento.url), 300)
     return _sin_archivo(recurso)

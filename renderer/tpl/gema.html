@@ -152,7 +152,7 @@
 
 {# 10. Material (brochure) + demo. El brochure se descarga de la dirección fija del administrador (/descargas/gema/brochure/),
    que busca «Brochure GEMA.pdf» en la carpeta de Drive de Comunicación («Recursos descargables»). Sin administrador público,
-   el PDF incluido en la web. Con Drive no se indican páginas ni peso: pueden cambiar con cada versión. #}
+   el enlace fijo de respaldo al archivo de Drive; sin ninguno de los dos, el PDF incluido en la web. Con Drive no se indican páginas ni peso: pueden cambiar con cada versión. #}
 {% set BROCHURE = descarga("brochure", "descargas/brochure-gema-plataforma-de-gestion-de-matafuegos.pdf") %}
 {% set BROCHURE_DRIVE = BROCHURE.startswith("http") %}
 {{ pp.convert({

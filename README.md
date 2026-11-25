@@ -230,6 +230,13 @@ reemplaza el PDF en Drive (o sube uno nuevo con el mismo nombre, aunque Drive le
 - Los nombres se comparan exactos (mayúsculas, espacios y extensión). Si hay varios con el mismo nombre, gana el modificado más
   recientemente: conviene borrar o renombrar los anteriores.
 
+**Respaldo sin Infra (enlace fijo al archivo).** Mientras el administrador no tenga dirección pública, la web de GEMA descarga
+directo de Drive el archivo indicado en «Archivo de Drive (enlace fijo de respaldo)» (`https://drive.google.com/uc?export=download&id=…`).
+Funciona sin iniciar sesión y sin servidor, pero el enlace apunta a **un archivo**: para actualizarlo sin cambiar el enlace,
+Comunicación tiene que usar en Drive *clic derecho → Administrar versiones → Subir nueva versión* (mantiene el ID).
+Si sube un archivo nuevo, Drive le da otro ID y la web sigue descargando el anterior hasta que se cargue el nuevo enlace y se publique.
+Cuando Infra configure el administrador, la web pasa sola a la dirección fija (que sí encuentra un archivo nuevo por nombre) al publicar.
+
 Configuración inicial (Infra):
 
 1. En Google Cloud (proyecto de GENEOS): habilitar **Google Drive API**; crear una **clave de API** restringida a

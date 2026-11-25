@@ -907,6 +907,16 @@ def carpeta_drive_id(valor):
     return valor if re.fullmatch(r"[A-Za-z0-9_-]{10,}", valor) else ""
 
 
+def archivo_drive_id(valor):
+    """ID de un archivo de Drive a partir del ID o de su enlace (…/file/d/<id>/view, …?id=<id>)."""
+    import re
+    valor = (valor or "").strip()
+    m = re.search(r"/file/d/([A-Za-z0-9_-]{10,})", valor) or re.search(r"[?&]id=([A-Za-z0-9_-]{10,})", valor)
+    if m:
+        return m.group(1)
+    return valor if re.fullmatch(r"[A-Za-z0-9_-]{10,}", valor) else ""
+
+
 class Recurso(ContenidoSitio):
     """Archivo descargable de un sitio (brochure, manual…).
 
@@ -925,12 +935,15 @@ class Recurso(ContenidoSitio):
                                      help_text="Enlace o ID de la carpeta, compartida como «Cualquier persona con el enlace: Lector».")
     drive_nombre = models.CharField("Nombre exacto del archivo", max_length=200, blank=True,
                                     help_text="Por ejemplo «Brochure GEMA.pdf». Si hay varios con ese nombre, se descarga el modificado más recientemente.")
+    drive_archivo = models.CharField("Archivo de Drive (enlace fijo de respaldo)", max_length=300, blank=True,
+        help_text="Enlace o ID del PDF. Se usa mientras el administrador no tenga dirección pública: la web descarga este archivo directo de Drive. "
+                  "Para actualizarlo sin cambiar el enlace, en Drive: clic derecho → «Administrar versiones» → «Subir nueva versión».")
     # Último archivo encontrado en Drive (interno): se usa si Drive no responde
     drive_archivo_id = models.CharField("Archivo vigente en Drive", max_length=100, blank=True, editable=False)
     drive_modificado = models.DateTimeField("Modificado en Drive", null=True, blank=True, editable=False)
     drive_consultado = models.DateTimeField("Última consulta a Drive", null=True, blank=True, editable=False)
     panels = [FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldPanel("titulo"), FieldPanel("tipo"),
-              MultiFieldPanel([FieldPanel("clave"), FieldPanel("drive_carpeta"), FieldPanel("drive_nombre")], "Descarga desde Drive"),
+              MultiFieldPanel([FieldPanel("clave"), FieldPanel("drive_carpeta"), FieldPanel("drive_nombre"), FieldPanel("drive_archivo")], "Descarga desde Drive"),
               FieldPanel("documento"), FieldPanel("visible")]
 
     class Meta:
@@ -946,6 +959,10 @@ class Recurso(ContenidoSitio):
         return carpeta_drive_id(self.drive_carpeta)
 
     @property
+    def archivo_id(self):
+        return archivo_drive_id(self.drive_archivo)
+
+    @property
     def usa_drive(self):
         return bool(self.carpeta_id and self.drive_nombre.strip())
 
@@ -957,9 +974,11 @@ class Recurso(ContenidoSitio):
             errores["drive_carpeta"] = "Pegá el enlace de la carpeta (…/drive/folders/…) o su ID."
         if bool(self.drive_carpeta.strip()) != bool(self.drive_nombre.strip()):
             errores["drive_nombre" if self.drive_carpeta.strip() else "drive_carpeta"] = "Para descargar desde Drive completá la carpeta y el nombre exacto del archivo."
-        if not self.documento_id and not self.usa_drive:
+        if self.drive_archivo.strip() and not self.archivo_id:
+            errores["drive_archivo"] = "Pegá el enlace del archivo (…/file/d/…/view) o su ID."
+        if not self.documento_id and not self.usa_drive and not self.archivo_id:
             errores["documento"] = "Elegí un documento o configurá la descarga desde Drive."
-        if self.usa_drive and not self.clave:
+        if (self.usa_drive or self.archivo_id) and not self.clave:
             errores["clave"] = "La descarga desde Drive necesita una ruta fija, por ejemplo «brochure»."
         if errores:
             raise ValidationError(errores)
