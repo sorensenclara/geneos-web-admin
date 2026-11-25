@@ -117,6 +117,10 @@ GWA_URL_PUBLICA = env("GWA_URL_PUBLICA", "http://localhost:8000")
 GWA_CORS_EXTRA = [o for o in env("GWA_CORS_EXTRA", "http://localhost:8000,http://localhost:8102,http://localhost:8103,http://localhost:8104").split(",") if o]
 GWA_FORM_SEGUNDOS_MINIMOS = int(env("GWA_FORM_SEGUNDOS_MINIMOS", "3"))
 GWA_FORM_MAX_POR_HORA = int(env("GWA_FORM_MAX_POR_HORA", "5"))
+# Descargas desde Drive (/descargas/<sitio>/<ruta>/): clave de la API de Google Drive (solo lectura de carpetas públicas)
+# y cada cuánto se vuelve a consultar la carpeta (un PDF nuevo se ve en la web, como mucho, después de ese tiempo).
+GWA_DRIVE_API_KEY = env("GWA_DRIVE_API_KEY", "")
+GWA_DRIVE_CACHE_SEGUNDOS = int(env("GWA_DRIVE_CACHE_SEGUNDOS", "300"))
 
 (BASE_DIR / "var").mkdir(exist_ok=True)
 WAGTAIL_GRAVATAR_PROVIDER_URL = None

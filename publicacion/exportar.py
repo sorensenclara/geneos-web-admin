@@ -19,7 +19,7 @@ from wagtail.rich_text import expand_db_html
 
 from contenidos import geneos as G
 from contenidos.models import (ArticuloPage, BlogIndexPage, Funcionalidad, IdentidadSitio, LogoCliente, PaginaWeb, Plan, PreguntaFrecuente,
-                               Redireccion, Sector, Testimonio)
+                               Recurso, Redireccion, Sector, Testimonio)
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 RENDERER = Path(settings.GWA_RENDERER_DIR)
@@ -708,6 +708,12 @@ def datos_sitio(sitio, overrides=None, publico=False):
     if sitio.usa_formularios and (not publico or url_formularios_publica(settings.GWA_URL_PUBLICA)):
         pd["form"] = {"endpoint": settings.GWA_URL_PUBLICA.rstrip("/") + "/api/formularios/demo", "site": sitio.clave, "privacy": sitio.texto_consentimiento,
                       "whatsapp": sitio.whatsapp, "product": sitio.nombre}
+    # Descargas con dirección fija (/descargas/<sitio>/<ruta>/, por ejemplo el brochure desde Drive). Como el formulario:
+    # en una web pública se enlazan solo si el administrador tiene una dirección pública; si no, queda el archivo de la web.
+    if not publico or url_formularios_publica(settings.GWA_URL_PUBLICA):
+        base = settings.GWA_URL_PUBLICA.rstrip("/")
+        pd["downloads"] = {r.clave: f"{base}/descargas/{sitio.clave}/{r.clave}/"
+                           for r in Recurso.objects.filter(sitio=sitio, visible=True).exclude(clave="") if r.usa_drive or r.documento_id}
     archivos = {"contacto.json": contacto(sitio), f"{sitio.clave}.admin.json": pd}
     if sitio.clave == "gerp":
         archivos["gerp.json"] = datos_gerp(fuente, fq)  # planes, comparador, sectores, testimonios, redirecciones

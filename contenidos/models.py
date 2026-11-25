@@ -897,20 +897,72 @@ class Redireccion(ContenidoSitio):
         return f"/{self.origen} → {self.destino}"
 
 
+def carpeta_drive_id(valor):
+    """ID de una carpeta de Drive a partir del ID o de su enlace (…/folders/<id>?usp=sharing)."""
+    import re
+    valor = (valor or "").strip()
+    m = re.search(r"/folders/([A-Za-z0-9_-]{10,})", valor) or re.search(r"[?&]id=([A-Za-z0-9_-]{10,})", valor)
+    if m:
+        return m.group(1)
+    return valor if re.fullmatch(r"[A-Za-z0-9_-]{10,}", valor) else ""
+
+
 class Recurso(ContenidoSitio):
+    """Archivo descargable de un sitio (brochure, manual…).
+
+    Con «Ruta de descarga», la web enlaza a una dirección fija del administrador: /descargas/<sitio>/<ruta>/.
+    Si el recurso indica una carpeta de Drive y un nombre de archivo, esa dirección busca en la carpeta el PDF con ese
+    nombre exacto y descarga el más reciente: Comunicación reemplaza el archivo en Drive y la web no se vuelve a publicar."""
     TIPOS = [("brochure", "Brochure"), ("logo", "Logos"), ("manual", "Manual de marca"), ("otro", "Otro")]
     titulo = models.CharField("Título", max_length=120)
     tipo = models.CharField(max_length=20, choices=TIPOS, default="brochure")
-    documento = models.ForeignKey("wagtaildocs.Document", on_delete=models.PROTECT, related_name="+")
+    documento = models.ForeignKey("wagtaildocs.Document", on_delete=models.PROTECT, related_name="+", null=True, blank=True,
+                                  help_text="Archivo subido al administrador. Con Drive configurado, se usa solo si Drive no responde.")
     visible = models.BooleanField(default=True)
-    panels = [FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldPanel("titulo"), FieldPanel("tipo"), FieldPanel("documento"), FieldPanel("visible")]
+    clave = models.SlugField("Ruta de descarga", max_length=60, blank=True,
+                             help_text="Por ejemplo «brochure»: la web enlaza a /descargas/<sitio>/brochure/. No cambiarla una vez publicada.")
+    drive_carpeta = models.CharField("Carpeta de Drive", max_length=300, blank=True,
+                                     help_text="Enlace o ID de la carpeta, compartida como «Cualquier persona con el enlace: Lector».")
+    drive_nombre = models.CharField("Nombre exacto del archivo", max_length=200, blank=True,
+                                    help_text="Por ejemplo «Brochure GEMA.pdf». Si hay varios con ese nombre, se descarga el modificado más recientemente.")
+    # Último archivo encontrado en Drive (interno): se usa si Drive no responde
+    drive_archivo_id = models.CharField("Archivo vigente en Drive", max_length=100, blank=True, editable=False)
+    drive_modificado = models.DateTimeField("Modificado en Drive", null=True, blank=True, editable=False)
+    drive_consultado = models.DateTimeField("Última consulta a Drive", null=True, blank=True, editable=False)
+    panels = [FieldRowPanel([FieldPanel("sitio"), FieldPanel("linea")]), FieldPanel("titulo"), FieldPanel("tipo"),
+              MultiFieldPanel([FieldPanel("clave"), FieldPanel("drive_carpeta"), FieldPanel("drive_nombre")], "Descarga desde Drive"),
+              FieldPanel("documento"), FieldPanel("visible")]
 
     class Meta:
         verbose_name = "recurso descargable"
         verbose_name_plural = "recursos descargables"
+        constraints = [models.UniqueConstraint(fields=["sitio", "clave"], condition=~models.Q(clave=""), name="recurso_ruta_unica_por_sitio")]
 
     def __str__(self):
         return self.titulo
+
+    @property
+    def carpeta_id(self):
+        return carpeta_drive_id(self.drive_carpeta)
+
+    @property
+    def usa_drive(self):
+        return bool(self.carpeta_id and self.drive_nombre.strip())
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        super().clean()
+        errores = {}
+        if self.drive_carpeta.strip() and not self.carpeta_id:
+            errores["drive_carpeta"] = "Pegá el enlace de la carpeta (…/drive/folders/…) o su ID."
+        if bool(self.drive_carpeta.strip()) != bool(self.drive_nombre.strip()):
+            errores["drive_nombre" if self.drive_carpeta.strip() else "drive_carpeta"] = "Para descargar desde Drive completá la carpeta y el nombre exacto del archivo."
+        if not self.documento_id and not self.usa_drive:
+            errores["documento"] = "Elegí un documento o configurá la descarga desde Drive."
+        if self.usa_drive and not self.clave:
+            errores["clave"] = "La descarga desde Drive necesita una ruta fija, por ejemplo «brochure»."
+        if errores:
+            raise ValidationError(errores)
 
 
 # ---------------------------------------------------------------------------------------------- Identidad visual

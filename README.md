@@ -141,7 +141,7 @@ Propuesta para validar con Infra: la web comercial en `gema.geneos.com.ar` y la 
 ## Límites de la etapa 1
 
 - La web institucional de GENEOS tiene sus páginas y su SEO cargados, pero su generador (`build.py`) se conecta en la etapa 7.
-- Brochures: se suben a *Recursos descargables*; todavía no reemplazan los enlaces de las plantillas.
+- Brochures: el de GEMA se descarga desde Drive con dirección fija (ver «Brochures desde Drive»); GERP y GEAGRO siguen con el PDF incluido en la web.
 - Íconos y logos de los planes se indican con la ruta del archivo; la carga como imagen queda para una etapa siguiente.
 - Sin segundo factor de autenticación todavía (previsto para el servidor).
 
@@ -211,6 +211,36 @@ Dónde se muestra cada precio (todo sale del plan):
 En las preguntas frecuentes los importes no se escriben: se usa `[precio:clave]`, `[implementacion:clave]` o `[vigencia:clave]`
 (por ejemplo `[precio:lite]`), que se reemplaza por el importe vigente con su moneda e IVA. El administrador no deja guardar
 una respuesta con un importe escrito a mano ni con una clave de plan que no existe.
+
+## Brochures desde Drive (descarga con dirección fija)
+
+El botón «Descargar brochure» de GEMA enlaza a una dirección fija del administrador: `<GWA_URL_PUBLICA>/descargas/gema/brochure/`.
+Esa dirección busca en la carpeta de Drive de Comunicación (**COM - Productos Propios**) el PDF llamado exactamente
+`Brochure GEMA.pdf`, toma el modificado más recientemente y redirige a su descarga pública de Drive. Comunicación
+reemplaza el PDF en Drive (o sube uno nuevo con el mismo nombre, aunque Drive le dé otro ID) y la web no se vuelve a publicar.
+
+- Se configura en *Contenidos → Recursos descargables*: sitio, «Ruta de descarga» (`brochure`), carpeta de Drive (enlace o ID)
+  y nombre exacto del archivo. Para otro producto: otro recurso con su nombre (`Brochure GERP.pdf`…) y, en su plantilla,
+  `descarga("brochure", "<PDF incluido>")` como enlace del botón (ver `renderer/tpl/gema.html`).
+- Solo se consultan las carpetas y nombres cargados como recursos: la dirección no sirve para pedir otros archivos.
+- Drive se consulta como mucho cada `GWA_DRIVE_CACHE_SEGUNDOS` (300 por defecto): un PDF nuevo se ve en la web en ese tiempo.
+  Si Drive no responde, se usa el último archivo encontrado; si nunca se encontró ninguno, el documento subido al recurso; si no hay, un aviso (503).
+- Como el formulario de demo: una web **pública** enlaza a esta dirección solo si `GWA_URL_PUBLICA` es `https` y pública.
+  Mientras tanto queda el PDF incluido en la web. En la vista previa local se usa `http://localhost:8000/descargas/…`.
+- Los nombres se comparan exactos (mayúsculas, espacios y extensión). Si hay varios con el mismo nombre, gana el modificado más
+  recientemente: conviene borrar o renombrar los anteriores.
+
+Configuración inicial (Infra):
+
+1. En Google Cloud (proyecto de GENEOS): habilitar **Google Drive API**; crear una **clave de API** restringida a
+   «Google Drive API» y, como restricción de aplicación, a la IP pública del servidor del administrador.
+2. En el servidor: `GWA_DRIVE_API_KEY=<clave>`, `GWA_URL_PUBLICA=https://<dirección pública del administrador>`
+   (opcional `GWA_DRIVE_CACHE_SEGUNDOS`) y `python manage.py migrate`. La clave va en variables de entorno, nunca en el repo ni en la web.
+3. Verificar: `curl -sI https://<administrador>/descargas/gema/brochure/` responde `302` a `https://drive.google.com/uc?export=download&id=…`
+   y, abriendo esa dirección en una ventana privada, se descarga el PDF.
+4. Desde el administrador: *Estado de las webs → GEMA → Preparar la publicación → Publicar en la web* (una sola vez, para
+   que la web enlace a la dirección fija). Desde ahí, los cambios de PDF no requieren publicar.
+5. Comunicación: mantener la carpeta compartida como «Cualquier persona con el enlace: Lector» y el nombre exacto del archivo.
 
 ## Funcionalidades (comparador)
 

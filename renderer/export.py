@@ -247,6 +247,8 @@ def export(key, P):
 
     def make_env(prefix):
         def asset(path):
+            if path.startswith(("http://", "https://")):  # descarga con dirección fija del administrador (no es un archivo de la web)
+                return path
             path = path.lstrip("/")
             d = dest(path)
             used[d] = path
@@ -350,12 +352,17 @@ def export(key, P):
         def plans_note(plans):
             return " ".join(dict.fromkeys(p.get("validity") for p in plans if p.get("validity")))
 
+        def descarga(clave, defecto):
+            """Dirección fija del administrador para un recurso descargable (p. ej. el brochure que se actualiza desde Drive).
+            Sin ella (web generada sin administrador público), el archivo incluido en la web."""
+            return (PD.get("downloads") or {}).get(clave) or defecto
+
         def show(section):
             return section not in (page_over.get("hidden") or [])
 
         fav_dir = Path((PD.get("identity") or {}).get("favicons") or HERE / "favicons" / key)
         env.globals.update(FAVICON_SVG=(fav_dir / "favicon.svg").exists(), V=VERSION_ESTATICOS, site=SITE, url=url, asset=asset, img=img, icon=B.icon, wa=wa, jsonld=B.jsonld, GERP=GERP_DATA,
-                           DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, plans_list=plans_list, show=show,
+                           DATA=PD, PAGE_OVER=page_over, hero_data=hero_data, faq_items=faq_items, plans_data=plans_data, plans_list=plans_list, descarga=descarga, show=show,
                            cur=cur, iva=iva, currency_code=currency_code, importe=importe, plans_note=plans_note,
                            FORM=PD.get("form"),
                            abs_url=abs_url, page_url=page_url, prefix=prefix, year=date.today().year, site_url="",

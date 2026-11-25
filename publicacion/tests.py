@@ -279,6 +279,24 @@ class Circuito(TestCase):
         self.assertNotIn("(*)", html)                         # sin leyenda no hay asterisco ni nota
         self.assertNotIn("+ IVA", html.split('id="planes"')[1].split("</section>")[0])
 
+    def test_brochure_de_gema_con_direccion_fija(self):
+        """Con el recurso de Drive, el botón «Descargar brochure» enlaza a /descargas/gema/brochure/ del administrador.
+        En una web pública sin administrador público, queda el PDF incluido en la web."""
+        from contenidos.models import Recurso
+        from publicacion.exportar import datos_sitio
+        sin = self._web(self.gema)
+        self.assertIn('href="assets/descargas/brochure-gema-plataforma-de-gestion-de-matafuegos.pdf"', sin)
+        Recurso.objects.create(sitio=self.gema, titulo="Brochure GEMA", clave="brochure", drive_nombre="Brochure GEMA.pdf",
+                               drive_carpeta="https://drive.google.com/drive/folders/1pRbw46EytRqZBP3mNmI4HqxvsfKtDJJ2")
+        con = self._web(self.gema)
+        self.assertIn('href="http://localhost:8000/descargas/gema/brochure/"', con)
+        self.assertNotIn("9 páginas", con)
+        with override_settings(GWA_URL_PUBLICA="http://localhost:8000"):
+            self.assertNotIn("downloads", datos_sitio(self.gema, publico=True)[0]["gema.admin.json"])
+        with override_settings(GWA_URL_PUBLICA="https://admin.geneos.com.ar"):
+            self.assertEqual(datos_sitio(self.gema, publico=True)[0]["gema.admin.json"]["downloads"],
+                             {"brochure": "https://admin.geneos.com.ar/descargas/gema/brochure/"})
+
     def test_gema_dos_planes_desde_el_administrador(self):
         """Nombres, precios, funciones y orden de las tarjetas de GEMA salen de «Planes y precios»."""
         html = self._web(self.gema)

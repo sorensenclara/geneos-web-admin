@@ -150,12 +150,16 @@
 {# 9. Preguntas frecuentes #}
 {{ pp.faq({"title": "Lo que más nos preguntan", "lead": "Respondemos las dudas más comunes sobre GEMA, el software de gestión de extintores.", "items": FAQS}) }}
 
-{# 10. Material (brochure) + demo #}
+{# 10. Material (brochure) + demo. El brochure se descarga de la dirección fija del administrador (/descargas/gema/brochure/),
+   que busca «Brochure GEMA.pdf» en la carpeta de Drive de Comunicación («Recursos descargables»). Sin administrador público,
+   el PDF incluido en la web. Con Drive no se indican páginas ni peso: pueden cambiar con cada versión. #}
+{% set BROCHURE = descarga("brochure", "descargas/brochure-gema-plataforma-de-gestion-de-matafuegos.pdf") %}
+{% set BROCHURE_DRIVE = BROCHURE.startswith("http") %}
 {{ pp.convert({
   "product": "GEMA",
-  "brochure": {"eyebrow": "Material", "href": "descargas/brochure-gema-plataforma-de-gestion-de-matafuegos.pdf", "file": "brochure-gema-plataforma-de-gestion-de-matafuegos.pdf",
+  "brochure": {"eyebrow": "Material", "href": BROCHURE, "file": "brochure-gema-plataforma-de-gestion-de-matafuegos.pdf",
                "cover": "gema/gema-brochure.webp", "cover_alt": "Brochure de GEMA, plataforma de gestión de matafuegos", "cover_w": 405, "cover_h": 485,
-               "text": "Conocé en detalle las funcionalidades, los planes y los módulos de GEMA (PDF · 9 páginas · 7,5 MB)."},
+               "text": "Conocé en detalle las funcionalidades, los planes y los módulos de GEMA" ~ (" (PDF)." if BROCHURE_DRIVE else " (PDF · 9 páginas · 7,5 MB).")},
   "form": {
     "text": "Completá tus datos y te contactamos para mostrarte cómo controlar todos los vencimientos de tus clientes desde un solo lugar.",
     "rows": [
