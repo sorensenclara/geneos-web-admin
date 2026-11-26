@@ -48,7 +48,7 @@
 @media (max-width: 420px) { .standalone .brand img { height: 34px; } }
 
 /* ---------- Footer ---------- */
-.standalone .footer-geneos img { width: 120px; height: auto; opacity: .85; }
+.standalone .footer-geneos img { width: 160px; height: auto; opacity: .9; }  /* logo GENEOS vigente (SVG blanco, con «Cooperativa de software») */
 .standalone .footer-geneos:hover img { opacity: 1; }
 
 /* ---------- Componentes de las páginas de versión ---------- */
